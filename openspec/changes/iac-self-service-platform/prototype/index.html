@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IaC 自助平台 · 原型</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme: { extend: { colors: {
+  tm: { 50:'#faf5ff',100:'#f3e8ff',200:'#e9d5ff',300:'#d8b4fe',400:'#c084fc',500:'#a855f7',600:'#9333ea',700:'#7e22ce',800:'#6b21a8',900:'#581c87' },
+  ink: { 700:'#334155',800:'#1e293b',900:'#0f172a' }
+}}}}
+</script>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  [v-cloak]{display:none}
+  .layer-global{background:linear-gradient(135deg,#6366f1,#8b5cf6)}
+  .layer-middleware{background:linear-gradient(135deg,#0ea5e9,#06b6d4)}
+  .layer-app{background:linear-gradient(135deg,#10b981,#22c55e)}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+<div id="app" v-cloak class="flex h-screen overflow-hidden">
+
+  <!-- ============ 侧边导航 ============ -->
+  <aside class="w-60 bg-ink-900 text-slate-300 flex flex-col flex-shrink-0">
+    <div class="h-14 flex items-center gap-2 px-5 border-b border-slate-700">
+      <div class="w-8 h-8 rounded-lg layer-global flex items-center justify-center text-white font-bold">T</div>
+      <div class="leading-tight">
+        <div class="text-white font-semibold text-sm">IaC 自助平台</div>
+        <div class="text-[10px] text-slate-500">powered by Terramate</div>
+      </div>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-3 text-sm">
+      <div v-for="g in navGroups" :key="g.title">
+        <div class="px-5 py-1.5 text-[10px] uppercase tracking-wider text-slate-500">{{g.title}}</div>
+        <a v-for="item in g.items" :key="item.view" @click="go(item.view)"
+           :class="['flex items-center gap-3 px-5 py-2 cursor-pointer hover:bg-slate-800 transition',
+                    currentView===item.view ? 'bg-slate-800 text-white border-r-2 border-tm-500' : '']">
+          <span class="text-base w-5 text-center">{{item.icon}}</span>
+          <span>{{item.label}}</span>
+          <span v-if="item.badge" class="ml-auto bg-tm-600 text-white text-[10px] px-1.5 rounded-full">{{item.badge}}</span>
+        </a>
+      </div>
+    </nav>
+    <div class="p-3 border-t border-slate-700 text-[11px] text-slate-500">
+      <div>环境：<b class="text-slate-300">{{env}}</b></div>
+      <div>v0.1.0-prototype</div>
+    </div>
+  </aside>
+
+  <!-- ============ 主区 ============ -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <!-- 顶部栏 -->
+    <header class="h-14 bg-white border-b flex items-center px-6 gap-4 flex-shrink-0">
+      <div class="text-lg font-semibold text-ink-900">{{currentTitle}}</div>
+      <div class="ml-auto flex items-center gap-3 text-sm">
+        <div class="flex bg-slate-100 rounded-lg p-0.5">
+          <button v-for="e in ['dev','staging','prod']" :key="e" @click="env=e"
+            :class="['px-3 py-1 rounded text-xs', env===e ? 'bg-white shadow text-ink-900 font-medium' : 'text-slate-500']">
+            {{e==='prod'?'生产':e==='staging'?'预发':'开发'}}
+          </button>
+        </div>
+        <button class="relative text-xl" title="通知">🔔<span class="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center">3</span></button>
+        <div class="flex items-center gap-2"><div class="w-8 h-8 rounded-full bg-tm-500 text-white flex items-center justify-center text-xs">YX</div><span class="text-slate-600">曹·平台管理员</span></div>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-6">
+
+      <!-- ============ 仪表盘 ============ -->
+      <section v-if="currentView==='dashboard'">
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div v-for="s in stats" :key="s.label" class="bg-white rounded-xl p-5 shadow-sm border">
+            <div class="text-sm text-slate-500">{{s.label}}</div>
+            <div class="text-3xl font-bold mt-1" :class="s.color">{{s.value}}</div>
+            <div class="text-xs text-slate-400 mt-1">{{s.sub}}</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+          <div class="col-span-2 bg-white rounded-xl p-5 shadow-sm border">
+            <div class="font-semibold mb-3">最近工单</div>
+            <table class="w-full text-sm">
+              <thead class="text-slate-500 text-xs"><tr><th class="text-left pb-2">工单</th><th class="text-left">目录项</th><th class="text-left">团队</th><th class="text-left">状态</th></tr></thead>
+              <tbody>
+                <tr v-for="r in requests.slice(0,5)" :key="r.id" @click="openRequest(r)" class="cursor-pointer hover:bg-slate-50">
+                  <td class="py-2 font-mono text-xs">{{r.id}}</td><td>{{r.title}}</td><td>{{r.team}}</td>
+                  <td><status-pill :status="r.status"/></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="bg-white rounded-xl p-5 shadow-sm border">
+            <div class="font-semibold mb-3">漂移概览</div>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between"><span class="text-slate-500">Global</span><span class="text-amber-600 font-medium">1 漂移</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Middleware</span><span class="text-green-600">同步中</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Application</span><span class="text-amber-600">2 漂移</span></div>
+            </div>
+            <button @click="currentView='drift'" class="mt-3 text-xs text-tm-600 hover:underline">查看漂移中心 →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 服务目录 ============ -->
+      <section v-if="currentView==='catalog'">
+        <div class="flex gap-2 mb-4">
+          <button v-for="l in ['全部','Global','Middleware','Application']" :key="l" @click="catalogLayer=l"
+            :class="['px-3 py-1.5 rounded-lg text-sm', catalogLayer===l?'bg-tm-600 text-white':'bg-white border']">{{l}}</button>
+          <input v-model="catalogSearch" placeholder="搜索目录项…" class="ml-auto px-3 py-1.5 border rounded-lg text-sm w-56"/>
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+          <div v-for="c in filteredCatalog" :key="c.id" class="bg-white rounded-xl p-5 shadow-sm border hover:shadow-md transition cursor-pointer" @click="startRequest(c)">
+            <div class="flex items-start justify-between">
+              <div :class="['w-10 h-10 rounded-lg flex items-center justify-center text-white text-xl', layerClass(c.layer)]">{{c.icon}}</div>
+              <span :class="['text-[10px] px-2 py-0.5 rounded-full', layerClass(c.layer)]+' text-white opacity-90'">{{c.layer}}</span>
+            </div>
+            <div class="font-semibold mt-3">{{c.name}}</div>
+            <div class="text-xs text-slate-500 mt-1">归属：{{c.team}} · 模块 {{c.module}}</div>
+            <div class="text-xs text-slate-400 mt-2">可见：{{c.visibility}}</div>
+            <button class="mt-3 w-full bg-tm-50 text-tm-700 py-1.5 rounded-lg text-sm font-medium hover:bg-tm-100">申请</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 申请表单 ============ -->
+      <section v-if="currentView==='newRequest'">
+        <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-sm border p-6">
+          <button @click="currentView='catalog'" class="text-sm text-slate-500 mb-3 hover:text-tm-600">← 返回目录</button>
+          <div class="flex items-center gap-3 mb-4">
+            <div :class="['w-12 h-12 rounded-xl flex items-center justify-center text-white text-2xl', layerClass(activeCatalog.layer)]">{{activeCatalog.icon}}</div>
+            <div><div class="text-lg font-semibold">{{activeCatalog.name}}</div><div class="text-xs text-slate-500">{{activeCatalog.layer}} · 归属 {{activeCatalog.team}} · 目标 bundle {{form.bundle}}</div></div>
+          </div>
+          <div class="bg-tm-50 border border-tm-100 rounded-lg p-3 text-xs text-tm-800 mb-4">
+            💡 表单只暴露关键字段，其余 <b>{{activeCatalog.hiddenVars}}</b> 个变量由平台按最佳实践自动注入（含安全组合规、备份策略）。
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-medium">目标 Bundle</label>
+              <select v-model="form.bundle" class="w-full mt-1 border rounded-lg px-3 py-2 text-sm">
+                <option>team-a/orders</option><option>team-a/users</option><option>team-b/orders</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-sm font-medium">实例规格 *</label>
+              <select v-model="form.instance_type" class="w-full mt-1 border rounded-lg px-3 py-2 text-sm">
+                <option>mysql.n2.medium.1c</option><option>mysql.n2.large.1c</option><option>mysql.n2.xlarge.1c</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-sm font-medium">存储大小 (GB) *</label>
+              <input type="number" v-model.number="form.storage" class="w-full mt-1 border rounded-lg px-3 py-2 text-sm" min="20"/>
+            </div>
+            <div>
+              <label class="text-sm font-medium">高可用</label>
+              <select v-model="form.ha" class="w-full mt-1 border rounded-lg px-3 py-2 text-sm"><option :value="false">单机</option><option :value="true">主备（推荐）</option></select>
+            </div>
+          </div>
+          <div class="mt-4 p-3 bg-slate-50 rounded-lg text-xs">
+            <div class="flex justify-between"><span class="text-slate-500">预估月成本（Infracost）</span><span class="font-semibold text-ink-900">¥ {{estCost}} / 月</span></div>
+            <div class="flex justify-between mt-1"><span class="text-slate-500">生成 stack 路径</span><span class="font-mono">middleware/{{env}}/rds-{{form.bundle.split('/').pop()}}</span></div>
+          </div>
+          <div class="mt-4 flex gap-2 justify-end">
+            <button @click="currentView='catalog'" class="px-4 py-2 border rounded-lg text-sm">取消</button>
+            <button @click="submitRequest" class="px-4 py-2 bg-tm-600 text-white rounded-lg text-sm font-medium hover:bg-tm-700">提交申请</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 工单中心 ============ -->
+      <section v-if="currentView==='requests'">
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500 text-xs"><tr>
+              <th class="text-left p-3">工单ID</th><th class="text-left">标题</th><th class="text-left">目录项</th><th class="text-left">团队</th><th class="text-left">阶段</th><th class="text-left">成本</th><th class="text-left">更新</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="r in requests" :key="r.id" @click="openRequest(r)" class="cursor-pointer hover:bg-slate-50 border-t">
+                <td class="p-3 font-mono text-xs">{{r.id}}</td><td>{{r.title}}</td><td>{{r.catalog}}</td><td>{{r.team}}</td>
+                <td><status-pill :status="r.status"/></td><td>¥{{r.cost}}</td><td class="text-slate-400">{{r.updated}}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 工单详情抽屉 -->
+      <div v-if="activeRequest" class="fixed inset-0 bg-black/40 z-40 flex justify-end" @click.self="activeRequest=null">
+        <div class="w-[640px] bg-white h-full overflow-y-auto shadow-2xl">
+          <div class="p-6 border-b sticky top-0 bg-white">
+            <div class="flex justify-between items-start">
+              <div><div class="font-mono text-xs text-slate-400">{{activeRequest.id}}</div><div class="text-lg font-semibold mt-1">{{activeRequest.title}}</div></div>
+              <button @click="activeRequest=null" class="text-slate-400 text-xl">✕</button>
+            </div>
+            <div class="mt-2 flex gap-2 text-xs"><status-pill :status="activeRequest.status"/><span class="text-slate-400">· {{activeRequest.team}} · bundle {{activeRequest.bundle}}</span></div>
+          </div>
+          <div class="p-6 space-y-5">
+            <!-- 状态机时间线 -->
+            <div>
+              <div class="text-sm font-semibold mb-3">流水线</div>
+              <div class="space-y-0">
+                <div v-for="(st,i) in pipeline" :key="st.name" class="flex gap-3">
+                  <div class="flex flex-col items-center">
+                    <div :class="['w-7 h-7 rounded-full flex items-center justify-center text-xs', stageState(activeRequest,st,i)]">{{stageIcon(activeRequest,st,i)}}</div>
+                    <div v-if="i<pipeline.length-1" :class="['w-0.5 h-8', i < currentIndex(activeRequest) ? 'bg-tm-500':'bg-slate-200']"></div>
+                  </div>
+                  <div class="pb-2"><div class="text-sm font-medium">{{st.name}}</div><div class="text-xs text-slate-400">{{st.desc}}</div></div>
+                </div>
+              </div>
+            </div>
+            <!-- 审批节点链 -->
+            <div>
+              <div class="text-sm font-semibold mb-2">审批节点（基于 RBAC 组织路由）</div>
+              <div class="flex items-center gap-2 text-xs">
+                <div v-for="(a,i) in approvalChain" :key="i" class="flex items-center gap-2">
+                  <div class="bg-slate-100 rounded-lg px-3 py-1.5">
+                    <div class="font-medium">{{a.role}}</div><div class="text-slate-400">{{a.team}}</div>
+                  </div><span v-if="i<approvalChain.length-1">→</span>
+                </div>
+              </div>
+            </div>
+            <!-- Plan 摘要 -->
+            <div>
+              <div class="text-sm font-semibold mb-2">Plan 摘要</div>
+              <pre class="bg-ink-900 text-green-300 text-xs rounded-lg p-3 overflow-x-auto">Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # module.rds.alicloud_db_instance.this will be created
+  + resource "alicloud_db_instance" "this" {
+      + engine             = "mysql"
+      + instance_type      = "mysql.n2.medium.1c"
+      + instance_storage   = {{activeRequest.storage||100}}
+      + ...
+    }
+Plan: 1 to add, 0 to change, 0 to destroy.</pre>
+            </div>
+            <!-- OPA 策略 -->
+            <div>
+              <div class="text-sm font-semibold mb-2">策略检查（OPA）</div>
+              <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg p-3 text-xs">✓ 通过：安全组最小开放、备份开启、生产规格合规</div>
+            </div>
+            <!-- 代码提交 -->
+            <div>
+              <div class="text-sm font-semibold mb-2">执行目录（内置 git worktree）</div>
+              <div class="bg-slate-50 rounded-lg p-3 text-xs font-mono text-slate-600">
+                worktree: /var/tm/wt/{{activeRequest.id}}<br/>
+                branch: auto/{{activeRequest.id}}<br/>
+                pinned_commit: 7f3a9c2<br/>
+                state_key: middleware/{{env}}/{{activeRequest.bundle}}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 审批中心 ============ -->
+      <section v-if="currentView==='approvals'">
+        <div class="grid grid-cols-2 gap-4">
+          <div v-for="a in approvals" :key="a.id" class="bg-white rounded-xl shadow-sm border p-5">
+            <div class="flex justify-between"><div class="font-mono text-xs text-slate-400">{{a.id}}</div><status-pill status="pending-approval"/></div>
+            <div class="font-semibold mt-1">{{a.title}}</div>
+            <div class="text-xs text-slate-500 mt-1">{{a.team}} → {{a.catalog}} · ¥{{a.cost}}/月</div>
+            <div class="bg-amber-50 border border-amber-200 rounded p-2 text-xs text-amber-800 mt-2">⚠ {{a.risk}}</div>
+            <div class="flex gap-2 mt-3">
+              <button @click="decide(a,'reject')" class="flex-1 border border-red-300 text-red-600 py-1.5 rounded-lg text-sm hover:bg-red-50">驳回</button>
+              <button @click="decide(a,'approve')" class="flex-1 bg-tm-600 text-white py-1.5 rounded-lg text-sm hover:bg-tm-700">批准 → Apply</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 漂移中心 ============ -->
+      <section v-if="currentView==='drift'">
+        <div class="flex gap-2 mb-4 items-center text-sm">
+          <span class="text-slate-500">检测器：自研 DriftDetector（开源 Terramate 无，平台实现）</span>
+          <span class="ml-auto text-xs bg-slate-100 px-2 py-1 rounded">下次检测：02:00 · Global / Middleware</span>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500 text-xs"><tr><th class="text-left p-3">Stack</th><th class="text-left">层</th><th class="text-left">发现于</th><th class="text-left">差异摘要</th><th class="text-left">处置</th></tr></thead>
+            <tbody>
+              <tr v-for="d in drifts" :key="d.id" class="border-t">
+                <td class="p-3 font-mono text-xs">{{d.stack}}</td><td>{{d.layer}}</td><td class="text-slate-400">{{d.detected}}</td>
+                <td class="text-amber-700">{{d.diff}}</td>
+                <td>
+                  <button @click="resolveDrift(d,'adopt')" class="text-xs px-2 py-1 border rounded hover:bg-slate-50">采用云端</button>
+                  <button @click="resolveDrift(d,'restore')" class="text-xs px-2 py-1 border rounded hover:bg-slate-50 ml-1">恢复期望</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ 模块注册 ============ -->
+      <section v-if="currentView==='modules'">
+        <div class="flex justify-between items-center mb-4">
+          <div class="text-sm text-slate-500">注册表：从 Git 注册原子模块，提取变量契约供服务目录引用</div>
+          <button @click="newModule=!newModule" class="bg-tm-600 text-white px-3 py-1.5 rounded-lg text-sm">+ 注册模块</button>
+        </div>
+        <div v-if="newModule" class="bg-white rounded-xl border p-5 mb-4 grid grid-cols-2 gap-3">
+          <input v-model="moduleForm.namespace" placeholder="命名空间（如 dba/rds）" class="border rounded-lg px-3 py-2 text-sm col-span-2"/>
+          <input v-model="moduleForm.source" placeholder="Git 源 git::https://…@ref=v1.2.0" class="border rounded-lg px-3 py-2 text-sm col-span-2"/>
+          <select v-model="moduleForm.layer" class="border rounded-lg px-3 py-2 text-sm"><option>Global</option><option>Middleware</option><option>Application</option></select>
+          <select v-model="moduleForm.team" class="border rounded-lg px-3 py-2 text-sm"><option>平台运维</option><option>DBA</option><option>中间件</option><option>业务A</option></select>
+          <button @click="registerModule" class="col-span-2 bg-tm-600 text-white py-2 rounded-lg text-sm">注册并提取契约</button>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500 text-xs"><tr><th class="text-left p-3">命名空间</th><th class="text-left">源</th><th class="text-left">层/团队</th><th class="text-left">版本</th><th class="text-left">变量</th><th class="text-left">状态</th></tr></thead>
+            <tbody>
+              <tr v-for="m in modules" :key="m.ns" class="border-t hover:bg-slate-50">
+                <td class="p-3 font-mono text-xs">{{m.ns}}</td><td class="font-mono text-xs text-slate-500">{{m.source}}</td>
+                <td>{{m.layer}}/{{m.team}}</td><td>{{m.ref}}</td><td>{{m.vars}} 个</td>
+                <td><span :class="['text-xs px-2 py-0.5 rounded-full', m.status==='validated'?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700']">{{m.status}}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ 存量导入向导 ============ -->
+      <section v-if="currentView==='import'">
+        <div class="max-w-3xl mx-auto">
+          <div class="bg-tm-50 border border-tm-100 rounded-lg p-3 text-xs text-tm-800 mb-4">
+            💡 利用 Terraform 1.5+ 声明式 <code>import</code> 块：选模块 → 输入云端资源 ID → 平台生成 import 块 + 模块调用 → import → plan 验证无重建 → 纳管。
+          </div>
+          <div class="flex items-center mb-6">
+            <div v-for="(s,i) in importSteps" :key="i" class="flex items-center flex-1">
+              <div :class="['w-8 h-8 rounded-full flex items-center justify-center text-sm', importStep>i?'bg-tm-600 text-white':importStep===i?'bg-tm-600 text-white ring-4 ring-tm-100':'bg-slate-200 text-slate-400']">{{importStep>i?'✓':i+1}}</div>
+              <div class="ml-2 text-sm" :class="importStep>=i?'text-ink-900 font-medium':'text-slate-400'">{{s}}</div>
+              <div v-if="i<importSteps.length-1" :class="['flex-1 h-0.5 mx-3', importStep>i?'bg-tm-500':'bg-slate-200']"></div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-sm border p-6">
+            <!-- step 0: 选模块 -->
+            <div v-if="importStep===0">
+              <div class="text-sm font-medium mb-2">选择原子模块（决定 import 后生成什么代码）</div>
+              <select v-model="imp.module" class="w-full border rounded-lg px-3 py-2 text-sm">
+                <option v-for="m in modules.filter(x=>x.status==='validated')" :key="m.ns" :value="m.ns">{{m.ns}} — {{m.layer}}</option>
+              </select>
+              <button @click="importStep=1" :disabled="!imp.module" class="mt-4 bg-tm-600 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-40">下一步</button>
+            </div>
+            <!-- step 1: 输入资源 ID -->
+            <div v-if="importStep===1">
+              <div class="text-sm font-medium mb-2">输入云端存量资源 ID</div>
+              <input v-model="imp.resourceId" placeholder="例如 rm-bp1xxxxxxx（阿里云 RDS 实例 ID）" class="w-full border rounded-lg px-3 py-2 text-sm font-mono"/>
+              <div class="text-xs text-slate-500 mt-2">平台会校验：该资源 provider 是否支持 import、字段能否与模块 schema 对齐、敏感字段（密码）将留空待填。</div>
+              <button @click="importStep=0" class="mt-4 border px-4 py-2 rounded-lg text-sm">上一步</button>
+              <button @click="importStep=2" :disabled="!imp.resourceId" class="mt-4 ml-2 bg-tm-600 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-40">下一步</button>
+            </div>
+            <!-- step 2: import 执行 -->
+            <div v-if="importStep===2">
+              <div class="text-sm font-medium mb-2">平台生成并执行 import</div>
+              <pre class="bg-ink-900 text-cyan-300 text-xs rounded-lg p-3">import {
+  to = module.rds.alicloud_db_instance.this
+  id = "{{imp.resourceId}}"
+}
+
+module "rds" {
+  source = "git::...@{{impVer}}"
+  # 从 import 结果回填，敏感字段留空
+}</pre>
+              <div class="text-xs text-slate-500 mt-2">运行 <code>terramate run -- terraform plan</code> 应显示 <b>0 to add/change/destroy</b>，否则代码与存量不一致，需调整。</div>
+              <button @click="importStep=1" class="mt-4 border px-4 py-2 rounded-lg text-sm">上一步</button>
+              <button @click="importStep=3" class="mt-4 ml-2 bg-tm-600 text-white px-4 py-2 rounded-lg text-sm">执行 import</button>
+            </div>
+            <!-- step 3: 完成 -->
+            <div v-if="importStep===3">
+              <div class="text-center py-6">
+                <div class="text-5xl">✅</div>
+                <div class="font-semibold mt-3">纳管成功</div>
+                <div class="text-sm text-slate-500 mt-1">资源 {{imp.resourceId}} 已导入为 stack，plan 验证通过（0 变更）</div>
+                <button @click="importStep=0;imp={}" class="mt-4 border px-4 py-2 rounded-lg text-sm">再导一个</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 版本与工具链 ============ -->
+      <section v-if="currentView==='versions'">
+        <div class="grid grid-cols-3 gap-4 mb-4">
+          <div class="bg-white rounded-xl shadow-sm border p-5">
+            <div class="text-sm text-slate-500">Terramate 版本</div>
+            <select v-model="ver.terramate" class="w-full mt-2 border rounded-lg px-3 py-2 text-sm font-mono">
+              <option>v0.17.1</option><option>v0.17.0</option><option>v0.16.0</option>
+            </select>
+            <div class="text-xs text-slate-400 mt-2">引擎层全局锁定，exec 适配器调用此版本</div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border p-5">
+            <div class="text-sm text-slate-500">Terraform / OpenTofu 版本</div>
+            <select v-model="ver.terraform" class="w-full mt-1 border rounded-lg px-3 py-2 text-sm font-mono">
+              <option>terraform 1.9.x</option><option>terraform 1.5.x</option><option>opentofu 1.8.x</option>
+            </select>
+            <div class="text-xs text-slate-400 mt-2">per-stack 由 <code>required_version</code> 约束，平台用 tenv/tfenv 多版本共存</div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border p-5">
+            <div class="text-sm text-slate-500">Provider 锁定</div>
+            <div class="text-xs font-mono mt-2 bg-slate-50 p-2 rounded">alicloud = 1.235.x<br/>aws = 5.60.x<br/>（.terraform.lock.hcl）</div>
+            <div class="text-xs text-slate-400 mt-2">私有 provider 走 registry mirror（企业自建）</div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+          <div class="flex items-center justify-between mb-1">
+            <div class="font-semibold">执行运行时（Executor 模式 · D20）</div>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700">K8s 与镜像仓库均非必需</span>
+          </div>
+          <div class="text-xs text-slate-500 mb-3">每工单在此沙箱内执行 terramate/terraform；process=零依赖默认（节点预装工具链），容器类模式才需下方 worker 镜像 + ImageBuilder/Registry。借鉴 Atlantis（进程派）+ Spacelift/Env0（容器派）。</div>
+          <div class="grid grid-cols-4 gap-3 mb-3">
+            <div v-for="m in executorModes" :key="m.id" @click="executorMode=m.id"
+                 :class="['border rounded-lg p-3 cursor-pointer transition', executorMode===m.id?'border-tm-500 bg-tm-50 ring-1 ring-tm-300':'border-slate-200 hover:border-slate-300']">
+              <div class="flex items-center justify-between">
+                <div class="text-xl">{{m.icon}}</div>
+                <span v-if="m.id==='process'" class="text-[9px] px-1.5 py-0.5 rounded bg-green-100 text-green-700">默认</span>
+                <span :class="['text-[9px] px-1.5 py-0.5 rounded', m.needRegistry?'bg-amber-100 text-amber-700':'bg-slate-100 text-slate-500']">{{m.needRegistry?'需仓库':'无仓库'}}</span>
+              </div>
+              <div class="font-medium text-sm mt-1.5">{{m.name}}</div>
+              <div class="text-[11px] text-slate-500 mt-0.5 leading-snug">{{m.desc}}</div>
+            </div>
+          </div>
+          <div class="text-xs bg-slate-50 rounded-lg p-3 border border-slate-100">
+            <span class="text-slate-400">当前「{{executorModes.find(m=>m.id===executorMode).name}}」配置：</span>
+            <span v-if="executorMode==='process'" class="font-mono text-slate-700">节点预装工具链（installer 维护版本基线）+ worktree 目录 + 子进程 + cgroups v2/netns；无容器/镜像/K8s</span>
+            <span v-if="executorMode==='container'" class="font-mono text-slate-700">runtime=docker|podman；每工单一容器（下方 worker 镜像）；镜像由 ImageBuilder 构建→push 到 ImageRegistry</span>
+            <span v-if="executorMode==='kubernetes'" class="font-mono text-slate-700">namespace=tm-exec；每工单一 Job/Pod + ResourceQuota；镜像仓库需可达（Harbor/ACR/ECR/内嵌）</span>
+            <span v-if="executorMode==='remote'" class="font-mono text-slate-700">SSH 节点池（每节点标 process 或 container）；适合离线/裸机/复用存量主机，水平扩展</span>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border p-5" :class="['block','process'].includes(executorMode)?'opacity-60':''">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Worker 执行镜像（仅容器类模式：container / kubernetes / remote·container）</div>
+            <button v-if="['container','kubernetes','remote'].includes(executorMode)" @click="triggerBuild" :disabled="buildingImage" class="text-xs px-3 py-1 rounded-lg bg-tm-600 text-white hover:bg-tm-700 disabled:opacity-50">{{buildingImage?'构建中…':'🛠 保存版本→构建镜像'}}</button>
+            <span v-if="executorMode==='process'" class="text-xs text-slate-400">process 模式不触发镜像构建</span>
+          </div>
+          <div class="text-xs text-slate-500 mb-3">Web 配版本组合 → <b>ImageBuilder</b> 渲染 Dockerfile → 异步构建 → tag（tm-worker:tm0.17-tf1.9-日期）→ push 到 <b>ImageRegistry</b>（Harbor/ACR/ECR/内嵌/文件中转）→ 灰度。process 模式不触发构建。</div>
+          <div class="grid grid-cols-2 gap-3">
+            <div v-for="w in workers" :key="w.name" class="border rounded-lg p-3" :class="w.active?'border-tm-500 bg-tm-50':'border-slate-200'">
+              <div class="flex justify-between"><div class="font-mono text-sm">{{w.name}}</div><span v-if="w.active" class="text-xs text-tm-600">默认</span></div>
+              <div class="text-xs text-slate-500 mt-1">{{w.desc}}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 组织与权限 ============ -->
+      <section v-if="currentView==='org'">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-white rounded-xl shadow-sm border p-5">
+            <div class="font-semibold mb-3">身份源（统一抽象层：IdP + 目录同步）</div>
+            <div class="space-y-2">
+              <div v-for="src in idSources" :key="src.name" class="flex items-center justify-between border rounded-lg p-3">
+                <div><div class="font-medium text-sm">{{src.name}}</div><div class="text-xs text-slate-500">{{src.proto}}</div></div>
+                <div class="flex items-center gap-2">
+                  <span :class="['text-xs px-2 py-0.5 rounded-full', src.enabled?'bg-green-100 text-green-700':'bg-slate-100 text-slate-500']">{{src.enabled?'已启用':'未启用'}}</span>
+                  <span class="text-xs text-slate-400">{{src.lastSync}}</span>
+                </div>
+              </div>
+            </div>
+            <div class="text-xs text-slate-400 mt-3">认证走 OIDC/SAML（企业 IDP），组织数据走 SCIM 2.0 或定时同步（飞书/钉钉开放 API）。组织 → 平台团队/项目组 自动映射。</div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border p-5">
+            <div class="font-semibold mb-3">组织树 → 平台归属</div>
+            <ul class="text-sm space-y-1">
+              <li>🏢 平台工程<ul class="ml-5 text-slate-600">
+                <li>🖥 平台运维（VPC/ACK）</li></ul></li>
+              <li class="mt-1">🗄 数据<ul class="ml-5 text-slate-600"><li>DBA（RDS/Redis）</li></ul></li>
+              <li class="mt-1">🔗 中间件<ul class="ml-5 text-slate-600"><li>中间件（Kafka/MQ）</li></ul></li>
+              <li class="mt-1">📦 业务<ul class="ml-5 text-slate-600"><li>业务A（项目组：orders/users）</li><li>业务B</li></ul></li>
+            </ul>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border p-5 mt-4">
+          <div class="font-semibold mb-3">RBAC 矩阵（团队 × 资源层 × 动作）</div>
+          <table class="w-full text-xs">
+            <thead class="text-slate-500"><tr><th class="text-left">团队</th><th>Global 申请</th><th>Global 审批</th><th>Middleware 申请</th><th>App 申请/执行</th><th>漂移处置</th></tr></thead>
+            <tbody>
+              <tr class="border-t"><td class="py-2">平台运维</td><td>✅</td><td>✅</td><td>—</td><td>—</td><td>✅(Global)</td></tr>
+              <tr class="border-t"><td class="py-2">DBA</td><td>—</td><td>—</td><td>✅/审批</td><td>申请账号</td><td>✅(RDS)</td></tr>
+              <tr class="border-t"><td class="py-2">业务A</td><td>❌</td><td>❌</td><td>申请</td><td>✅</td><td>查看</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ 云账号与凭据（D23） ============ -->
+      <section v-if="currentView==='cloud-creds'">
+        <div class="bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg p-3 mb-4">
+          <b>设计原则（D23）</b>：平台代跑（非人手）+ per-team 而非 per-person + OIDC 优先免长存 + 角色模板化最小权限 + 团队↔云账号授权驱动申请过滤。<b>个人 MUST NOT 持有执行云凭据</b>。业界（Spacelift/Env0/TFC/Vault）共识。
+        </div>
+
+        <!-- 三层凭据模型 -->
+        <div class="bg-white rounded-xl shadow-sm border p-5 mb-4">
+          <div class="font-semibold mb-3">三层凭据模型</div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="border border-red-200 bg-red-50 rounded-lg p-3">
+              <div class="flex items-center justify-between">
+                <div class="font-medium text-sm">Bootstrap / Admin</div>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700">vault 级</span>
+              </div>
+              <div class="text-xs text-slate-600 mt-1.5">每云账号 <b>1 套</b>，开通/IAM/读账单/建子角色</div>
+              <div class="text-[11px] text-slate-500 mt-1">长期 AK/SK · 双人审批 · 周期轮换 · 全审计</div>
+            </div>
+            <div class="border border-amber-200 bg-amber-50 rounded-lg p-3">
+              <div class="flex items-center justify-between">
+                <div class="font-medium text-sm">执行凭据（Execution）</div>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700">OIDC 优先</span>
+              </div>
+              <div class="text-xs text-slate-600 mt-1.5">per-team / per-bundle × per-cloud_account</div>
+              <div class="text-[11px] text-slate-500 mt-1">OIDC ephemeral STS（无长存）；fallback 长 AK/SK 90 天轮换</div>
+            </div>
+            <div class="border border-slate-200 bg-slate-50 rounded-lg p-3">
+              <div class="flex items-center justify-between">
+                <div class="font-medium text-sm">个人（Personal）</div>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">仅 RBAC</span>
+              </div>
+              <div class="text-xs text-slate-600 mt-1.5">UI 操作 / 查看 / 审批 / 提申请</div>
+              <div class="text-[11px] text-red-600 mt-1">❌ 禁持执行云凭据——平台代跑而非人手</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 云账号清单 -->
+        <div class="bg-white rounded-xl shadow-sm border p-5 mb-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="font-semibold">云账号纳管（cloud_accounts）</div>
+            <button @click="notify('打开新建云账号向导：provider + account_id + 别名 + region + bootstrap 凭据（双人审批）')" class="text-xs px-3 py-1 rounded-lg bg-tm-600 text-white hover:bg-tm-700">+ 注册云账号</button>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500 text-xs"><tr>
+              <th class="text-left p-2">Provider</th><th class="text-left">账号 ID / 别名</th><th class="text-left">Region</th><th class="text-left">OIDC Trust</th><th class="text-left">Bootstrap</th><th class="text-left">操作</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="ca in cloudAccounts" :key="ca.id" class="border-t">
+                <td class="p-2 font-mono">{{ca.provider}}</td>
+                <td class="p-2"><div class="font-mono text-xs">{{ca.account_id}}</div><div class="text-xs text-slate-500">{{ca.alias}}</div></td>
+                <td class="p-2 text-xs">{{ca.region}}</td>
+                <td class="p-2"><span :class="['text-[10px] px-1.5 py-0.5 rounded-full', ca.oidc?'bg-green-100 text-green-700':'bg-slate-100 text-slate-500']">{{ca.oidc?'已配':'未配'}}</span></td>
+                <td class="p-2"><span :class="['text-[10px] px-1.5 py-0.5 rounded-full', ca.bootstrapStatus==='ok'?'bg-green-100 text-green-700':ca.bootstrapStatus==='rotate'?'bg-amber-100 text-amber-700':'bg-slate-100 text-slate-500']">{{ca.bootstrapStatus==='ok'?'正常':ca.bootstrapStatus==='rotate'?'待轮换':'未配'}}</span></td>
+                <td class="p-2 text-xs"><button @click="notify('配置 OIDC trust / 角色 / bootstrap 轮换（双人审批）')" class="text-tm-600 hover:underline">配置</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 团队授权矩阵（驱动申请过滤） -->
+        <div class="bg-white rounded-xl shadow-sm border p-5 mb-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="font-semibold">团队↔云账号授权（team_cloud_grants · 申请过滤闸）</div>
+            <button @click="notify('为团队授予某云账号的申请权（allowed_layers + iam_role_template + 配额 + 过期）')" class="text-xs px-3 py-1 rounded-lg bg-tm-600 text-white hover:bg-tm-700">+ 授权</button>
+          </div>
+          <div class="text-xs text-slate-500 mb-3"><b>GET /catalog</b> + <b>GET /requestable-cloud-accounts</b> 按调用者团队 join 此表过滤——申请页"目标云"下拉只列被授权的云账号。</div>
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500 text-xs"><tr>
+              <th class="text-left p-2">团队</th><th class="text-left">云账号</th><th class="text-left">可申请层</th><th class="text-left">IAM 角色模板</th><th class="text-left">月配额</th><th class="text-left">过期</th><th class="text-left">操作</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="(g, i) in teamGrants" :key="i" class="border-t">
+                <td class="p-2">{{g.team}}</td>
+                <td class="p-2 font-mono text-xs">{{g.cloud}}</td>
+                <td class="p-2"><span v-for="l in g.layers" :key="l" class="text-[10px] px-1.5 py-0.5 mr-1 rounded bg-tm-50 text-tm-700">{{l}}</span></td>
+                <td class="p-2 font-mono text-xs">{{g.role}}</td>
+                <td class="p-2 text-xs">¥{{g.quota}}</td>
+                <td class="p-2 text-xs" :class="g.expires==='-'?'text-slate-400':'text-amber-600'">{{g.expires}}</td>
+                <td class="p-2 text-xs"><button @click="notify('撤销授权（g.team 对 g.cloud）——现有资源不受影响，仅阻断新申请')" class="text-red-600 hover:underline">撤销</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 凭据列表（密文永不回显） -->
+        <div class="bg-white rounded-xl shadow-sm border p-5 mb-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="font-semibold">凭据列表（<b>明文永不回显</b>）</div>
+            <button @click="notify('新建凭据：bootstrap 双人审批 / 执行 OIDC 或长 AK/SK')" class="text-xs px-3 py-1 rounded-lg bg-tm-600 text-white hover:bg-tm-700">+ 新建凭据</button>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500 text-xs"><tr>
+              <th class="text-left p-2">类型</th><th class="text-left">作用域</th><th class="text-left">assume 角色</th><th class="text-left">状态</th><th class="text-left">轮换窗口</th><th class="text-left">操作</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="c in cloudCredentials" :key="c.id" class="border-t">
+                <td class="p-2">
+                  <span :class="['text-[10px] px-1.5 py-0.5 rounded-full font-medium', c.type==='bootstrap'?'bg-red-100 text-red-700':c.type==='oidc'?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700']">{{c.typeLabel}}</span>
+                </td>
+                <td class="p-2 text-xs">{{c.scope}}</td>
+                <td class="p-2 font-mono text-xs">{{c.role||'—'}}</td>
+                <td class="p-2"><span :class="['text-[10px] px-1.5 py-0.5 rounded-full', c.status==='active'?'bg-green-100 text-green-700':c.status==='rotate'?'bg-amber-100 text-amber-700':'bg-slate-100 text-slate-500']">{{c.statusLabel}}</span></td>
+                <td class="p-2 text-xs" :class="c.rotate==='紧急'?'text-red-600':c.rotate.includes('天')?'text-amber-600':'text-slate-500'">{{c.rotate}}</td>
+                <td class="p-2 text-xs space-x-2">
+                  <button @click="notify('测试连接（仅验证不回显）')" class="text-tm-600 hover:underline">测试</button>
+                  <button @click="rotateCredential(c)" :class="c.type==='bootstrap'?'text-amber-700':'text-red-600'" class="hover:underline">{{c.type==='bootstrap'?'发起轮换（双审）':'轮换'}}</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="text-[11px] text-slate-400 mt-3">扫描任务：每天 02:00 找 rotate_after &lt; now()+7d 告警；03:00 跑泄漏检测（secret scanning 扫日志/git）→ 命中强制轮换。</div>
+        </div>
+
+        <!-- OIDC + IAM 角色 -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-white rounded-xl shadow-sm border p-5">
+            <div class="font-semibold mb-2">OIDC 联邦（Trusted Issuer）</div>
+            <div class="text-xs text-slate-500 mb-2">平台作云账号的 Trusted OIDC Issuer，Executor 执行时拿平台 token → AssumeRoleWithWebIdentity → STS（1h 自然过期），<b>零长期凭据</b>。</div>
+            <div class="font-mono text-xs bg-slate-50 p-3 rounded-lg border">
+              <div>issuer: oidc:platform.example</div>
+              <div>aud: sts.aliyuncs.com / sts.amazonaws.com</div>
+              <div>sub: team:dba / team:business-a / team:platform-ops</div>
+              <div>JWKS: /oauth2/jwks（平台暴露）</div>
+            </div>
+            <div class="text-[11px] text-slate-400 mt-2">撤销授权 = 撤 trust policy → STS 即时失效（无需轮换密钥）</div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border p-5">
+            <div class="font-semibold mb-2">IAM 角色模板化（catalog 驱动）</div>
+            <div class="text-xs text-slate-500 mb-2">catalog 项声明 <code>required_permissions</code>，平台聚合生成 <code>iam_role_templates</code>，bootstrap 凭据在云内 provision 实际角色。</div>
+            <table class="w-full text-xs">
+              <thead class="text-slate-500"><tr><th class="text-left pb-1">角色</th><th class="text-left pb-1">权限（最小）</th></tr></thead>
+              <tbody>
+                <tr class="border-t"><td class="py-1 font-mono">TmExec-DBA-RDS</td><td class="text-slate-600">rds:* · vpc:DescribeVSwitches</td></tr>
+                <tr class="border-t"><td class="py-1 font-mono">TmExec-BusinessA-ECS</td><td class="text-slate-600">ecs:Run* · slb:* · vpc:只读</td></tr>
+                <tr class="border-t"><td class="py-1 font-mono">TmExec-Platform-VPCAdmin</td><td class="text-slate-600">vpc:* · slb:* · nat:* · ack:*</td></tr>
+              </tbody>
+            </table>
+            <div class="text-[11px] text-slate-400 mt-2">OPA 二次校验"申请项 ↔ 团队执行角色权限"匹配，不匹配阻断</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 层规则迁移中心（D26） ============ -->
+      <section v-if="currentView==='layer-migration'">
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+          <div class="flex items-center gap-2 text-amber-800 font-semibold">🔀 层规则集版本化与迁移操作模型（D26）</div>
+          <p class="text-sm text-amber-700 mt-1">整套分层方案不可变版本化（v1→v2→v3...）；运行期改 layer 规则按 per-stack dry-run 分类 Tier 1/2/3 执行。<strong>核心不变量：state_key 不经 admin 显式操作不能漂移。</strong></p>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4 mb-4">
+          <div class="bg-white rounded-xl shadow-sm border p-4">
+            <div class="text-xs text-gray-500">当前 active 版本</div>
+            <div class="text-2xl font-bold text-blue-600 mt-1">v{{ layerMigration.activeVersion }}</div>
+            <div class="text-xs text-gray-500 mt-1">创建于 {{ layerMigration.activeCreatedAt }} · {{ layerMigration.activeStackCount }} stack pin 此版本</div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border p-4">
+            <div class="text-xs text-gray-500">迁移批次中</div>
+            <div class="text-2xl font-bold text-amber-600 mt-1">{{ layerMigration.batchesRunning }}</div>
+            <div class="text-xs text-gray-500 mt-1">{{ layerMigration.stacksInMigration }} stack · 漂移检测自动静默</div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border p-4">
+            <div class="text-xs text-gray-500">deprecated stack（待 sunset 迁移）</div>
+            <div class="text-2xl font-bold text-red-600 mt-1">{{ layerMigration.deprecatedStacks }}</div>
+            <div class="text-xs text-gray-500 mt-1">最早 sunset：{{ layerMigration.earliestSunset }}</div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border p-5 mb-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="font-semibold">版本历史（不可变，整体 v+1）</div>
+            <button class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700" @click="newLayerRuleDraft">提交新版本草案</button>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600">
+              <tr>
+                <th class="text-left py-2 px-3">版本</th>
+                <th class="text-left py-2 px-3">状态</th>
+                <th class="text-left py-2 px-3">变更摘要</th>
+                <th class="text-left py-2 px-3">stack pin 数</th>
+                <th class="text-left py-2 px-3">创建于</th>
+                <th class="text-left py-2 px-3">sunset</th>
+                <th class="text-left py-2 px-3">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="v in layerMigration.versions" :key="v.version" class="border-t hover:bg-gray-50">
+                <td class="py-2 px-3 font-mono">v{{ v.version }}</td>
+                <td class="py-2 px-3">
+                  <span :class="{'bg-green-100 text-green-700':v.status==='active','bg-gray-100 text-gray-600':v.status==='superseded','bg-red-100 text-red-700':v.status==='deprecated','bg-gray-200 text-gray-500':v.status==='archived'}" class="px-2 py-0.5 rounded text-xs">{{ v.status }}</span>
+                </td>
+                <td class="py-2 px-3 text-gray-600">{{ v.summary }}</td>
+                <td class="py-2 px-3">{{ v.pinnedStacks }}</td>
+                <td class="py-2 px-3 text-gray-500">{{ v.createdAt }}</td>
+                <td class="py-2 px-3 text-gray-500">{{ v.sunsetAt || '—' }}</td>
+                <td class="py-2 px-3">
+                  <button class="text-blue-600 hover:underline text-xs" @click="viewVersionDiff(v)">diff viewer</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border p-5 mb-4">
+          <div class="font-semibold mb-3">迁移批次进度（QuiesceMode · per-stack Tier 分类）</div>
+          <div v-for="b in layerMigration.batches" :key="b.id" class="border rounded-lg p-3 mb-3">
+            <div class="flex items-center justify-between mb-2">
+              <div><span class="font-medium">{{ b.id }}</span> · v{{ b.fromV }} → v{{ b.toV }} · {{ b.team }} · {{ b.status }}</div>
+              <div class="flex gap-2">
+                <button v-if="b.status==='planned'" class="px-2 py-1 bg-amber-600 text-white rounded text-xs hover:bg-amber-700" @click="runBatch(b)">开始迁移</button>
+                <button v-if="b.status==='running'" class="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700" @click="rollbackBatch(b)">逆向回滚 (RollbackEngine)</button>
+              </div>
+            </div>
+            <table class="w-full text-xs">
+              <thead class="bg-gray-50 text-gray-500">
+                <tr>
+                  <th class="text-left py-1 px-2">stack</th>
+                  <th class="text-left py-1 px-2">Tier</th>
+                  <th class="text-left py-1 px-2">旧 path</th>
+                  <th class="text-left py-1 px-2">新 path</th>
+                  <th class="text-left py-1 px-2">state_key 漂移</th>
+                  <th class="text-left py-1 px-2">进度</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="s in b.stacks" :key="s.id" class="border-t">
+                  <td class="py-1 px-2 font-mono">{{ s.id }}</td>
+                  <td class="py-1 px-2">
+                    <span :class="{'bg-green-100 text-green-700':s.tier===1,'bg-amber-100 text-amber-700':s.tier===2,'bg-red-100 text-red-700':s.tier===3}" class="px-1.5 py-0.5 rounded">{{ s.tier }}</span>
+                  </td>
+                  <td class="py-1 px-2 text-gray-600 font-mono">{{ s.oldPath }}</td>
+                  <td class="py-1 px-2 text-gray-600 font-mono">{{ s.newPath }}</td>
+                  <td class="py-1 px-2">
+                    <span v-if="s.keyDrift" class="text-red-600">⚠ 变</span>
+                    <span v-else class="text-green-600">不变</span>
+                  </td>
+                  <td class="py-1 px-2 text-gray-500">{{ s.progress }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="mt-2 text-xs text-gray-500">
+              <span v-if="b.tier1Count">Tier 1 自动 bump：{{ b.tier1Count }} </span>
+              <span v-if="b.tier2Count" class="ml-3">Tier 2 Worker 跑 state mv（2 人签 + 静默期）：{{ b.tier2Count }} </span>
+              <span v-if="b.tier3Count" class="ml-3">Tier 3 永久 pin + sunset：{{ b.tier3Count }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+          <div class="font-semibold mb-2">8 步标准 Playbook（业界共识）</div>
+          <div class="grid grid-cols-4 gap-2 text-xs">
+            <div class="border rounded p-2"><strong>1. 宣告</strong><br><span class="text-gray-500">MigrationPlanner dry-run</span></div>
+            <div class="border rounded p-2"><strong>2. 静默</strong><br><span class="text-gray-500">QuiesceMode 批次粒度</span></div>
+            <div class="border rounded p-2"><strong>3. 备份</strong><br><span class="text-gray-500">StateBackup + rollback_token</span></div>
+            <div class="border rounded p-2"><strong>4. 干跑</strong><br><span class="text-gray-500">Tier 1 自动 / Tier 2 plan=0</span></div>
+            <div class="border rounded p-2"><strong>5. 灰度</strong><br><span class="text-gray-500">1 个低风险 stack 先跑</span></div>
+            <div class="border rounded p-2"><strong>6. 分批</strong><br><span class="text-gray-500">按 team 滚动</span></div>
+            <div class="border rounded p-2"><strong>7. 验证</strong><br><span class="text-gray-500">全 stack plan=0 + CMDB 同步</span></div>
+            <div class="border rounded p-2"><strong>8. 回滚窗口</strong><br><span class="text-gray-500">sunset 前可逆（含逆向 mv）</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 设置（适配器） ============ -->
+      <section v-if="currentView==='settings'">
+        <div class="grid grid-cols-2 gap-4">
+          <div v-for="a in adapters" :key="a.kind" class="bg-white rounded-xl shadow-sm border p-5">
+            <div class="flex justify-between items-start">
+              <div><div class="font-semibold">{{a.kind}}</div><div class="text-xs text-slate-500 mt-0.5">{{a.desc}}</div></div>
+              <button @click="a.enabled=!a.enabled" :class="['w-11 h-6 rounded-full relative transition', a.enabled?'bg-tm-600':'bg-slate-300']">
+                <span :class="['absolute top-0.5 w-5 h-5 bg-white rounded-full transition', a.enabled?'left-5':'left-0.5']"></span>
+              </button>
+            </div>
+            <div class="mt-3 text-xs"><span class="text-slate-500">实现：</span><span class="font-mono bg-slate-50 px-2 py-0.5 rounded">{{a.impl}}</span></div>
+            <div v-if="a.note" class="text-xs text-amber-700 bg-amber-50 rounded p-2 mt-2">{{a.note}}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ CMDB 资源 ============ -->
+      <section v-if="currentView==='cmdb'">
+        <div class="grid grid-cols-4 gap-4 mb-4">
+          <div class="bg-white rounded-xl p-4 shadow-sm border"><div class="text-xs text-slate-500">纳管资源</div><div class="text-2xl font-bold text-tm-600 mt-1">{{resources.length}}</div></div>
+          <div class="bg-white rounded-xl p-4 shadow-sm border"><div class="text-xs text-slate-500">孤儿资源</div><div class="text-2xl font-bold text-red-500 mt-1">{{resources.filter(r=>r.status==='orphan').length}}</div></div>
+          <div class="bg-white rounded-xl p-4 shadow-sm border"><div class="text-xs text-slate-500">漂移资源</div><div class="text-2xl font-bold text-amber-600 mt-1">{{resources.filter(r=>r.status==='drifted').length}}</div></div>
+          <div class="bg-white rounded-xl p-4 shadow-sm border"><div class="text-xs text-slate-500">多云</div><div class="text-2xl font-bold text-sky-600 mt-1 text-lg">alicloud · aws</div></div>
+        </div>
+        <div class="flex gap-2 mb-3 text-sm items-center">
+          <span class="text-slate-500">CMDB = state 的可查询索引（<b>不复制 state</b>），apply 后 ingester 入库</span>
+          <select v-model="cmdbFilter.team" class="ml-auto border rounded-lg px-2 py-1 text-xs">
+            <option>全部</option><option>平台运维</option><option>DBA</option><option>中间件</option><option>业务A</option><option>未知</option>
+          </select>
+          <select v-model="cmdbFilter.layer" class="border rounded-lg px-2 py-1 text-xs">
+            <option>全部</option><option>Global</option><option>Middleware</option><option>Application</option>
+          </select>
+          <select v-model="cmdbFilter.status" class="border rounded-lg px-2 py-1 text-xs">
+            <option>全部</option><option>active</option><option>drifted</option><option>orphan</option>
+          </select>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500 text-xs"><tr>
+              <th class="text-left p-3">资源地址</th><th class="text-left">类型</th><th class="text-left">云/区域</th><th class="text-left">归属 Stack/Team</th><th class="text-left">月成本</th><th class="text-left">状态</th><th class="text-left">操作</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="r in filteredResources" :key="r.id" class="border-t hover:bg-slate-50">
+                <td class="p-3"><div class="font-mono text-xs">{{r.address}}</div><div class="text-xs text-slate-400">{{r.cloud_id}}</div></td>
+                <td class="text-xs font-mono">{{r.type}}</td>
+                <td class="text-xs">{{r.provider}} · {{r.region}}</td>
+                <td class="text-xs"><div>{{r.stack}}</div><div class="text-slate-400">{{r.team}} · {{r.layer}}</div></td>
+                <td>¥{{r.monthly_cost}}</td>
+                <td><span :class="['text-xs px-2 py-0.5 rounded-full', r.status==='active'?'bg-green-100 text-green-700':r.status==='drifted'?'bg-amber-100 text-amber-700':'bg-red-100 text-red-700']">{{r.status}}</span></td>
+                <td><button v-if="r.status==='orphan'" @click="adoptOrphan(r)" class="text-xs text-tm-600 hover:underline">纳管</button><span v-else class="text-xs text-slate-300">—</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="bg-tm-50 border border-tm-100 rounded-lg p-3 text-xs text-tm-800 mt-3">
+          💡 所有生成资源强制打 <code>platform-team/bundle/stack</code> tag，作为成本归集与孤儿检测锚点。孤儿资源 = 云上存在但 CMDB 无记录。
+        </div>
+      </section>
+
+      <!-- ============ FinOps 成本 ============ -->
+      <section v-if="currentView==='finops'">
+        <div class="grid grid-cols-4 gap-4 mb-4">
+          <div class="bg-white rounded-xl p-4 shadow-sm border"><div class="text-xs text-slate-500">本月实际</div><div class="text-2xl font-bold text-ink-900 mt-1">¥{{finops.totalMonth.toLocaleString()}}</div><div class="text-xs text-slate-400">云账单核销</div></div>
+          <div class="bg-white rounded-xl p-4 shadow-sm border"><div class="text-xs text-slate-500">月度预算</div><div class="text-2xl font-bold text-sky-600 mt-1">¥{{finops.budgetTotal.toLocaleString()}}</div><div class="text-xs text-green-600">达成 {{Math.round(finops.totalMonth/finops.budgetTotal*100)}}%</div></div>
+          <div class="bg-white rounded-xl p-4 shadow-sm border"><div class="text-xs text-slate-500">超预算团队</div><div class="text-2xl font-bold text-red-500 mt-1">{{teamCosts.filter(t=>t.actual>t.budget).length}}</div><div class="text-xs text-slate-400">需关注</div></div>
+          <div class="bg-white rounded-xl p-4 shadow-sm border"><div class="text-xs text-slate-500">可优化节省</div><div class="text-2xl font-bold text-green-600 mt-1">¥{{recommendations.reduce((s,r)=>s+r.saving,0).toLocaleString()}}</div><div class="text-xs text-slate-400">{{recommendations.length}} 条建议</div></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-white rounded-xl shadow-sm border p-5">
+            <div class="font-semibold mb-3">团队预算燃尽</div>
+            <div class="space-y-3">
+              <div v-for="t in teamCosts" :key="t.team">
+                <div class="flex justify-between text-xs mb-1"><span>{{t.team}}</span><span :class="t.actual>t.budget?'text-red-600 font-medium':'text-slate-500'">¥{{t.actual.toLocaleString()}} / ¥{{t.budget.toLocaleString()}}</span></div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div :class="['h-full rounded-full', t.actual>t.budget?'bg-red-500':'bg-tm-500']" :style="{width:Math.min(t.actual/t.budget*100,100)+'%'}"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border p-5">
+            <div class="font-semibold mb-3">Top 资源（本月）</div>
+            <div class="space-y-2">
+              <div v-for="(r,i) in topResources" :key="r.name" class="flex items-center gap-2 text-sm">
+                <span class="text-slate-400 w-4">{{i+1}}</span>
+                <span class="flex-1">{{r.name}} <span class="text-xs text-slate-400">({{r.team}} · {{r.type}})</span></span>
+                <span class="font-medium">¥{{r.cost.toLocaleString()}}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border p-5 mt-4">
+          <div class="flex items-center mb-3"><div class="font-semibold">成本优化建议</div><div class="ml-auto text-xs text-slate-400">结合 Infracost + 利用率分析</div></div>
+          <div class="space-y-2">
+            <div v-for="rec in recommendations" :key="rec.id" class="border rounded-lg p-3 flex items-center gap-3">
+              <span :class="['text-xs px-2 py-1 rounded-full h-fit whitespace-nowrap', rec.kind==='rightsize'?'bg-amber-100 text-amber-700':rec.kind==='release_orphan'?'bg-red-100 text-red-700':rec.kind==='reserved_instance'?'bg-sky-100 text-sky-700':'bg-slate-100 text-slate-600']">{{rec.kind}}</span>
+              <div class="flex-1"><div class="text-sm font-medium">{{rec.resource}}</div><div class="text-xs text-slate-500">{{rec.detail}}</div></div>
+              <div v-if="rec.saving>0" class="text-right"><div class="text-sm font-semibold text-green-600">省 ¥{{rec.saving}}/月</div></div>
+              <button @click="applyRec(rec)" v-if="rec.kind!=='tag_missing'" class="text-xs bg-tm-600 text-white px-2 py-1 rounded hover:bg-tm-700">转申请</button>
+              <button @click="dismissRec(rec)" class="text-xs text-slate-400 px-2 py-1 hover:text-slate-600">忽略</button>
+            </div>
+          </div>
+        </div>
+        <div class="bg-slate-50 border rounded-lg p-3 text-xs text-slate-600 mt-3">
+          🔁 双成本源：<b>Infracost</b>（申请时实时预估 + 未出账估算）+ <b>云账单 API</b>（实际核销，按 tag 归集）。申请预估超预算自动触发审批升级。
+        </div>
+      </section>
+
+      <!-- ============ 环境管理（D27） ============ -->
+      <section v-if="currentView==='env'">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
+          <div class="flex items-center gap-2 text-emerald-800 font-semibold">🌐 环境与租户网络模型（D27）</div>
+          <p class="text-sm text-emerald-700 mt-1">Environment 一等治理对象（dev/staging/prod/dr，决定治理强度）+ Tenant 一等对象（默认 platform-default）+ EnvironmentTenantBinding 三元组（env × tenant × layer → VPC stack 引用）+ 两档 isolation_level（<strong>vpc-per-env 默认 / account-per-env escape hatch</strong>，shared-vpc 已废弃）。</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div class="bg-white rounded-xl shadow-sm border p-4">
+            <div class="font-semibold text-slate-700 mb-3">环境列表（environments）</div>
+            <table class="w-full text-[12px]">
+              <thead class="bg-slate-100 text-slate-600"><tr><th class="p-2 text-left">env_logical_id</th><th class="p-2 text-left">stage</th><th class="p-2 text-left">cloud_account</th><th class="p-2 text-left">region</th><th class="p-2 text-left">status</th></tr></thead>
+              <tbody>
+                <tr v-for="e in envs" :key="e.id" class="border-t border-slate-100">
+                  <td class="p-2 font-mono">{{e.logical_id}}</td>
+                  <td class="p-2"><span class="px-1.5 py-0.5 rounded text-[10px]" :class="e.stage==='prod'?'bg-red-100 text-red-700':e.stage==='staging'?'bg-yellow-100 text-yellow-700':'bg-green-100 text-green-700'">{{e.stage}}</span></td>
+                  <td class="p-2 font-mono">{{e.cloud_account}}</td>
+                  <td class="p-2 font-mono">{{e.region}}</td>
+                  <td class="p-2">{{e.status}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-sm border p-4">
+            <div class="font-semibold text-slate-700 mb-3">租户列表（tenants）</div>
+            <table class="w-full text-[12px]">
+              <thead class="bg-slate-100 text-slate-600"><tr><th class="p-2 text-left">tenant</th><th class="p-2 text-left">isolation_level</th><th class="p-2 text-left">kind</th><th class="p-2 text-left">owner</th></tr></thead>
+              <tbody>
+                <tr v-for="t in tenants" :key="t.id" class="border-t border-slate-100">
+                  <td class="p-2 font-mono">{{t.logical_id}}</td>
+                  <td class="p-2"><span class="px-1.5 py-0.5 rounded text-[10px]" :class="t.isolation==='account-per-env'?'bg-purple-100 text-purple-700':'bg-blue-100 text-blue-700'">{{t.isolation}}</span></td>
+                  <td class="p-2">{{t.kind}}</td>
+                  <td class="p-2">{{t.owner}}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="text-[11px] text-slate-400 mt-2">业界 2026+ 共识：内部平台默认 VPC 级，账号级退缩到金融/外部硬合规，shared-vpc 退场。</div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border p-4 mb-4">
+          <div class="font-semibold text-slate-700 mb-3">EnvironmentTenantBinding 矩阵（codegen Stage 4 查询入口）</div>
+          <table class="w-full text-[12px]">
+            <thead class="bg-slate-100 text-slate-600"><tr><th class="p-2 text-left">env</th><th class="p-2 text-left">tenant</th><th class="p-2 text-left">layer</th><th class="p-2 text-left">vpc_stack</th><th class="p-2 text-left">subnets</th><th class="p-2 text-left">override_account</th></tr></thead>
+            <tbody>
+              <tr v-for="b in envBindings" :key="b.id" class="border-t border-slate-100">
+                <td class="p-2 font-mono">{{b.env}}</td>
+                <td class="p-2 font-mono">{{b.tenant}}</td>
+                <td class="p-2">{{b.layer}}</td>
+                <td class="p-2 font-mono text-blue-700">{{b.vpc_stack}}</td>
+                <td class="p-2 font-mono text-[10px]">{{b.subnets}}</td>
+                <td class="p-2 font-mono text-[10px]" :class="b.override_account?'text-purple-700':''">{{b.override_account||'—'}}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="text-[11px] text-slate-400 mt-2">Application 层 stack 创建时 MUST 有对应 binding，否则 codegen Stage 4 拒绝（结构化错误 binding_missing）</div>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[12px] text-amber-800">
+          <strong>team_cloud_grants.env_scope_json（D27 新增）</strong>：[] = 全 env；["prod"] = 仅 prod。实现"dev 自助 / prod DBA 审批"分级治理的载体。
+        </div>
+      </section>
+
+      <!-- ============ 标签分层与参数解析（D28） ============ -->
+      <section v-if="currentView==='tag-param'">
+        <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
+          <div class="flex items-center gap-2 text-indigo-800 font-semibold">🏷 标签分层与参数解析管道（D28）</div>
+          <p class="text-sm text-indigo-700 mt-1">Tag 来源 <strong>7 层</strong>（L1 platform-mandated 永远赢 / L2 env / L3 tenant / L4 team-bundle / L5 stack 自动 / L6 catalog defaults / L7 user form 白名单）+ 参数解析 <strong>9 阶段管道</strong>（治理类 > 用户类 > 上下文类 > catalog 默认 > 契约兜底）+ provenance 审计（resolved_params_json）。</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div class="bg-white rounded-xl shadow-sm border p-4">
+            <div class="font-semibold text-slate-700 mb-3">Tag 7 层合并预览</div>
+            <table class="w-full text-[11px]">
+              <thead class="bg-slate-100 text-slate-600"><tr><th class="p-1.5 text-left">层</th><th class="p-1.5 text-left">来源</th><th class="p-1.5 text-left">key=value</th></tr></thead>
+              <tbody>
+                <tr v-for="tag in tagLayersPreview" :key="tag.layer" class="border-t border-slate-100">
+                  <td class="p-1.5"><span class="px-1 py-0.5 rounded text-[10px]" :class="tag.layer==='L1'?'bg-red-100 text-red-700':tag.layer==='L5'?'bg-slate-200 text-slate-700':'bg-blue-50 text-blue-700'">{{tag.layer}}</span></td>
+                  <td class="p-1.5">{{tag.from}}</td>
+                  <td class="p-1.5 font-mono">{{tag.kv}}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="text-[10px] text-slate-500 mt-2">L1 永远赢（用户尝试覆盖 silently ignore + 审计）；L2-L6 后层覆盖前层；L7 受白名单约束。</div>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-sm border p-4">
+            <div class="font-semibold text-slate-700 mb-3">参数解析 9 阶段（rank 越小优先级越高）</div>
+            <table class="w-full text-[11px]">
+              <thead class="bg-slate-100 text-slate-600"><tr><th class="p-1.5 text-left">#</th><th class="p-1.5 text-left">阶段</th><th class="p-1.5 text-left">rank</th><th class="p-1.5 text-left">类型</th></tr></thead>
+              <tbody>
+                <tr v-for="s in pipelineStages" :key="s.n" class="border-t border-slate-100">
+                  <td class="p-1.5 font-mono">{{s.n}}</td>
+                  <td class="p-1.5">{{s.name}}</td>
+                  <td class="p-1.5 font-mono">{{s.rank}}</td>
+                  <td class="p-1.5"><span class="px-1 py-0.5 rounded text-[10px]" :class="s.type==='治理'?'bg-red-50 text-red-700':s.type==='用户'?'bg-emerald-50 text-emerald-700':s.type==='绝对'?'bg-purple-50 text-purple-700':'bg-slate-50 text-slate-700'">{{s.type}}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border p-4 mb-4">
+          <div class="font-semibold text-slate-700 mb-3">Provenance 审计示例（requests.resolved_params_json）</div>
+          <pre class="text-[10px] bg-slate-900 text-emerald-300 p-3 rounded font-mono overflow-x-auto">{{provenanceSample}}</pre>
+          <div class="text-[11px] text-slate-500 mt-2">每变量含 source + rank；治理类覆盖用户类时记 user_attempted_override + user_attempted_value（违规留痕）；tags 字段含 layers_applied + user_overrides_blocked + layers_merged_summary</div>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[12px] text-amber-800">
+          <strong>冲突解析示例</strong>：用户填 storage=200（S8 rank 7）vs catalog default=100（S2 rank 6）→ 最终 200，provenance.source=user_form；layer rule 强制 encrypt=true（S3 rank 2）vs 用户填 false（S8）→ 最终 true + user_attempted_override=true。
+        </div>
+      </section>
+
+      <!-- ============ CLI 与 AI ============ -->
+      <section v-if="currentView==='cli-ai'">
+        <div class="grid grid-cols-2 gap-4">
+          <!-- 自然语言入口 -->
+          <div class="bg-white rounded-xl shadow-sm border p-5 col-span-2">
+            <div class="flex items-center mb-3"><div class="font-semibold">自然语言入口 <code class="text-xs bg-slate-100 px-1.5 py-0.5 rounded ml-2">tm ai</code></div><div class="ml-auto text-xs text-slate-400">LLM 放平台后端做意图路由</div></div>
+            <div class="flex gap-2">
+              <input v-model="aiInput" placeholder="例如：给 order-service 起一台 4C8G 的 mysql" class="flex-1 border rounded-lg px-3 py-2 text-sm" @keyup.enter="runAi"/>
+              <button @click="runAi" :disabled="aiRunning" class="bg-tm-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-tm-700 disabled:opacity-50">{{aiRunning?'路由中…':'执行'}}</button>
+            </div>
+            <div v-if="aiResult" class="mt-3 bg-tm-50 border border-tm-100 rounded-lg p-3 text-sm">
+              <div class="text-xs text-tm-700 mb-1">→ 匹配 skill: <b>{{aiResult.skill}}</b></div>
+              <div class="text-xs text-slate-600 font-mono">{{aiResult.steps}}</div>
+              <div class="mt-2 text-xs"><span class="text-slate-500">结果：</span>{{aiResult.msg}}</div>
+            </div>
+            <div class="flex gap-2 mt-2 text-xs flex-wrap">
+              <button v-for="ex in ['给 order-service 起一台 4C8G mysql','解释 rds-orders-prod 为什么漂移','预估业务A本月成本']" :key="ex" @click="aiInput=ex;runAi()" class="bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600">{{ex}}</button>
+            </div>
+          </div>
+          <!-- Service Account -->
+          <div class="bg-white rounded-xl shadow-sm border p-5">
+            <div class="flex items-center mb-3"><div class="font-semibold">Service Account · AK/SK</div><button @click="issueAk" class="ml-auto text-xs bg-tm-600 text-white px-2 py-1 rounded">+ 新建</button></div>
+            <div v-if="showSk" class="bg-amber-50 border border-amber-200 rounded p-2 text-xs text-amber-800 mb-2">⚠ SK 只展示一次：<code class="font-mono">{{newSk}}</code><br/>HMAC SigV4-like 签名，请立即妥善保存</div>
+            <div class="space-y-2">
+              <div v-for="sa in serviceAccounts" :key="sa.id" class="border rounded-lg p-3">
+                <div class="flex justify-between"><div class="font-medium text-sm">{{sa.name}}</div><span class="text-xs text-green-600">{{sa.status}}</span></div>
+                <div class="text-xs font-mono text-slate-500 mt-1">AK: {{sa.ak}}</div>
+                <div class="text-xs text-slate-400">scope: {{sa.scopes}} · 最近使用 {{sa.lastUsed}}</div>
+              </div>
+            </div>
+          </div>
+          <!-- MCP -->
+          <div class="bg-white rounded-xl shadow-sm border p-5">
+            <div class="font-semibold mb-2">MCP server 接入</div>
+            <div class="text-xs text-slate-500 mb-2">启动后所有命令 + skills 暴露为 MCP tools，Claude Code / Cursor 通用接入。</div>
+            <pre class="bg-ink-900 text-cyan-300 text-xs rounded-lg p-3">$ tm mcp serve</pre>
+            <div class="text-xs text-slate-500 mt-2 mb-1">Claude Code 配置（.mcp.json）：</div>
+            <pre class="bg-slate-50 text-xs rounded-lg p-2 font-mono">{
+  "mcpServers": {
+    "iac-platform": {
+      "command": "tm",
+      "args": ["mcp", "serve"]
+    }
+  }
+}</pre>
+            <button @click="notify('mcp 配置已复制')" class="mt-2 text-xs text-tm-600 hover:underline">复制配置</button>
+          </div>
+          <!-- Skills -->
+          <div class="bg-white rounded-xl shadow-sm border p-5 col-span-2">
+            <div class="flex items-center mb-3"><div class="font-semibold">声明式 Skills（YAML 编排）</div><div class="ml-auto text-xs text-slate-400">trigger → LLM 抽参 → CLI 编排 → 输出契约</div></div>
+            <table class="w-full text-sm">
+              <thead class="text-slate-500 text-xs"><tr><th class="text-left pb-2">Skill</th><th class="text-left">类型</th><th class="text-left">触发词</th><th class="text-left">编排步骤</th></tr></thead>
+              <tbody>
+                <tr v-for="s in skills" :key="s.name" class="border-t">
+                  <td class="py-2"><div class="font-medium">{{s.name}}</div><div class="text-xs text-slate-400">{{s.desc}}</div></td>
+                  <td><span :class="['text-xs px-2 py-0.5 rounded-full whitespace-nowrap', s.type==='内置'?'bg-tm-100 text-tm-700':'bg-emerald-100 text-emerald-700']">{{s.type}}</span></td>
+                  <td class="text-xs font-mono text-slate-500">{{s.trigger}}</td>
+                  <td class="text-xs text-slate-600">{{s.steps}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- 安全边界 -->
+          <div class="bg-red-50 border border-red-200 rounded-xl p-4 col-span-2 text-xs text-red-800">
+            🔒 <b>AI 不豁免治理</b>：LLM 生成的 yaml 走相同 OPA 校验 + 审批流；高危操作（destroy / 跨层依赖变更）强制人工审批；agent 操作全审计（actor = sa:xxx）。LLM 是意图翻译器，不是绕治理的捷径。
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- 全局 toast -->
+  <div v-if="toast" class="fixed bottom-6 right-6 bg-ink-900 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50">{{toast}}</div>
+</div>
+
+<script>
+const { createApp, computed } = Vue;
+createApp({
+  data() {
+    return {
+      env: 'prod',
+      currentView: 'dashboard',
+      toast: '',
+      activeRequest: null,
+      // 仪表盘
+      stats: [
+        {label:'纳管 Stack',value:'128',sub:'Global 12 · MW 34 · App 82',color:'text-tm-600'},
+        {label:'本月工单',value:'47',sub:'通过率 91%',color:'text-sky-600'},
+        {label:'待审批',value:'2',sub:'平均时长 1.4h',color:'text-amber-600'},
+        {label:'漂移未处置',value:'3',sub:'Global 1 · App 2',color:'text-red-500'},
+      ],
+      // 服务目录
+      catalogLayer: '全部',
+      catalogSearch: '',
+      catalog: [
+        {id:'c1',name:'申请 RDS 实例',layer:'Middleware',team:'DBA',module:'dba/rds@v1.2.0',visibility:'业务可申请',icon:'🗄',hiddenVars:28},
+        {id:'c2',name:'申请 Kafka 集群',layer:'Middleware',team:'中间件',module:'mw/kafka@v2.0.1',visibility:'业务可申请',icon:'📨',hiddenVars:22},
+        {id:'c3',name:'申请 ECS 集群',layer:'Application',team:'业务A',module:'app/ecs@v1.5.0',visibility:'项目组',icon:'🖥',hiddenVars:18},
+        {id:'c4',name:'申请 Redis',layer:'Middleware',team:'DBA',module:'dba/redis@v1.1.0',visibility:'业务可申请',icon:'⚡',hiddenVars:15},
+        {id:'c5',name:'创建 VPC 网络',layer:'Global',team:'平台运维',module:'net/vpc@v3.0.0',visibility:'仅平台运维',icon:'🌐',hiddenVars:40},
+        {id:'c6',name:'申请 ACK 集群',layer:'Global',team:'平台运维',module:'net/ack@v2.2.0',visibility:'仅平台运维',icon:'☸',hiddenVars:35},
+        {id:'c7',name:'申请 RDS 只读账号',layer:'Application',team:'业务A',module:'app/rds-account@v1.0.0',visibility:'业务申请 DBA审批',icon:'🔑',hiddenVars:6},
+        {id:'c8',name:'SLB 转发规则',layer:'Application',team:'业务A',module:'app/slb@v1.3.0',visibility:'项目组',icon:'⚖',hiddenVars:12},
+      ],
+      activeCatalog: {},
+      form: {bundle:'team-a/orders',instance_type:'mysql.n2.medium.1c',storage:100,ha:true},
+      // 工单
+      requests: [
+        {id:'REQ-2026-0142',title:'订单库 RDS',catalog:'申请 RDS 实例',team:'业务A',status:'pending-approval',cost:2300,updated:'2分钟前',bundle:'team-a/orders',storage:200},
+        {id:'REQ-2026-0141',title:'用户服务 ECS×5',catalog:'申请 ECS 集群',team:'业务A',status:'applying',cost:5600,updated:'5分钟前',bundle:'team-a/users',storage:0},
+        {id:'REQ-2026-0140',title:'Kafka Topic',catalog:'申请 Kafka 集群',team:'业务B',status:'succeeded',cost:0,updated:'1小时前',bundle:'team-b/orders',storage:0},
+        {id:'REQ-2026-0139',title:'VPC 扩容',catalog:'创建 VPC 网络',team:'平台运维',status:'blocked-policy',cost:0,updated:'3小时前',bundle:'global',storage:0},
+        {id:'REQ-2026-0138',title:'Redis 缓存',catalog:'申请 Redis',team:'业务A',status:'succeeded',cost:800,updated:'昨天',bundle:'team-a/orders',storage:0},
+      ],
+      pipeline: [
+        {name:'代码生成',desc:'generate stack + TF 代码'},{name:'Plan',desc:'terramate run plan'},
+        {name:'审批',desc:'RBAC 路由 + OPA'},{name:'Apply',desc:'terramate run apply'},
+        {name:'资源回写',desc:'输出 + 元数据'},
+      ],
+      approvalChain: [{role:'业务A 组长',team:'业务A'},{role:'DBA 审批',team:'DBA'},{role:'平台运维',team:'平台运维'}],
+      // 审批
+      approvals: [
+        {id:'REQ-2026-0142',title:'订单库 RDS（mysql.n2.large，存储200G）',team:'业务A',catalog:'RDS',cost:2300,risk:'生产环境新建数据库，需 DBA 确认规格'},
+        {id:'REQ-2026-0143',title:'业务B ECS 扩容 ×3',team:'业务B',catalog:'ECS',cost:3400,risk:'成本超阈值（>¥3000），需平台运维会签'},
+      ],
+      // 漂移
+      drifts: [
+        {id:'d1',stack:'middleware/prod/rds-orders-prod',layer:'Middleware',detected:'10分钟前',diff:'规格 mysql.n2.medium → large（手工改）'},
+        {id:'d2',stack:'globals/prod/vpc-global-prod',layer:'Global',detected:'1小时前',diff:'新增交换机 vsw-xxx（手工创建）'},
+        {id:'d3',stack:'application/team-a/orders/ecs-prod',layer:'Application',detected:'2小时前',diff:'安全组规则被手工放开 8080'},
+      ],
+      // 模块
+      modules: [
+        {ns:'dba/rds',source:'git::gh:org/tf-rds',layer:'Middleware',team:'DBA',ref:'v1.2.0',vars:30,status:'validated'},
+        {ns:'mw/kafka',source:'git::gh:org/tf-kafka',layer:'Middleware',team:'中间件',ref:'v2.0.1',vars:22,status:'validated'},
+        {ns:'app/ecs',source:'git::gh:org/tf-ecs',layer:'Application',team:'业务A',ref:'v1.5.0',vars:18,status:'validated'},
+        {ns:'net/vpc',source:'git::gh:org/tf-vpc',layer:'Global',team:'平台运维',ref:'v3.0.0',vars:40,status:'validated'},
+        {ns:'app/rds-account',source:'git::gh:org/tf-account',layer:'Application',team:'DBA',ref:'v1.0.1',vars:6,status:'pending-validation'},
+      ],
+      newModule:false,
+      moduleForm:{namespace:'',source:'',layer:'Middleware',team:'DBA'},
+      // 导入向导
+      importSteps:['选模块','输入资源ID','生成并 import','验证纳管'],
+      importStep:0,
+      imp:{module:'',resourceId:''},
+      impVer:'v1.2.0',
+      // 版本
+      ver:{terramate:'v0.17.1',terraform:'terraform 1.9.x'},
+      workers:[
+        {name:'tm-worker:full-1.9',desc:'Terramate 0.17 + Terraform 1.9 + alicloud/aws + OPA + Infracost',active:true},
+        {name:'tm-worker:tofu-1.8',desc:'Terramate 0.17 + OpenTofu 1.8（部分团队）',active:false},
+        {name:'tm-worker:legacy-1.5',desc:'Terraform 1.5（存量 import 兼容）',active:false},
+      ],
+      // 执行运行时（D20）
+      executorMode:'process',
+      buildingImage:false,
+      executorModes:[
+        {id:'process',name:'process',icon:'⚡',desc:'节点预装工具链+目录+cgroups；零基础设施',needRegistry:false},
+        {id:'container',name:'container',icon:'📦',desc:'宿主 docker/podman，每工单一容器',needRegistry:true},
+        {id:'kubernetes',name:'kubernetes',icon:'☸',desc:'K8s Job/Pod，namespace 级隔离+水平扩展',needRegistry:true},
+        {id:'remote',name:'remote',icon:'🖥',desc:'SSH 节点池，离线/裸机/复用存量',needRegistry:false},
+      ],
+      // 云账号与凭据（D23）
+      cloudAccounts:[
+        {id:1, provider:'alicloud', account_id:'1736600000000000', alias:'corp-prod-1', region:'cn-hangzhou', oidc:true,  bootstrapStatus:'ok'},
+        {id:2, provider:'aws',      account_id:'821000000000',     alias:'corp-prod-2', region:'cn-north-1', oidc:true,  bootstrapStatus:'rotate'},
+        {id:3, provider:'alicloud', account_id:'1824400000000000', alias:'corp-dr-1',   region:'cn-shanghai',oidc:false, bootstrapStatus:'none'},
+      ],
+      teamGrants:[
+        {team:'平台运维', cloud:'alicloud:corp-prod-1', layers:['Global','Middleware','Application'], role:'TmExec-Platform-VPCAdmin', quota:'50000', expires:'-'},
+        {team:'平台运维', cloud:'aws:corp-prod-2',      layers:['Global','Middleware','Application'], role:'TmExec-Platform-VPCAdmin', quota:'30000', expires:'-'},
+        {team:'DBA',      cloud:'alicloud:corp-prod-1', layers:['Middleware'],                       role:'TmExec-DBA-RDS',           quota:'20000', expires:'-'},
+        {team:'中间件',    cloud:'alicloud:corp-prod-1', layers:['Middleware'],                       role:'TmExec-MW-Kafka',          quota:'15000', expires:'2026-09-30'},
+        {team:'业务A',     cloud:'alicloud:corp-prod-1', layers:['Application'],                      role:'TmExec-BusinessA-ECS',     quota:'8000',  expires:'-'},
+      ],
+      cloudCredentials:[
+        {id:1, type:'bootstrap', typeLabel:'bootstrap',  scope:'alicloud:corp-prod-1', role:'',                 status:'active', statusLabel:'正常',   rotate:'30 天后'},
+        {id:2, type:'bootstrap', typeLabel:'bootstrap',  scope:'aws:corp-prod-2',      role:'',                 status:'rotate', statusLabel:'待轮换', rotate:'紧急（已到期）'},
+        {id:3, type:'oidc',      typeLabel:'OIDC exec',  scope:'DBA@alicloud:corp-prod-1',  role:'TmExec-DBA-RDS',           status:'active', statusLabel:'正常',   rotate:'无需（ephemeral）'},
+        {id:4, type:'oidc',      typeLabel:'OIDC exec',  scope:'业务A@alicloud:corp-prod-1',role:'TmExec-BusinessA-ECS',     status:'active', statusLabel:'正常',   rotate:'无需（ephemeral）'},
+        {id:5, type:'long',      typeLabel:'长存 AK/SK', scope:'中间件@alicloud:corp-prod-1',role:'TmExec-MW-Kafka',         status:'active', statusLabel:'正常',   rotate:'12 天后（90天强制）'},
+      ],
+      // 层规则集版本化（D26）
+      layerMigration:{
+        activeVersion:3,
+        activeCreatedAt:'2026-05-20',
+        activeStackCount:142,
+        batchesRunning:1,
+        stacksInMigration:8,
+        deprecatedStacks:2,
+        earliestSunset:'2026-12-01',
+        versions:[
+          {version:3, status:'active',     summary:'bundle 从可选变必选（path_template 加 bundle 段）',  pinnedStacks:18,  createdAt:'2026-05-20', sunsetAt:null},
+          {version:2, status:'superseded', summary:'加 security 第 4 层（不挤占已有路径）',              pinnedStacks:122, createdAt:'2026-03-10', sunsetAt:null},
+          {version:1, status:'deprecated', summary:'出厂默认三层（global/middleware/application）',      pinnedStacks:2,   createdAt:'2026-01-15', sunsetAt:'2026-12-01'},
+        ],
+        batches:[
+          {id:'batch-v3-teamA', fromV:2, toV:3, team:'业务A', status:'running',
+            tier1Count:2, tier2Count:5, tier3Count:1,
+            stacks:[
+              {id:'application/team-a/ecs-prod',      tier:2, oldPath:'application/team-a/ecs-prod',      newPath:'application/team-a/orders/ecs-prod',      keyDrift:true,  progress:'state mv ✅ plan=0'},
+              {id:'application/team-a/slb-rules-prod',tier:2, oldPath:'application/team-a/slb-rules-prod',newPath:'application/team-a/orders/slb-rules-prod',keyDrift:true,  progress:'state mv 中…'},
+              {id:'application/team-a/rds-acct-prod', tier:1, oldPath:'application/team-a/rds-acct-prod', newPath:'application/team-a/rds-acct-prod',         keyDrift:false, progress:'自动 bump ✅'},
+              {id:'application/team-a/legacy-x',      tier:3, oldPath:'application/team-a/legacy-x',      newPath:'(path 冲突，永久 pin v2)',                  keyDrift:false, progress:'deprecated · sunset 2026-12-01'},
+            ]
+          },
+          {id:'batch-v3-teamB', fromV:2, toV:3, team:'业务B', status:'planned',
+            tier1Count:3, tier2Count:7, tier3Count:0,
+            stacks:[
+              {id:'application/team-b/orders/ecs-prod', tier:2, oldPath:'application/team-b/orders/ecs-prod', newPath:'application/team-b/orders/ecs-prod (复用)', keyDrift:true,  progress:'待执行'},
+            ]
+          },
+        ],
+      },
+      // 组织
+      idSources:[
+        {name:'企业 IDP（OIDC）',proto:'OIDC/SAML 认证',enabled:true,lastSync:'实时'},
+        {name:'飞书开放平台',proto:'组织/部门 API + 事件订阅',enabled:true,lastSync:'3 分钟前'},
+        {name:'钉钉开放平台',proto:'通讯录 API + 回调',enabled:true,lastSync:'5 分钟前'},
+        {name:'LDAP / AD（SCIM 2.0）',proto:'SCIM 用户/组自动同步',enabled:false,lastSync:'未启用'},
+      ],
+      // 适配器
+      adapters:[
+        {kind:'Git 提供商',desc:'工作仓库 clone/fetch/commit/push',enabled:true,impl:'go-git (自建 Gitea)',note:''},
+        {kind:'云提供商',desc:'资源元数据查询、跨层 data',enabled:true,impl:'alicloud / aws SDK',note:''},
+        {kind:'状态后端',desc:'远程 state + 锁',enabled:true,impl:'MinIO(S3) + DynamoDB 锁',note:''},
+        {kind:'策略引擎 (OPA)',desc:'plan 后策略评估',enabled:true,impl:'OPA',note:'未启用时降级为仅告警'},
+        {kind:'成本估算',desc:'Infracost 预估',enabled:true,impl:'Infracost',note:'不可用时不阻断'},
+        {kind:'通知',desc:'站内信/IM/Webhook',enabled:true,impl:'IM Webhook',note:''},
+      ],
+      // CMDB
+      cmdbFilter:{team:'全部',layer:'全部',status:'全部'},
+      resources:[
+        {id:'r1',address:'module.rds.alicloud_db_instance.this',type:'alicloud_db_instance',provider:'alicloud',region:'cn-hangzhou',cloud_id:'rm-bp1xxx',stack:'middleware/prod/rds-orders-prod',team:'DBA',layer:'Middleware',monthly_cost:2300,status:'drifted',managed:true},
+        {id:'r2',address:'module.ecs.alicloud_instance[0]',type:'alicloud_instance',provider:'alicloud',region:'cn-hangzhou',cloud_id:'i-bp2xxx',stack:'application/team-a/orders/ecs',team:'业务A',layer:'Application',monthly_cost:560,status:'active',managed:true},
+        {id:'r3',address:'module.vpc.alicloud_vpc.this',type:'alicloud_vpc',provider:'alicloud',region:'cn-hangzhou',cloud_id:'vpc-bp3xxx',stack:'globals/prod/vpc-global-prod',team:'平台运维',layer:'Global',monthly_cost:0,status:'active',managed:true},
+        {id:'r4',address:'module.kafka.alicloud_alikafka_instance',type:'alikafka_instance',provider:'alicloud',region:'cn-hangzhou',cloud_id:'alikafka-xxx',stack:'middleware/prod/kafka-platform',team:'中间件',layer:'Middleware',monthly_cost:1800,status:'active',managed:true},
+        {id:'r5',address:'(未纳管)',type:'alicloud_instance',provider:'alicloud',region:'cn-hangzhou',cloud_id:'i-bp9xxx',stack:'—',team:'未知',layer:'—',monthly_cost:890,status:'orphan',managed:false},
+      ],
+      // FinOps
+      finops:{totalMonth:48200,budgetTotal:55000},
+      teamCosts:[
+        {team:'平台运维',budget:15000,actual:13800},
+        {team:'DBA',budget:18000,actual:19200},
+        {team:'中间件',budget:12000,actual:9600},
+        {team:'业务A',budget:7000,actual:4200},
+        {team:'业务B',budget:3000,actual:1400},
+      ],
+      topResources:[
+        {name:'order-svc ECS×5',team:'业务A',cost:2800,type:'ECS'},
+        {name:'rds-orders-prod',team:'DBA',cost:2300,type:'RDS'},
+        {name:'kafka-platform',team:'中间件',cost:1800,type:'Kafka'},
+        {name:'user-svc ECS×3',team:'业务A',cost:1680,type:'ECS'},
+        {name:'redis-cache',team:'DBA',cost:1200,type:'Redis'},
+      ],
+      recommendations:[
+        {id:'rec1',kind:'rightsize',resource:'rds-user-prod',detail:'连续30天利用率<15%，建议 mysql.n2.xlarge → large',saving:1200,status:'open'},
+        {id:'rec2',kind:'release_orphan',resource:'i-bp9xxx (legacy-ecs)',detail:'云上存在但未纳管，无关联服务',saving:890,status:'open'},
+        {id:'rec3',kind:'reserved_instance',resource:'order-svc ECS×5',detail:'稳定负载，建议购 RI 节省约 40%',saving:1344,status:'open'},
+        {id:'rec4',kind:'tag_missing',resource:'slb-bp2xxx',detail:'缺 platform-team tag，成本未归集',saving:0,status:'open'},
+      ],
+      // CLI/AI
+      serviceAccounts:[
+        {id:'sa1',name:'cicd-deploy',ak:'AKLT-cicd-7f3a',scopes:'request:create, gate:wait',lastUsed:'2分钟前',status:'active'},
+        {id:'sa2',name:'ai-agent-dev',ak:'AKLT-agent-9b2c',scopes:'catalog:read, request:create',lastUsed:'1小时前',status:'active'},
+        {id:'sa3',name:'finops-report',ak:'AKLT-finops-1d5e',scopes:'cost:read, cmdb:read',lastUsed:'昨天',status:'active'},
+      ],
+      showSk:false,
+      newSk:'',
+      skills:[
+        {name:'new-rds',type:'内置',trigger:'起.*mysql / 申请.*rds',steps:'LLM抽参 → catalog get → request create → wait',desc:'申请新 RDS'},
+        {name:'drift-explain',type:'内置',trigger:'漂移解释 / 为什么漂移',steps:'drift get → LLM 解释差异 → 建议',desc:'用自然语言解释漂移'},
+        {name:'cost-estimate',type:'内置',trigger:'预估成本 / 多少钱',steps:'Infracost 预估 → 对比预算',desc:'成本预估'},
+        {name:'new-microservice',type:'业务A自定义',trigger:'起新微服务',steps:'vpc查询 → ECS → SLB → RDS账号',desc:'组合多模块起新服务'},
+      ],
+      aiInput:'',
+      aiRunning:false,
+      aiResult:null,
+      // 环境与租户（D27）
+      envs:[
+        {id:'env1',logical_id:'prod',stage:'prod',cloud_account:'alicloud-corp-prod',region:'cn-hangzhou',status:'active'},
+        {id:'env2',logical_id:'staging',stage:'staging',cloud_account:'alicloud-corp-prod',region:'cn-hangzhou',status:'active'},
+        {id:'env3',logical_id:'dev',stage:'dev',cloud_account:'alicloud-corp-dev',region:'cn-hangzhou',status:'active'},
+      ],
+      tenants:[
+        {id:'t0',logical_id:'platform-default',isolation:'vpc-per-env',kind:'internal',owner:'平台运维'},
+        {id:'t1',logical_id:'corp-a',isolation:'vpc-per-env',kind:'external',owner:'平台运维'},
+        {id:'t2',logical_id:'bank-finance',isolation:'account-per-env',kind:'external',owner:'金融 BU'},
+      ],
+      envBindings:[
+        {id:'b1',env:'prod',tenant:'platform-default',layer:'Application',vpc_stack:'vpc-platform-prod',subnets:'10.0.1.0/24,10.0.2.0/24',override_account:null},
+        {id:'b2',env:'prod',tenant:'corp-a',layer:'Application',vpc_stack:'vpc-corpA-prod',subnets:'10.10.1.0/24',override_account:null},
+        {id:'b3',env:'prod',tenant:'bank-finance',layer:'Application',vpc_stack:'vpc-bank-prod',subnets:'10.20.1.0/24',override_account:'alicloud-bank-prod'},
+        {id:'b4',env:'prod',tenant:'platform-default',layer:'Middleware',vpc_stack:'vpc-platform-prod',subnets:'10.0.3.0/24',override_account:null},
+      ],
+      // 标签分层与参数解析（D28）
+      tagLayersPreview:[
+        {layer:'L1',from:'平台常量（永远赢）',kv:'platform-managed=true'},
+        {layer:'L2',from:'environments.tag_namespace',kv:'env=prod, cost-center=CC-P-01'},
+        {layer:'L3',from:'tenants.tag_namespace',kv:'tenant=corp-a, compliance=pci'},
+        {layer:'L4',from:'teams/bundles.tags',kv:'platform-team=dba, platform-bundle=orders'},
+        {layer:'L5',from:'codegen 自动派生',kv:'platform-stack=rds-orders-prod'},
+        {layer:'L6',from:'catalog.default_tags',kv:'app=order-service'},
+        {layer:'L7',from:'user form（白名单内）',kv:'owner=zhangsan'},
+      ],
+      pipelineStages:[
+        {n:'S1',name:'模块契约载入',rank:8,type:'兜底'},
+        {n:'S2',name:'catalog defaults',rank:6,type:'默认'},
+        {n:'S3',name:'layer rule 注入',rank:2,type:'治理'},
+        {n:'S4',name:'环境上下文绑定',rank:5,type:'上下文'},
+        {n:'S5',name:'tenant 上下文',rank:4,type:'上下文'},
+        {n:'S6',name:'team 策略',rank:3,type:'治理'},
+        {n:'S7',name:'跨层依赖注入',rank:5,type:'上下文'},
+        {n:'S8',name:'用户表单',rank:7,type:'用户'},
+        {n:'S9',name:'平台强制注入',rank:1,type:'绝对'},
+      ],
+      provenanceSample:`{
+  "instance_type": {
+    "value": "mysql.n2.large.1c", "source": "user_form", "rank": 7,
+    "overridden_from": {"value": "mysql.n2.medium.1c", "source": "catalog_default", "rank": 6}
+  },
+  "vpc_id": {
+    "value": "vpc-bp1xxx", "source": "env_context", "rank": 5,
+    "env_id": "env-prod", "tenant_id": "tenant-corp-a",
+    "binding_id": "etb-xxx", "vpc_stack_id": "stack-vpc-corpA-prod"
+  },
+  "encrypt_at_rest": {
+    "value": true, "source": "layer_rule", "rank": 2,
+    "rule_id": "rule-prod-encrypt-mandatory",
+    "user_attempted_override": true, "user_attempted_value": false
+  },
+  "tags": {
+    "source": "merged", "rank": null,
+    "layers_applied": ["L1","L2","L3","L4","L5","L6","L7"],
+    "user_overrides_blocked": ["platform-managed"],
+    "layers_merged_summary": {
+      "L1": ["platform-managed","platform-team","platform-bundle","platform-stack"],
+      "L2": ["env","cost-center"], "L3": ["tenant","compliance"],
+      "L6": ["app"], "L7": ["owner"]
+    }
+  }
+}`,
+    }
+  },
+  computed: {
+    currentTitle(){return ({dashboard:'工作台',catalog:'服务目录',newRequest:'新建申请',requests:'工单中心',approvals:'审批中心',drift:'漂移中心',cmdb:'CMDB 资源',finops:'FinOps 成本',modules:'模块注册表',import:'存量导入',versions:'版本与工具链',org:'组织与权限','cloud-creds':'云账号与凭据','layer-migration':'层规则迁移中心','env':'环境与租户','tag-param':'标签与参数解析','cli-ai':'CLI 与 AI',settings:'适配器设置'})[this.currentView]||''},
+    navGroups(){return [
+      {title:'工作台',items:[{view:'dashboard',label:'仪表盘',icon:'📊'},{view:'catalog',label:'服务目录',icon:'🛒'},{view:'newRequest',label:'新建申请',icon:'📝'},{view:'requests',label:'工单中心',icon:'📋'},{view:'approvals',label:'审批中心',icon:'✅',badge:this.approvals.length}]},
+      {title:'治理',items:[{view:'drift',label:'漂移中心',icon:'⚠'},{view:'cmdb',label:'CMDB 资源',icon:'🗂'},{view:'finops',label:'FinOps 成本',icon:'💰'},{view:'modules',label:'模块注册表',icon:'🧩'},{view:'import',label:'存量导入',icon:'📥'}]},
+      {title:'环境与租户',items:[{view:'env',label:'环境与租户',icon:'🌐'},{view:'tag-param',label:'标签与参数解析',icon:'🏷'}]},
+      {title:'平台管理',items:[{view:'versions',label:'版本与工具链',icon:'🔧'},{view:'org',label:'组织与权限',icon:'👥'},{view:'cloud-creds',label:'云账号与凭据',icon:'🔐'},{view:'layer-migration',label:'层规则迁移中心',icon:'🔀'},{view:'cli-ai',label:'CLI 与 AI',icon:'🤖'},{view:'settings',label:'适配器设置',icon:'⚙'}]},
+    ]},
+    filteredCatalog(){return this.catalog.filter(c=>(this.catalogLayer==='全部'||c.layer===this.catalogLayer)&&(c.name.includes(this.catalogSearch)||c.module.includes(this.catalogSearch)))},
+    estCost(){return (this.form.ha?2:1)*(this.form.instance_type.includes('xlarge')?1800:this.form.instance_type.includes('large')?1200:800)+this.form.storage*1.5|0},
+    filteredResources(){return this.resources.filter(r=>(this.cmdbFilter.team==='全部'||r.team===this.cmdbFilter.team)&&(this.cmdbFilter.layer==='全部'||r.layer===this.cmdbFilter.layer)&&(this.cmdbFilter.status==='全部'||r.status===this.cmdbFilter.status))},
+  },
+  methods: {
+    go(v){this.currentView=v},
+    layerClass(l){return {Global:'layer-global',Middleware:'layer-middleware',Application:'layer-app'}[l]},
+    startRequest(c){this.activeCatalog=c;this.currentView='newRequest'},
+    submitRequest(){const r={id:'REQ-2026-014'+(Math.floor(Math.random()*9)+4),title:this.activeCatalog.name,catalog:this.activeCatalog.name,team:'业务A',status:'generating',cost:this.estCost,updated:'刚刚',bundle:this.form.bundle,storage:this.form.storage};this.requests.unshift(r);this.currentView='requests';this.notify('已提交，进入生成阶段')},
+    openRequest(r){this.activeRequest=JSON.parse(JSON.stringify(r))},
+    currentIndex(r){return {generating:0,planning:1,'pending-approval':2,applying:3,succeeded:4,'blocked-policy':2,failed:3}[r.status]||0},
+    stageState(r,st,i){const ci=this.currentIndex(r);if(i<ci)return 'bg-tm-600 text-white';if(i===ci)return 'bg-tm-600 text-white ring-4 ring-tm-100';if(r.status==='blocked-policy'&&i===2)return 'bg-red-500 text-white';return 'bg-slate-200 text-slate-400'},
+    stageIcon(r,st,i){const ci=this.currentIndex(r);if(i<ci)return '✓';if(r.status==='blocked-policy'&&i===2)return '!';return i+1},
+    decide(a,d){this.approvals=this.approvals.filter(x=>x.id!==a.id);this.notify(d==='approve'?'已批准，进入 Apply':'已驳回')},
+    resolveDrift(d,act){this.drifts=this.drifts.filter(x=>x.id!==d.id);this.notify(act==='adopt'?'已采用云端状态':'已触发恢复期望状态')},
+    registerModule(){this.modules.unshift({ns:this.moduleForm.namespace||'新模块',source:this.moduleForm.source||'git::…',layer:this.moduleForm.layer,team:this.moduleForm.team,ref:'v1.0.0',vars:0,status:'pending-validation'});this.newModule=false;this.moduleForm={namespace:'',source:'',layer:'Middleware',team:'DBA'};this.notify('已注册，开始提取变量契约')},
+    adoptOrphan(r){this.notify('已转入存量导入向导（'+r.cloud_id+'）');this.currentView='import';this.imp.resourceId=r.cloud_id},
+    applyRec(rec){this.recommendations=this.recommendations.filter(x=>x.id!==rec.id);this.notify('已生成「'+rec.resource+'」优化申请单，进入审批')},
+    dismissRec(rec){this.recommendations=this.recommendations.filter(x=>x.id!==rec.id);this.notify('已忽略建议')},
+    issueAk(){const sk='SK-'+Math.random().toString(36).slice(2,14).toUpperCase();this.newSk=sk;this.showSk=true;this.serviceAccounts.unshift({id:'sa'+Date.now(),name:'new-agent-'+Math.floor(Math.random()*99),ak:'AKLT-new-'+Math.random().toString(36).slice(2,6),scopes:'catalog:read',lastUsed:'刚刚',status:'active'});clearTimeout(this._skT);this._skT=setTimeout(()=>this.showSk=false,8000);this.notify('SK 已生成（仅展示一次）')},
+    runAi(){if(!this.aiInput.trim())return;this.aiRunning=true;this.aiResult=null;clearTimeout(this._aiT);this._aiT=setTimeout(()=>{const inp=this.aiInput;if(/mysql|rds|数据库/i.test(inp)){this.aiResult={skill:'new-rds',steps:'LLM 抽参(spec=4C8G, team=order-service) → tm catalog get rds → tm request create --yaml → tm request wait',msg:'已提交 RDS 申请 REQ-2026-0149，规格 mysql.n2.large.1c，预估 ¥2300/月，进入 DBA 审批'};}else if(/漂移|drift|为什么/i.test(inp)){this.aiResult={skill:'drift-explain',steps:'tm drift get rds-orders-prod → LLM 解析 plan 差异',msg:'rds-orders-prod 规格 medium→large（疑似手工升配），建议 adopt-cloud 或 restore-desired'};}else if(/成本|多少钱|cost|预估/i.test(inp)){this.aiResult={skill:'cost-estimate',steps:'tm cost estimate → 聚合 team-a',msg:'业务A 本月 ¥4,200 / 预算 ¥7,000（60%），Top：order-svc ECS ¥2,800'};}else{this.aiResult={skill:'(未匹配)',steps:'——',msg:'未识别意图，请尝试「起 mysql」「解释漂移」「预估成本」'}}this.aiRunning=false},700)},
+    notify(m){clearTimeout(this._t);this._t=setTimeout(()=>this.toast='',2500);this.toast=m},
+    triggerBuild(){const mode=this.executorMode;if(mode==='process'){this.notify('process 模式无需镜像，工具链由节点 installer 维护');return;}const tag='tm-worker:tm'+this.ver.terramate.replace(/v/,'')+'-'+(this.ver.terraform.match(/[\d.]+/)||['1.9'])[0]+'-'+new Date().toISOString().slice(0,10).replace(/-/g,'');this.buildingImage=true;clearTimeout(this._bT);this._bT=setTimeout(()=>{this.buildingImage=false;this.notify('ImageBuilder 已构建并 push '+tag+' → 灰度')},900)},
+    rotateCredential(c){if(c.type==='bootstrap'){this.notify('已发起 bootstrap 凭据双人审批轮换（运维 +1 守护人确认）· 全审计') } else if(c.type==='oidc'){this.notify('OIDC ephemeral 无需轮换（自然过期）；如需立即失效 → 撤 trust policy')} else {this.notify('长存 AK/SK 已强制轮换 · 旧凭据吊销 · 相关工单暂停重试')} },
+    newLayerRuleDraft(){this.notify('已打开 v4 草案编辑器（v1↔v4 diff viewer 必看，盲改禁止）')},
+    viewVersionDiff(v){this.notify('查看 v'+(v.version-1)+' ↔ v'+v.version+' diff：'+v.summary)},
+    runBatch(b){b.status='running';this.notify('批次 '+b.id+' 启动：StateBackup 已生成 · rollback_token 已签发 · 漂移检测静默该批 stack')},
+    rollbackBatch(b){b.status='rolled_back';this.notify('RollbackEngine 逆向 state mv：v'+b.toV+' → v'+b.fromV+' · state 从备份恢复')},
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

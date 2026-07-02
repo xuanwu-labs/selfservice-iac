@@ -1,0 +1,52 @@
+schema: spec-driven
+
+context: |
+  项目：Terramate —— 面向 IaC（Terraform、OpenTofu、Terragrunt）的编排、代码生成与变更管理工具。
+  语言：Go 1.25.8（module github.com/terramate-io/terramate），License MPL-2.0。
+  目录布局：
+    - cmd/        主二进制（terramate CLI、terramate-ls 语言服务器、helper）
+    - ls/         Language Server Protocol 实现
+    - hcl/        HCL 解析与求值（Terramate 配置语言）
+    - config/     配置管理（stacks、globals）
+    - stack/      stack 编排与基于图的执行
+    - generate/   代码生成引擎
+    - cloud/      Terramate Cloud 集成（漂移检测等为 Cloud 专属，开源版无）
+    - e2etests/   端到端测试；test/ 共享测试工具
+    - commands/   CLI 命令实现
+  构建/测试：
+    - make build          -> 生成 bin/terramate、bin/terramate-ls、bin/helper
+    - make test           -> 运行全部测试
+    - go test ./<pkg>/... -> 运行包级测试
+  约定：
+    - Terramate 配置基于 HCL；对已有用户配置的向后兼容性至关重要。
+    - 行为由 e2etests/ 大量覆盖 —— 新增行为必须补充 e2e 覆盖。
+
+  产物目录约定（本项目所有 change 必须遵守的规整性）：
+    changes/<change>/
+      ├── proposal.md      schema 固定路径，不可改名
+      ├── design.md        schema 固定路径；内部章节按 01- 02- 数字前缀编号
+      ├── tasks.md         schema 固定路径；按 01- 功能模块分组
+      ├── specs/           能力文档，命名 `NN-中文名.md`（如 01-模块注册.md）
+      ├── docs/            辅助主题文档，命名 `NN-中文名.md`（如 01-总体架构.md）
+      └── scripts/         脚本产出，按面向功能分子目录（如 scripts/初始化/、scripts/迁移/）
+
+rules:
+  proposal:
+    - 明确指出影响的层级：CLI | LSP | HCL | config | stack | generate | cloud | 平台层（新增）。
+    - 必须包含「兼容性」说明：是否破坏已有 Terramate 配置或 CLI 用法？
+    - 若涉及 HCL 语法或 config schema 变更，需在影响范围中单独标注。
+  specs:
+    - 按能力（Capability）组织需求，每个能力一个文件，命名 `NN-中文名.md`（NN 为两位数字编号，递增）。
+    - 文件内部用 ADDED/MODIFIED 区分；场景用 **WHEN** / **THEN** 形式描述，给出具体输入。
+  design:
+    - 内部章节一律用 `## 01-标题`、`## 02-标题` 数字前缀编号组织，保证主题规整。
+    - 指明改动的具体 Go package 或新增平台模块，尊重 cmd -> commands -> engine/hcl/config 的分层。
+    - 凡涉及架构图/分层/库表/时序的详细设计，拆分到 docs/ 下 `NN-中文名.md`，design.md 只保留总体方案与关键决策。
+    - 对 config/HCL 变更，说明已有配置在解析/求值上如何保持兼容。
+    - 说明新行为如何测试：单测 package 和/或新增 e2etests/ 场景。
+  tasks:
+    - 按 `## 01-功能模块` 数字前缀分组组织。
+    - 按依赖排序；每个 task 应是一个可独立测试的改动单元。
+    - 实现任务旁必须给出对应测试任务（`go test ./<pkg>/...` 和/或新增 e2etests/ 场景）。
+    - 涉及脚本的 task，产出脚本写入 change 目录下 scripts/ 对应功能子目录。
+    - 最后一个 task 运行 `make build` 与 `make test` 做整体验证。
