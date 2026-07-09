@@ -9,14 +9,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.uber.org/zap"
+
+	"github.com/xuanwu-labs/selfservice-iac/server/internal/middleware"
 )
 
 func setupTestRouter(pingFn func(ctx context.Context) error) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return NewRouter(&Deps{
-		Logger:   zap.NewNop(),
-		PingFunc: pingFn,
+		Logger:      otelzap.New(zap.NewNop()),
+		PingFunc:    pingFn,
+		Middlewares: []gin.HandlerFunc{middleware.RequestID()},
 	})
 }
 

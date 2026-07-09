@@ -7,23 +7,16 @@
 package main
 
 import (
-	"connectrpc.com/connect"
-	"connectrpc.com/otelconnect"
 	"context"
-	"fmt"
-	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/xuanwu-labs/selfservice-iac/server/api"
-	"github.com/xuanwu-labs/selfservice-iac/server/api/grpc"
-	"github.com/xuanwu-labs/selfservice-iac/server/api/grpc/interceptor"
-	http2 "github.com/xuanwu-labs/selfservice-iac/server/api/http"
+	"github.com/xuanwu-labs/selfservice-iac/server/api/connect"
 	"github.com/xuanwu-labs/selfservice-iac/server/core"
 	"github.com/xuanwu-labs/selfservice-iac/server/data"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/config"
-	"github.com/xuanwu-labs/selfservice-iac/server/internal/otel"
-	"github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/platformv1connect"
+	"github.com/xuanwu-labs/selfservice-iac/server/internal/server"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 // Injectors from wire.go:
@@ -40,19 +33,19 @@ func InitializeApp() (*App, func(), error) {
 		return nil, nil, err
 	}
 	deps := api.NewHTTPDeps(logger, pool)
-	handler := provideMetricsHandler()
-	engine := provideRouter(deps, handler)
-	catalogHandler := grpc.NewCatalogHandler()
-	connectMux, err := provideConnect(catalogHandler)
+	handler := server.ProvideMetricsHandler()
+	catalogHandler := connect.NewCatalogHandler()
+	serverConfig, err := server.ProvideServerConfig(catalogHandler, logger)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
+	engine := server.NewHTTPServer(deps, handler, serverConfig)
+	serverServer := server.NewServer(configConfig, engine, serverConfig, logger)
 	app := &App{
-		Config:     configConfig,
-		Logger:     logger,
-		Router:     engine,
-		ConnectMux: connectMux,
+		Config: configConfig,
+		Logger: logger,
+		Server: serverServer,
 	}
 	return app, func() {
 		cleanup()
@@ -64,72 +57,29 @@ func InitializeApp() (*App, func(), error) {
 // App is the assembled platform server — the output of wire.
 type App struct {
 	Config *config.Config
-	Logger *zap.Logger
-	Router *gin.Engine
-	// ConnectMux holds all Connect-RPC handlers, mounted at its Path.
-	ConnectMux *ConnectMux
+	Logger *otelzap.Logger
+	Server *server.Server
 }
 
-// ConnectMux wraps a ServeMux plus the mount path for the root router.
-type ConnectMux struct {
-	Mux  *http.ServeMux
-	Path string
-}
-
-// provideConnect wires the Catalog Connect handler with the OTel interceptor
-// (task 11.4) + the auth/RBAC/audit/ratelimit interceptor chain (task 15.5).
-// Phase 1: single service; more are appended by adding to the mux.
-func provideConnect(catalog *grpc.CatalogHandler) (*ConnectMux, error) {
-	otelInterceptors, err := otelconnect.NewInterceptor(otelconnect.WithTrustRemote())
-	if err != nil {
-		return nil, fmt.Errorf("create otelconnect interceptor: %w", err)
-	}
-
-	// Build the full interceptor list: otel (trace) + auth/rbac/ratelimit/audit.
-	var allInterceptors []connect.Interceptor
-	allInterceptors = append(allInterceptors, otelInterceptors)
-	for _, ic := range interceptor.Chain(interceptor.OtelZapLogger()) {
-		allInterceptors = append(allInterceptors, ic)
-	}
-
-	mux := http.NewServeMux()
-	path, handler := platformv1connect.NewCatalogServiceHandler(
-		catalog, connect.WithInterceptors(allInterceptors...),
-	)
-	mux.Handle(path, handler)
-	return &ConnectMux{Mux: mux, Path: "/api/"}, nil
-}
-
-func provideLogger(cfg *config.Config) *zap.Logger {
-	var logger *zap.Logger
+// provideLogger returns a trace-aware otelzap logger. OTel SDK is initialized
+// in main.go BEFORE wire runs, so the global TracerProvider is ready when this
+// executes — the returned logger carries trace_id in every Ctx() log call (D41).
+func provideLogger(cfg *config.Config) *otelzap.Logger {
+	var base *zap.Logger
 	if cfg.LogLevel == "debug" {
-		logger, _ = zap.NewDevelopment()
+		base, _ = zap.NewDevelopment()
 	} else {
-		logger, _ = zap.NewProduction()
+		base, _ = zap.NewProduction()
 	}
-	return logger
-}
-
-// provideMetricsHandler exposes the OTel Prometheus handler for /metrics.
-// OTel SDK is initialized in main.go (global state); this just reads it.
-func provideMetricsHandler() http.Handler {
-	return otel.MetricsHandler()
-}
-
-func provideRouter(deps *api.Deps, metrics http.Handler) *gin.Engine {
-	return http2.NewRouter(&http2.Deps{
-		Logger:         deps.Logger,
-		PingFunc:       deps.PingFunc,
-		MetricsHandler: metrics,
-	})
+	return otelzap.New(base)
 }
 
 // provideAppContext supplies the background context used by data-layer
-// providers (e.g. pgxpool construction). Refined in task 08 (lifecycle-aware ctx).
+// providers (e.g. pgxpool construction).
 func provideAppContext() context.Context { return context.Background() }
 
-var allProviders = wire.NewSet(config.ProviderSet, data.ProviderSet, core.ProviderSet, api.ProviderSet, provideLogger,
-	provideMetricsHandler,
-	provideRouter, grpc.NewCatalogHandler, provideConnect,
+// allProviders aggregates every layer's ProviderSet. Adding a new package
+// means adding its ProviderSet here — nothing else changes in wire.go.
+var allProviders = wire.NewSet(config.ProviderSet, data.ProviderSet, core.ProviderSet, api.ProviderSet, connect.ProviderSet, server.ProviderSet, provideLogger,
 	provideAppContext, wire.Struct(new(App), "*"),
 )

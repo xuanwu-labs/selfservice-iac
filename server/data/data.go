@@ -47,6 +47,9 @@ func NewPgxPool(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, func(),
 }
 
 // NewQueries creates a sqlc Queries from the pgxpool.
+// WIP: registered in ProviderSet but currently has no wire consumer — the
+// first consumer will be core/store (薄包装) when it lands in Wave 1.
+// Until then it stays registered so the dependency is visible in the graph.
 func NewQueries(pool *pgxpool.Pool) *generated.Queries {
 	return generated.New(pool)
 }

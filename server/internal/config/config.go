@@ -13,9 +13,10 @@ import (
 
 // Config holds all platform configuration.
 type Config struct {
-	HTTPAddr string   `mapstructure:"http_addr"`
-	LogLevel string   `mapstructure:"log_level"`
-	DB       DBConfig `mapstructure:"db"`
+	HTTPAddr string        `mapstructure:"http_addr"`
+	LogLevel string        `mapstructure:"log_level"`
+	DB       DBConfig      `mapstructure:"db"`
+	Connect  ConnectConfig `mapstructure:"connect"`
 }
 
 // DBConfig holds PostgreSQL connection parameters.
@@ -23,6 +24,12 @@ type DBConfig struct {
 	DSN      string `mapstructure:"dsn"`
 	MaxConns int32  `mapstructure:"max_conns"`
 	Timeout  string `mapstructure:"timeout"`
+}
+
+// ConnectConfig controls the Connect-RPC layer.
+// When Enabled is false, the server runs in HTTP-only mode (no /api/ routes).
+type ConnectConfig struct {
+	Enabled bool `mapstructure:"enabled"`
 }
 
 // Load reads configuration from env vars + defaults and returns a typed Config.
@@ -35,6 +42,7 @@ func Load() (*Config, error) {
 	v.SetDefault("log_level", "info")
 	v.SetDefault("db.max_conns", 10)
 	v.SetDefault("db.timeout", "5s")
+	v.SetDefault("connect.enabled", true)
 
 	// Env var binding (AETHER_HTTP_ADDR, AETHER_DB_DSN, etc.)
 	v.SetEnvPrefix("AETHER")
@@ -48,6 +56,7 @@ func Load() (*Config, error) {
 	_ = v.BindEnv("db.dsn")
 	_ = v.BindEnv("db.max_conns")
 	_ = v.BindEnv("db.timeout")
+	_ = v.BindEnv("connect.enabled")
 
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
