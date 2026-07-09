@@ -9,7 +9,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/wire"
 
 	"github.com/xuanwu-labs/selfservice-iac/server/api"
 	apihttp "github.com/xuanwu-labs/selfservice-iac/server/api/http"
@@ -27,6 +26,3 @@ func NewHTTPServer(deps *api.Deps, metrics http.Handler, mwCfg *middleware.Serve
 		Middlewares:    mwCfg.GinMiddlewares,
 	})
 }
-
-// Compile-time: ensure wire is referenced (ProviderSet uses it).
-var _ = wire.NewSet
