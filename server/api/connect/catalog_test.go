@@ -1,4 +1,4 @@
-package grpc_test
+package connect_test
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	servergrpc "github.com/xuanwu-labs/selfservice-iac/server/api/grpc"
+	serverconnect "github.com/xuanwu-labs/selfservice-iac/server/api/connect"
 	platformv1 "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1"
 	platformv1connect "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/platformv1connect"
 )
@@ -19,7 +19,7 @@ import (
 // the handler on a mux, call it with a generated client, assert the response.
 func TestCatalogListItems(t *testing.T) {
 	mux := http.NewServeMux()
-	mux.Handle(platformv1connect.NewCatalogServiceHandler(servergrpc.NewCatalogHandler()))
+	mux.Handle(platformv1connect.NewCatalogServiceHandler(serverconnect.NewCatalogHandler()))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
@@ -38,7 +38,7 @@ func TestCatalogListItems(t *testing.T) {
 // TestCatalogListItemsEmptyRequest verifies page_size=0 is accepted.
 func TestCatalogListItemsEmptyRequest(t *testing.T) {
 	mux := http.NewServeMux()
-	mux.Handle(platformv1connect.NewCatalogServiceHandler(servergrpc.NewCatalogHandler()))
+	mux.Handle(platformv1connect.NewCatalogServiceHandler(serverconnect.NewCatalogHandler()))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 

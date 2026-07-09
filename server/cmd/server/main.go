@@ -1,11 +1,11 @@
 // Package main is the Aether platform server entry point.
+// Thin: OTel init → wire → server.Run → graceful shutdown.
+// All transport assembly (gin + Connect + mux) lives in internal/server/.
 package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -26,7 +26,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Wire-generated initialization (compile-time DI)
+	// Wire-generated initialization (compile-time DI).
+	// OTel was initialized above, so wire's provideLogger already returns a
+	// trace-aware *otelzap.Logger — no post-wire wrapping needed (D41).
 	app, cleanup, err := InitializeApp()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to initialize: %v\n", err)
@@ -34,46 +36,40 @@ func main() {
 	}
 	defer cleanup()
 
-	// Wrap zap logger with otelzap so log entries carry trace_id.
-	logger := otel.WrapLogger(app.Logger)
-
+	logger := app.Logger
 	logger.Info("Aether platform starting",
 		zap.String("http_addr", app.Config.HTTPAddr),
+		zap.Bool("connect_enabled", app.Config.Connect.Enabled),
 	)
 
-	// Root mux: Connect-RPC under /api/, gin for everything else.
-	// One process, one port (task 15.6).
-	mux := http.NewServeMux()
-	if app.ConnectMux != nil {
-		mux.Handle(app.ConnectMux.Path, app.ConnectMux.Mux)
-	}
-	mux.Handle("/", app.Router)
-
-	srv := &http.Server{
-		Addr:    app.Config.HTTPAddr,
-		Handler: mux,
-	}
-
-	// Start HTTP server
+	// Start HTTP server (gin + Connect on one port).
+	errCh := make(chan error, 1)
 	go func() {
-		logger.Info("server listening", zap.String("addr", srv.Addr))
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("server error", zap.Error(err))
+		if err := app.Server.Run(); err != nil {
+			errCh <- err
 		}
 	}()
 
-	// Graceful shutdown
+	// Wait for signal or fatal server error.
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	<-stop
+	select {
+	case <-stop:
+		// graceful shutdown
+	case err := <-errCh:
+		logger.Error("server failed", zap.Error(err))
+	}
 
+	// Graceful shutdown.
 	logger.Info("shutting down...")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(shutdownCtx); err != nil {
+
+	// Shutdown HTTP server (stops accepting new connections, waits for in-flight).
+	if err := app.Server.Shutdown(shutdownCtx); err != nil {
 		logger.Error("http shutdown error", zap.Error(err))
 	}
-	// Flush pending spans before exit (D41: tp.Shutdown is the "one of seven pits" must-do).
+	// Flush pending spans before exit (D41: tp.Shutdown is a must-do).
 	if err := otelSDK.Shutdown(shutdownCtx); err != nil {
 		logger.Error("otel shutdown error", zap.Error(err))
 	}

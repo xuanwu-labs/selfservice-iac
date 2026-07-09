@@ -52,6 +52,48 @@ server/
 
 各层用 `wire.NewSet(...)` 定义 ProviderSet。`cmd/*/wire.go` 用 `//go:build wireinject` 触发 `wire gen`。
 
+- **DI 用于启动期装配**:server 的依赖图(config→data→core→api→connect→server)在启动时全部已知,用 wire 编译期检查 + 无反射装配。
+- **不加空 ProviderSet**:如果包当前无 provider 可注入(auth/httpclient 等待 config 字段就绪),不要加空 `wire.NewSet()`——空集是仪式主义,等真正有依赖时再加。
+
+## 设计模式与原则
+
+本项目因地制宜选择模式,不为模式而模式。
+
+| 场景 | 模式 | 理由 |
+|---|---|---|
+| server 启动装配 | **DI (wire)** | 依赖静态已知,编译期检查,无反射可审计(D28) |
+| CLI 依赖构造 | **Factory (lazy)** | `--help` 不触网;Factory 按需构造,不到运行时不初始化 |
+| 中间件/拦截器组合 | **Option 模式** | `WithGinMiddleware()` / `WithConnectInterceptor()` 可插拔 |
+| 无依赖简单构造 | **Factory 返回接口** | `clock.New() → Clock` 接口,测试换 FakeClock |
+| 异步耗时作业 | **Job Queue (River)** | 持久化 + 重试 + trace 贯穿;InsertTx 与 DB 事务原子 |
+| 进程内事件通知 | **直接函数调用** | Phase 1 单进程,不引入 EventBus/Observer(过度设计) |
+
+**判断标准**:
+- 依赖在启动时全部已知 → DI(wire)
+- 依赖需要 lazy 或运行时选择 → Factory
+- 中间件/拦截器可增减 → Option
+- 持久化异步任务 → Job Queue
+
+**Go 接口原则**:Go 的接口是隐式的(结构化类型),不需要 Java 式工厂层级。`NewXxx() Interface` 就够。消费侧定义小接口(1-3 方法),不预定义大接口。
+
+## 数据层架构
+
+四层模型分离(DDD 规范):
+
+| 层 | 位置 | 职责 | 当前状态 |
+|---|---|---|---|
+| sqlc 生成 model | `pkg/db/generated/models.go` | DB 表的 struct(sqlc 自动) | ✅ teams 表 |
+| 手写 entity | `internal/model/entity/` | 额外字段/校验标签/表名方法 | 空(teams 不需要额外字段) |
+| dbset 薄包装 | `data/dbset/` | 组合 sqlc Queries + entity | 空(等 core/store 落地) |
+| mapping 转换 | `internal/mapping/` | entity ↔ proto message | 空(等 handler 接 DB) |
+
+**数据流**(未来完整):
+```
+Connect 请求(proto) → handler → core 业务逻辑 → dbset → pkg/db generated → PostgreSQL
+                                                              ↓
+                                            entity → mapping → proto 响应
+```
+
 ## 常用命令
 
 ```bash

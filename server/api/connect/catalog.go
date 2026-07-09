@@ -1,7 +1,7 @@
-// Package grpc implements Connect-RPC handlers for Aether's business APIs.
+// Package connect implements Connect-RPC handlers for Aether's business APIs.
 // catalog.go implements CatalogService (specs/02) — Phase 1 returns a static
 // placeholder; full catalog logic lands in iac-self-service-platform.
-package grpc
+package connect
 
 import (
 	"context"
