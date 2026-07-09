@@ -1,0 +1,10 @@
+# Normalize line endings: Go source and config files use LF (not CRLF).
+# gofmt requires LF; Windows git autocrlf would otherwise corrupt formatting.
+*.go    text eol=lf
+*.mod   text eol=lf
+*.sum   text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.sql   text eol=lf
+*.proto text eol=lf
+Makefile text eol=lf
