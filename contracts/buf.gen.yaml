@@ -1,0 +1,23 @@
+version: v2
+plugins:
+  # Go Connect service stubs → server/internal/proto/ (same package as pb.go)
+  - local: protoc-gen-connect-go
+    out: ../server/internal/proto
+    opt:
+      - paths=source_relative
+  # Go message types (pb.go) → server/internal/proto/
+  - local: protoc-gen-go
+    out: ../server/internal/proto
+    opt:
+      - paths=source_relative
+  # TypeScript client (connect-es) → web/src/gen/
+  # Disabled until web/ frontend exists (D45). Uncomment when web/ is built:
+  # - remote: buf.build/bufbuild/es
+  #   out: ../web/src/gen
+  #   opt:
+  #     - target=ts
+  # OpenAPI v3 spec → contracts/openapi/ (for REST clients / curl)
+  # Disabled until connect-openapi plugin stabilizes; the Connect/JSON protocol
+  # already serves curl natively. Re-enable when OpenAPI docs are needed:
+  # - remote: buf.build/googleapis/gnostic
+  #   out: ../contracts/openapi
