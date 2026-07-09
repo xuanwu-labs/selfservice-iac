@@ -48,6 +48,8 @@ yarn-error.log*
 Thumbs.db
 
 # === ZCode / Agent ===
-# .zcode/agents/_probe/ 是 reviewer subagent 的评测靶子,故意含缺陷,入库作为回归目标
-# (它不在任何 Go module root 下,go build ./... 不会编译它)
-# 若在 server/ 下临时放 D1 depguard 测试夹具,用专门命名并配 build tag,勿用 _probe/
+# .zcode/ is workspace-local agent/tooling config (slash-commands, skills,
+# _probe evaluation targets). It is NOT committed — each contributor's
+# environment may differ. The _probe/ reviewer target is intentionally
+# excluded from version control.
+.zcode/
