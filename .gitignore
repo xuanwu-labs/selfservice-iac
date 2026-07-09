@@ -1,0 +1,53 @@
+# === Go (server/) ===
+# 编译产物
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+server/bin/
+server/aether
+server/migrate
+server/server
+# 测试覆盖率
+*.out
+*.test
+# Go workspace(个人本地,不入库)
+go.work
+go.work.sum
+
+# === 构建工具产物 ===
+# wire 生成(保留 wire_gen.go 入库?默认保留——它是构建依赖)
+# server/cmd/*/wire_gen.go
+
+# === 前端(web/,未来) ===
+node_modules/
+web/dist/
+web/build/
+web/.next/
+web/.turbo/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# === 环境与密钥 ===
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# === IDE / 编辑器 ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# === ZCode / Agent ===
+# .zcode/agents/_probe/ 是 reviewer subagent 的评测靶子,故意含缺陷,入库作为回归目标
+# (它不在任何 Go module root 下,go build ./... 不会编译它)
+# 若在 server/ 下临时放 D1 depguard 测试夹具,用专门命名并配 build tag,勿用 _probe/
