@@ -16,7 +16,7 @@ CLI 与 HTTP API 同源（共用 `platform/internal/api` 的 service 层），CL
 ## 2. 双身份模型：人 vs 机器
 
 ```
-人登录:    浏览器 → OIDC(dex) → 会话 cookie   → Web / 个人 CLI (`tm auth login`)
+人登录:    浏览器 → OIDC(dex) → 会话 cookie   → Web / 个人 CLI (`aether auth login`)
 机器调用:  CLI/agent → AK/SK HMAC 签名         → service account → 受 RBAC 约束
 ```
 
@@ -34,7 +34,7 @@ CLI 与 HTTP API 同源（共用 `platform/internal/api` 的 service 层），CL
 - **作用域**：AK 可限定 scope（只读 / 仅某 Space / 仅 catalog 读 + request 创建），最小权限。
 - **审计**：所有 AK 操作入 `audit_logs`，`actor = sa:xxx`。
 
-## 4. CLI 命令结构（`tm`）
+## 4. CLI 命令结构（`aether`）
 
 ```
 tm auth     login | whoami | token | logout
@@ -44,10 +44,10 @@ tm stack    list | show <id> | drift <id>
 tm drift    list | show <id> | explain <id>          # explain 走 LLM
 tm cost     estimate --yaml | show <request-id>
 tm approval list | decide <id> --approve|--reject
-tm gate     wait | release | reject | status         # 复用 D16
-tm mcp      serve | tools                            # MCP server
+aether gate     wait | release | reject | status         # 复用 D16
+aether mcp      serve | tools                            # MCP server
 tm skills   list | show <name> | run <name> [...]
-tm ai       "<natural language intent>"              # 自然语言入口
+aether ai       "<natural language intent>"              # 自然语言入口
 tm config   set-profile | get | switch
 ```
 
@@ -61,15 +61,15 @@ tm config   set-profile | get | switch
 
 ```bash
 # 一次性启动，agent 通过 stdio 或 SSE 连接
-tm mcp serve
+aether mcp serve
 ```
 
 MCP server 把以下暴露为 MCP tools（schema 自描述）：
-- 每个 `tm <cmd>` → 一个 tool（参数 schema 自动从 cobra flags 生成）
+- 每个 `aether <cmd>` → 一个 tool（参数 schema 自动从 cobra flags 生成）
 - 每个 skill → 一个 tool
 - 资源（catalog / stacks / drifts）→ MCP resources（可被 agent 读取上下文）
 
-**接入示例（Claude Code）**：在项目 `.mcp.json` 或 Claude Code 设置里加 `tm mcp serve` 作为 stdio server，Claude 自动发现所有平台 tool，用户用自然语言驱动。
+**接入示例（Claude Code）**：在项目 `.mcp.json` 或 Claude Code 设置里加 `aether mcp serve` 作为 stdio server，Claude 自动发现所有平台 tool，用户用自然语言驱动。
 
 **为什么 MCP 而不是让 agent 硬编码 CLI**：协议标准化 → 一次接入，所有支持 MCP 的 agent（Claude Code / Cursor / Continue / 自研 agent）通用；schema 自描述 → LLM 不靠猜；版本协商 → 平台升级不破坏 agent。
 
@@ -107,7 +107,7 @@ output:
 
 Agent 调用 skill 两种方式：
 - **MCP 模式**：`skills.new-rds` 是一个 MCP tool，agent 直接调。
-- **CLI 模式**：`tm skills run new-rds "给 order-service 起一台 4C8G mysql"`。
+- **CLI 模式**：`aether skills run new-rds "给 order-service 起一台 4C8G mysql"`。
 
 ## 7. LLM-friendly 输出（`--output llm`）
 
@@ -125,9 +125,9 @@ Agent 调用 skill 两种方式：
 
 字段名稳定、自描述，LLM 可直接转述或决策。
 
-## 8. 自然语言入口（`tm ai`）
+## 8. 自然语言入口（`aether ai`）
 
-`tm ai "<意图>"` 把 LLM 放平台后端：
+`aether ai "<意图>"` 把 LLM 放平台后端：
 1. 平台收到自然语言意图。
 2. 平台 LLM 路由 → 匹配 skill 或分解为 CLI 步骤。
 3. 平台执行（生成 yaml → OPA 校验 → 审批 → apply）。
@@ -204,7 +204,7 @@ audit_logs(
 
 ## 11. 与现有设计的关系
 
-- **D16 gate CLI**：以 `tm gate` 子命令组为权威入口，不维护双 CLI；历史脚本中的 `tm-gate ...` 只作为兼容 shim 过渡到 `tm gate ...`。
+- **D16 gate CLI**：以 `aether gate` 子命令组为权威入口，不维护双 CLI；历史脚本中的 `aether-gate ...` 只作为兼容 shim 过渡到 `aether gate ...`。
 - **D11 审批引擎**：agent 发起的申请走相同 ApprovalEngine；service account 可作为审批人（自动化审批场景，如非生产环境自动批）。
 - **specs/08 平台 API**：CLI 是 HTTP API 的薄封装，不重复业务逻辑；MCP server 也基于同一 service 层。
 - **specs/09 身份同步**：service account 与自然人身份分开存储，不参与目录同步，但 RBAC 统一。

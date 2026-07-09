@@ -1,25 +1,37 @@
 schema: spec-driven
 
 context: |
-  项目：Terramate —— 面向 IaC（Terraform、OpenTofu、Terragrunt）的编排、代码生成与变更管理工具。
-  语言：Go 1.25.8（module github.com/terramate-io/terramate），License MPL-2.0。
-  目录布局：
-    - cmd/        主二进制（terramate CLI、terramate-ls 语言服务器、helper）
-    - ls/         Language Server Protocol 实现
-    - hcl/        HCL 解析与求值（Terramate 配置语言）
-    - config/     配置管理（stacks、globals）
-    - stack/      stack 编排与基于图的执行
-    - generate/   代码生成引擎
-    - cloud/      Terramate Cloud 集成（漂移检测等为 Cloud 专属，开源版无）
-    - e2etests/   端到端测试；test/ 共享测试工具
-    - commands/   CLI 命令实现
-  构建/测试：
-    - make build          -> 生成 bin/terramate、bin/terramate-ls、bin/helper
-    - make test           -> 运行全部测试
-    - go test ./<pkg>/... -> 运行包级测试
-  约定：
-    - Terramate 配置基于 HCL；对已有用户配置的向后兼容性至关重要。
-    - 行为由 e2etests/ 大量覆盖 —— 新增行为必须补充 e2e 覆盖。
+  项目：Aether —— 构建在 Terramate 之上的 IaC 自服务平台（模块注册表、服务目录、
+  代码生成、审批流、漂移检测、CMDB/FinOps、多云凭据管理）。Monorepo 形态。
+  语言：Go 1.25（后端 module github.com/xuanwu-labs/selfservice-iac/server），License TBD。
+  上游引擎：../terramate/（开源 Terramate CLI）。平台通过 exec 调用 terramate，
+  禁止 import terramate 内部包（D1 边界，由 .golangci.yml depguard 守护）。
+  方法论：OpenSpec v1.5.0（spec-driven），所有变更走 propose → apply → sync → archive 流程。
+
+  Monorepo 目录布局：
+    - server/          Go 后端（HTTP API + aether CLI + migrate，工程契约见 server/AGENTS.md）
+    - web/             React 前端（规划中）
+    - contracts/       API 契约唯一真相源（proto-first，buf 管理，前后端共享）
+    - deploy/          部署清单（Dockerfile / k8s / compose）
+    - docs/            用户文档（快速上手 / 架构 / CLI / 运维）
+    - openspec/        设计过程文档（spec-driven 工作区，区别于 docs/ 用户文档）
+
+  server/ 分层（领域核心顶层 / package-by-feature）：
+    - cmd/{server,aether,migrate}/   二进制入口
+    - api/{http,grpc}/               传输层 handler（非契约目录）
+    - core/<domain>/                 领域核心（顶层一等公民）
+    - data/                          数据访问层（pgxpool + dbset）
+    - internal/                      私有基建（config/otel/auth/cli/cmdutil/...）
+    - pkg/db/{queries,generated}/    sqlc 输入输出
+
+  构建/测试（在 server/ 下执行）：
+    - make build          -> 编译所有二进制（server / aether / migrate）
+    - make test           -> 短测试（无需 Docker，跳过 DB 集成测试）
+    - make test-db        -> 全量测试（含 testcontainers PG，需 Docker）
+    - make lint           -> golangci-lint v2（含 D1 depguard 守护）
+    - make sqlc-gen       -> 生成 sqlc 代码（在 pkg/db/ 下）
+    - make wire-gen       -> 生成 wire 装配代码
+    - make proto-gen      -> 生成 proto/Connect-RPC 代码（在 contracts/ 下执行 buf generate）
 
   产物目录约定（本项目所有 change 必须遵守的规整性）：
     changes/<change>/
@@ -28,7 +40,7 @@ context: |
       ├── tasks.md         schema 固定路径；按 01- 功能模块分组
       ├── specs/           能力文档，命名 `NN-中文名.md`（如 01-模块注册.md）
       ├── docs/            辅助主题文档，命名 `NN-中文名.md`（如 01-总体架构.md）
-      └── scripts/         脚本产出，按面向功能分子目录（如 scripts/初始化/、scripts/迁移/）
+      └── scripts/         脚本产出，按面向功能分子目录
 
 rules:
   proposal:
@@ -50,3 +62,26 @@ rules:
     - 实现任务旁必须给出对应测试任务（`go test ./<pkg>/...` 和/或新增 e2etests/ 场景）。
     - 涉及脚本的 task，产出脚本写入 change 目录下 scripts/ 对应功能子目录。
     - 最后一个 task 运行 `make build` 与 `make test` 做整体验证。
+  git:
+    # 分支命名（Conventional Commits + GitFlow 精简版）
+    - 分支前缀按变更类型：feat/ fix/ chore/ docs/ refactor/ test/。
+    - 分支名格式：`<type>/<简短描述>`，如 `feat/scaffold-stage1`、`fix/dsn-hardcode`、`docs/phase0-contracts`。
+    - 对应 OpenSpec change 的分支用 change 名：`feat/<change-name>`（如 `feat/platform-tech-stack-and-scaffold`）。
+    - 不在 main 分支直接提交；所有改动走 feature 分支 + 合并。
+    # 提交规范
+    - 提交信息全英文，语义清晰，使用 Conventional Commits 格式：
+      `<type>(<scope>): <subject>` + 空行 + body（详述做什么、为什么、如何验证）。
+    - type 取值：feat / fix / chore / docs / refactor / test / perf / ci。
+    - scope 可选，表示影响的模块（如 server、contracts、openspec）。
+    - subject 用祈使句（动词开头），不超过 72 字符，结尾不加句号。
+    - body 说明「做了什么 + 为什么 + 如何验证」，复杂改动分点列出。
+    - 一个提交只做一件事（原子提交）；大改动拆分为多个逻辑提交，按依赖排序。
+    # 合并规范
+    - feature 分支合并到 main 用 `--no-ff`（保留分支历史，便于回溯里程碑）。
+    - 合并提交信息格式：`Merge branch '<type>/<name>' into main` + body 概述本分支交付内容。
+    - 合并前必须通过 `make build && make test && make lint` 全绿。
+    # 敏感信息
+    - 禁止提交密码、密钥、内网 IP、个人 DSN。测试用 testcontainers 或环境变量（fail-loud）。
+    - .zcode/ 是 workspace-local 配置，不入库（已 gitignore）。
+    - 构建产物（*.exe、bin/）不入库（已 gitignore）。
+    - 代码生成产物（wire_gen.go、sqlc generated、proto pb.go）入库（checked in，便于审查和 CI）。

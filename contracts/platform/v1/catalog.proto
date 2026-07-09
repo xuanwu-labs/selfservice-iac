@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package aether.platform.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1";
+
+// CatalogService is the service catalog API — lists catalog items that drive
+// the request form (D25). This first RPC demonstrates the Connect-RPC + buf
+// pipeline; full catalog logic lands in iac-self-service-platform.
+service CatalogService {
+  // ListItems returns the available catalog items.
+  rpc ListItems(ListItemsRequest) returns (ListItemsResponse) {
+    option (google.api.http) = {
+      get: "/v1/catalog/items"
+    };
+  }
+}
+
+message ListItemsRequest {
+  // Maximum number of items to return. 0 = server default.
+  int32 page_size = 1;
+  // Opaque cursor from a previous response; empty for the first page.
+  string page_token = 2;
+}
+
+message ListItemsResponse {
+  repeated CatalogItem items = 1;
+  // Cursor for the next page; empty if no more items.
+  string next_page_token = 2;
+}
+
+message CatalogItem {
+  // Stable identifier (slug).
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}

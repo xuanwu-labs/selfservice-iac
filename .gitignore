@@ -1,0 +1,55 @@
+# === Go (server/) ===
+# 编译产物
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+server/bin/
+server/aether
+server/migrate
+server/server
+# 测试覆盖率
+*.out
+*.test
+# Go workspace(个人本地,不入库)
+go.work
+go.work.sum
+
+# === 构建工具产物 ===
+# wire 生成(保留 wire_gen.go 入库?默认保留——它是构建依赖)
+# server/cmd/*/wire_gen.go
+
+# === 前端(web/,未来) ===
+node_modules/
+web/dist/
+web/build/
+web/.next/
+web/.turbo/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# === 环境与密钥 ===
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# === IDE / 编辑器 ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# === ZCode / Agent ===
+# .zcode/ is workspace-local agent/tooling config (slash-commands, skills,
+# _probe evaluation targets). It is NOT committed — each contributor's
+# environment may differ. The _probe/ reviewer target is intentionally
+# excluded from version control.
+.zcode/

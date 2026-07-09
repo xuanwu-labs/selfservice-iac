@@ -211,18 +211,18 @@
 - [ ] 16.2 CI 上下文与幂等：`trigger.cicd`（pipeline/commit/artifact/form_hash）持久化 + `pipeline:commit:catalogItem:form_hash` 幂等键去重
 - [ ] 16.3 gate API：`GET .../gate` 状态（区分 `approval_granted` 与 `apply_succeeded`）+ `POST .../subscribe` webhook 订阅
 - [ ] 16.4 阻塞/回调双模 + gate 超时联动审批引擎 `on_timeout`
-- [ ] 16.5 通用 CLI `tm gate`（request/wait/timeout，退出码 0/1/2）+ Jenkins/GitLab/Argo/Flux/GitHub Actions 适配器与示例；`tm-gate` 仅作为兼容 shim
+- [ ] 16.5 通用 CLI `aether gate`（request/wait/timeout，退出码 0/1/2）+ Jenkins/GitLab/Argo/Flux/GitHub Actions 适配器与示例；`aether-gate` 仅作为兼容 shim
 - [ ] 16.6 测试：`go test ./platform/internal/cicd/...` + e2e（yaml 入口、幂等、轮询/回调、审批通过释放/驳回终止）
-- [ ] 16.7 脚本：`scripts/编排执行/` 提供 `tm gate` 示例与各 CICD 流水线片段
+- [ ] 16.7 脚本：`scripts/编排执行/` 提供 `aether gate` 示例与各 CICD 流水线片段
 
 ## 17-平台 CLI 与 AI 原生扩展（扩展，对应 D17 / specs/14；依赖 09 API + 11 身份 + 12 审批）
 
-- [ ] 17.1 实现 `platform/internal/cli`（cobra 单二进制 `tm`）：auth/catalog/request/stack/drift/cost/approval/gate 子命令，复用 `platform/internal/api` service 层，支持 `--output {table|json|yaml|llm}`；D16 gate 以 `tm gate` 为权威入口，历史 `tm-gate` 仅作兼容 shim
+- [ ] 17.1 实现 `platform/internal/cli`（cobra 单二进制 `aether`）：auth/catalog/request/stack/drift/cost/approval/gate 子命令，复用 `platform/internal/api` service 层，支持 `--output {table|json|yaml|llm}`；D16 gate 以 `aether gate` 为权威入口，历史 `aether-gate` 仅作兼容 shim
 - [ ] 17.2 实现 `platform/internal/identity/aksk`：service account + AK/SK 签发、HMAC SigV4-like 签名校验、timestamp 防重放、双 AK 轮换、scope 限定、审计联动（actor=sa:xxx）
-- [ ] 17.3 实现 `tm mcp serve`（`platform/internal/mcp`）：把所有命令 + skills 暴露为 MCP tools，schema 自描述（基于 mark3labs/mcp-go 或自实现），支持 stdio 与 SSE
+- [ ] 17.3 实现 `aether mcp serve`（`platform/internal/mcp`）：把所有命令 + skills 暴露为 MCP tools，schema 自描述（基于 mark3labs/mcp-go 或自实现），支持 stdio 与 SSE
 - [ ] 17.4 实现 `platform/internal/skills`：YAML skill 解析（trigger/steps/output）、执行引擎（LLM 抽参 + CLI 编排 + 模板渲染）、平台内置 skill 集（new-rds / drift-explain / cost-estimate / bulk-import）
 - [ ] 17.5 实现团队自定义 skill 注册与版本化（DB/git）、skill 可见性按 RBAC
-- [ ] 17.6 实现 `tm ai` 自然语言入口（平台后端 LLM 意图路由 → 匹配 skill 或分解 CLI 步骤）
+- [ ] 17.6 实现 `aether ai` 自然语言入口（平台后端 LLM 意图路由 → 匹配 skill 或分解 CLI 步骤）
 - [ ] 17.7 落实安全边界：LLM 生成的 yaml 走 OPA + 审批；高危（destroy/跨层依赖变更）强制人工审批；agent 操作全审计（含 skill 编排全链路）
 - [ ] 17.8 测试：`go test ./platform/internal/cli/... ./platform/internal/identity/aksk/... ./platform/internal/mcp/... ./platform/internal/skills/...`（命令契约、签名校验、MCP tool schema、skill 编排、安全边界拦截）
 - [ ] 17.9 e2e：agent（mock MCP client / Claude Code）走 skill 完成新 RDS 申请 + drift 解释；高危操作被强制人工审批拦截
@@ -298,7 +298,7 @@
 
 ## 22-安全加固（扩展，对应 D30；依赖 02 元数据 + 06 编排 + 09 API + 13 Executor + 19 云凭据）
 
-- [ ] 22.1 Break-Glass emergency_mode：双人凭据（vault path `secret/tm-break-glass/{cloud_account}`，季轮换）→ 绕审批提交 emergency 工单 → Executor 全程录屏存对象存储 90 天 → 24h 内补审批回填（超时→incident+CISO 邮件）
+- [ ] 22.1 Break-Glass emergency_mode：双人凭据（vault path `secret/aether-break-glass/{cloud_account}`，季轮换）→ 绕审批提交 emergency 工单 → Executor 全程录屏存对象存储 90 天 → 24h 内补审批回填（超时→incident+CISO 邮件）
 - [ ] 22.2 State 敏感字段保护：state 后端 KMS CMK 加密；CMDB ingester strip `sensitive_field_blacklist` 字段（`*password*`/`*secret*`/`*private_key*`/`*certificate*`）；state download API 高权限 RBAC + 审计 + IP 白名单
 - [ ] 22.3 Terramate CLI sha256 pin：CI 下载二进制后校验 `terramate_checksums.txt`，不匹配阻断+告警
 - [ ] 22.4 IAM policy 聚合校验：catalog `required_permissions` 聚合后 OPA 二次校验（禁 `Action:*` / 禁 `Resource:*` / 禁通配 region / 禁 root），失败拒绝 catalog 注册

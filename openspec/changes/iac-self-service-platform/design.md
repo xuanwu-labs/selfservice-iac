@@ -94,6 +94,8 @@ Terramate 是纯 CLI 编排引擎，定位是"面向会写 HCL 的工程师"。�
 - **理由**：复用 CI、便于联调、单仓库演进；同时通过目录边界与 lint 保持 Terramate 主仓库不被平台代码污染。
 - **备选**：独立仓库（后期可平滑拆出，目录隔离使迁移成本低）。
 
+> **演进（2026-07，由 `platform-tech-stack-and-scaffold` change 落地）**：D2 原设想的"在 Terramate 主仓库新增 `platform/` 子目录"已演变为 **独立 monorepo `selfservice-iac/`**，后端 Go 代码位于其 `server/` 目录（独立 go module `github.com/xuanwu-labs/selfservice-iac/server`，与 Terramate 物理隔离）。`cmd/platform` 二进制相应改名为 `cmd/server`，CLI 二进制 `cmd/tm` 改名为 `cmd/aether`。本文档其余处出现的 `platform/`、`cmd/platform`、`cmd/tm` 物理路径均以此演变为准——它们指代 `server/`、`cmd/server`、`cmd/aether`。D1 的 exec 边界与 depguard 守护规则不变（守护范围从 `platform/**` 调整为 `server/**`）。
+
 ### D3 — 同类多实例：generate 生成骨架 + Terraform `for_each` 运行
 - **决策**：`generate` 负责"生成 stack 目录骨架与静态配置"；同 stack 内同类多资源（如 5 台 ECS）由 Terraform 原生 `for_each`/`count` 承担。
 - **理由**：gen 是生成期、静态；运行期多实例是 Terraform 强项；这样 stack 数量可控，状态边界清晰。
@@ -207,13 +209,13 @@ Terramate 是纯 CLI 编排引擎，定位是"面向会写 HCL 的工程师"。�
 - **影响**：worker 镜像 CI 流水线；所有配置变更入审计。
 
 ### D16 — CICD 集成与审批门禁（gate）
-- **决策**：平台作为审批 gate 嵌入 CICD；提供声明式 yaml 申请单入口（与 Web 表单同构，复用 D11 审批引擎）；gate API（`GET .../gate` 状态 + webhook 订阅）支持**阻塞轮询/回调异步双模**；提供权威 CLI `tm gate` + Jenkins/GitLab/Argo/Flux/GitHub Actions 适配器；历史 `tm-gate` 仅作为兼容 shim；yaml 申请单按 `pipeline+commit+catalogItem` 幂等。
+- **决策**：平台作为审批 gate 嵌入 CICD；提供声明式 yaml 申请单入口（与 Web 表单同构，复用 D11 审批引擎）；gate API（`GET .../gate` 状态 + webhook 订阅）支持**阻塞轮询/回调异步双模**；提供权威 CLI `aether gate` + Jenkins/GitLab/Argo/Flux/GitHub Actions 适配器；历史 `aether-gate` 仅作为兼容 shim；yaml 申请单按 `pipeline+commit+catalogItem` 幂等。
 - **理由**：CI 完→资源申请→CD 阻塞→审批→释放 是企业 IaC+应用交付联动的标准诉求；审批逻辑统一到平台 RBAC 而非散落各 CICD；阻塞/回调双模覆盖有无 inbound webhook 能力的各类 CICD。
 - **备选**：①各 CICD 自实现审批（逻辑分散、权限难统一）②仅 webhook 无轮询（部分企业 CICD 在防火墙后无 inbound 能力）。
-- **影响**：新增 `platform/internal/cicd`（适配器）+ `tm gate` CLI 子命令；工单支持 yaml 入口与 CI 上下文幂等。详见 `docs/16-CICD集成与审批门禁.md`。
+- **影响**：新增 `platform/internal/cicd`（适配器）+ `aether gate` CLI 子命令；工单支持 yaml 入口与 CI 上下文幂等。详见 `docs/16-CICD集成与审批门禁.md`。
 
 ### D17 — 平台 CLI 与 AI 原生扩展：统一 CLI + AK/SK + MCP + 声明式 skills
-- **决策**：①平台提供单二进制 CLI `tm`（覆盖 catalog/request/stack/drift/approval/cost，复用 `platform/internal/api` service 层），D16 gate 能力以 `tm gate` 子命令组为权威入口，历史 `tm-gate` 仅作为兼容 shim，MUST NOT 维护双 CLI；②机器身份用 service account + AK/SK（HMAC 签名，类 AWS SigV4），与人的 OIDC 会话统一到同一 RBAC 引擎；③CLI 内置 MCP server（`tm mcp serve`），把命令 + skills 暴露为 MCP tools，所有支持 MCP 的 agent（Claude Code/Cursor/Continue/自研）一次接入通用，避免每 agent 写专有适配；④声明式 skills（YAML：trigger 自然语言模式 / steps CLI+LLM 序列 / output contract），平台内置 + 团队自定义；**skill 声明 `approval_scope: atomic`（首次审批覆盖全链步骤，不逐步审批消除用户疲劳），但 `high_risk_steps`（destroy / cross-layer / prod）仍独立门禁**；⑤`--output llm` 语义化 markdown；⑥自然语言入口 `tm ai` 把 LLM 放平台后端做意图路由（不把治理决策交本地 LLM）；**⑦`tm ai` 与 MCP 的职责边界**：`tm ai`=平台后端 LLM 统一意图路由 + prompt 版本管理 + 治理（用户通过平台 UI/CLI 对话）；MCP server=外部 agent 标准协议接入（Claude Code/Cursor 等，agent 主导推理）；**两者共用同一 RBAC/OPA/审批引擎，治理边界不因接入路径不同而不同**。
+- **决策**：①平台提供单二进制 CLI `aether`（覆盖 catalog/request/stack/drift/approval/cost，复用 `platform/internal/api` service 层），D16 gate 能力以 `aether gate` 子命令组为权威入口，历史 `aether-gate` 仅作为兼容 shim，MUST NOT 维护双 CLI；②机器身份用 service account + AK/SK（HMAC 签名，类 AWS SigV4），与人的 OIDC 会话统一到同一 RBAC 引擎；③CLI 内置 MCP server（`aether mcp serve`），把命令 + skills 暴露为 MCP tools，所有支持 MCP 的 agent（Claude Code/Cursor/Continue/自研）一次接入通用，避免每 agent 写专有适配；④声明式 skills（YAML：trigger 自然语言模式 / steps CLI+LLM 序列 / output contract），平台内置 + 团队自定义；**skill 声明 `approval_scope: atomic`（首次审批覆盖全链步骤，不逐步审批消除用户疲劳），但 `high_risk_steps`（destroy / cross-layer / prod）仍独立门禁**；⑤`--output llm` 语义化 markdown；⑥自然语言入口 `aether ai` 把 LLM 放平台后端做意图路由（不把治理决策交本地 LLM）；**⑦`aether ai` 与 MCP 的职责边界**：`aether ai`=平台后端 LLM 统一意图路由 + prompt 版本管理 + 治理（用户通过平台 UI/CLI 对话）；MCP server=外部 agent 标准协议接入（Claude Code/Cursor 等，agent 主导推理）；**两者共用同一 RBAC/OPA/审批引擎，治理边界不因接入路径不同而不同**。
 - **理由**：CLI 是 agent 天然 tool boundary（exit code + stdout 契约），比让 agent 硬编码 HTTP 稳；MCP 是 LLM↔工具标准协议，避免每 agent 写适配；AK/SK 是机器身份事实标准；LLM 放后端便于统一 prompt/版本/治理边界，所有 AI 操作不豁免 OPA/审批/RBAC；**skill atomic approval 消除多步操作的审批疲劳**（业界共识：ArgoCD Workflow atomic step、GitHub Actions job-level approval）。
 - **备选**：①只给 HTTP API（CICD/agent 场景痛苦，shell 拼 curl）②每 agent 写专有适配（散乱、版本耦合）③LLM 放 CLI 本地（行为难统一、治理难收敛）。
 - **影响**：新增 `platform/internal/cli` + `platform/internal/identity/aksk` + `platform/internal/mcp` + `platform/internal/skills`；高危操作强制人工审批，agent 不豁免治理。详见 `docs/17-平台CLI与AI原生扩展.md`。
@@ -530,7 +532,7 @@ Terramate 是纯 CLI 编排引擎，定位是"面向会写 HCL 的工程师"。�
 ### D30 — Break-Glass 紧急模式 + State 敏感字段保护 + 供应链 sha256 pin + IAM 聚合校验 + STS 缓存限制（安全加固）
 
 - **决策**：五项安全加固合并为一个设计决策点：
-  - **①Break-Glass emergency_mode**：生产故障时双人 break-glass 凭据（独立 vault path `secret/tm-break-glass/{cloud_account}`，仅 2 名 platform-ops oncall 持有，每季轮换）→ 提交 emergency 工单绕过双门禁审批 → **自动全程录屏**（Executor session recording 存对象存储 90 天）→ 操作后 **24h 内必须补审批回填**（`approval_runs` 标 `gate=break-glass-retroactive`，超时未补→自动 incident + CISO 邮件）→ emergency 操作触发 platform-ops oncall + CISO 实时通知。emergency_runs 表记录：`{request_id, break_glass_operators[2], reason, recording_url, retroactive_approval_id, retroactive_deadline}`。
+  - **①Break-Glass emergency_mode**：生产故障时双人 break-glass 凭据（独立 vault path `secret/aether-break-glass/{cloud_account}`，仅 2 名 platform-ops oncall 持有，每季轮换）→ 提交 emergency 工单绕过双门禁审批 → **自动全程录屏**（Executor session recording 存对象存储 90 天）→ 操作后 **24h 内必须补审批回填**（`approval_runs` 标 `gate=break-glass-retroactive`，超时未补→自动 incident + CISO 邮件）→ emergency 操作触发 platform-ops oncall + CISO 实时通知。emergency_runs 表记录：`{request_id, break_glass_operators[2], reason, recording_url, retroactive_approval_id, retroactive_deadline}`。
   - **②State 敏感字段保护**：state 后端强制服务端加密（KMS CMK / 云 KMS）；CMDB ingester MUST strip 已知敏感字段（按 `sensitive_field_blacklist`：`*password*`/`*secret*`/`*private_key*`/`*certificate*`）；state download API 走 RBAC 高权限（仅 `platform-admin` + `team-owner` + 审计 + IP 白名单）。
   - **③Terramate CLI sha256 pin**：D1 版本 lock 追加 sha256 哈希校验——CI 下载 Terramate 二进制后 MUST 校验 sha256（`terramate_checksums.txt`），不匹配阻断 CI + 告警。供应链安全防 tampering。
   - **④IAM policy 聚合校验**：D23 catalog 项 `required_permissions` 聚合生成 IAM policy 后，MUST 经 OPA 二次校验：禁 `Action: "*"` / 禁 `Resource: "*"` / 禁通配 region（`*` region 仅 platform-admin 可批）/ 禁 root account 操作。聚合后 policy 随 catalog 注册存 `iam_role_templates.policy_json`，OPA 校验失败→catalog 注册拒绝。
@@ -593,7 +595,7 @@ Terramate 是纯 CLI 编排引擎，定位是"面向会写 HCL 的工程师"。�
 - **Metrics**（Prometheus 兼容）：
   - `tm_plan_duration_seconds`（按 layer/env/tenant 维度）、`tm_apply_duration_seconds`
   - `tm_drift_coverage_ratio`（已检测/总 stack）、`tm_drift_detected_total`
-  - `tm_approval_wait_seconds`（按 gate=pre-plan/pre-apply 维度）
+  - `aether_approval_wait_seconds`（按 gate=pre-plan/pre-apply 维度）
   - `tm_executor_queue_depth`、`tm_executor_active_count`（按 mode=process/container/k8s）
   - `tm_worktree_active_count`、`tm_worktree_stale_count`
   - `tm_cost_estimate_delta_usd`（Infracost 预估 vs 云账单实际差异）
