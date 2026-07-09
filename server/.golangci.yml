@@ -1,0 +1,47 @@
+# Aether golangci-lint configuration (v2.x compatible)
+# D36: Google Go Style Guide enforcement + D1 boundary guard
+
+version: "2"
+
+run:
+  timeout: 5m
+  go: "1.25"
+
+linters:
+  default: none
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - unused
+    - depguard
+
+  settings:
+    depguard:
+      # D1 boundary: deny all imports of terramate internals from server/**
+      # KNOWN LIMITATION (task 6.5): depguard is only enforceable when
+      # terramate is in go.mod. Since D1 forbids that, this rule does NOT
+      # fire today. A separate CI lint test is needed for full enforcement.
+      rules:
+        main:
+          deny:
+            - pkg: "github.com/terramate-io/terramate"
+              desc: "D1: server must not import terramate internals — use exec via core/terramate adapter"
+
+  exclusions:
+    paths:
+      - "vendor"
+      - "_probe"
+      - "third_party"
+      - "\\.pb\\.go$"
+      - "wire_gen\\.go$"
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
