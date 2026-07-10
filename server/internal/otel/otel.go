@@ -46,9 +46,14 @@ func (s *SDK) Shutdown(ctx context.Context) error {
 		if err := s.TracerProvider.Shutdown(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("tracer shutdown: %w", err))
 		}
+		s.TracerProvider = nil
 	}
-	// Prometheus exporter has no Shutdown; MeterProvider is a manual reader
-	// without a background flush. Span flush is the only time-sensitive one.
+	if s.MeterProvider != nil {
+		if err := s.MeterProvider.Shutdown(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("meter shutdown: %w", err))
+		}
+		s.MeterProvider = nil
+	}
 	return errors.Join(errs...)
 }
 

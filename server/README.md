@@ -53,7 +53,7 @@ make proto-gen          # contracts/ → Connect-RPC stub(契约源在仓库根 
 ```
 server/
 ├── cmd/{server,aether,migrate}/   # 二进制入口
-├── api/{http,grpc,proto}/         # 传输层 handler
+├── api/{http,connect}/           # 传输层 handler
 ├── core/<domain>/                 # 领域核心(顶层一等公民,规划中)
 ├── data/                          # pgxpool + dbset(数据访问层)
 ├── internal/                      # 私有基建(config/cli/cmdutil/...)

@@ -29,7 +29,7 @@
 ```
 server/
 ├── cmd/{server,aether,migrate}/     # 二进制入口(HTTP server / CLI / 迁移)
-├── api/{http,grpc,proto}/           # 传输层 handler(非契约目录,契约在仓库根 contracts/)
+├── api/{http,connect}/              # 传输层 handler(契约在仓库根 contracts/)
 ├── core/<domain>/                   # 领域核心(顶层一等公民,package-by-feature)
 ├── data/                            # 数据访问层(pgxpool provider + dbset 表分组包装)
 ├── internal/                        # 只装私有基建(config/otel/model/proto/cli/cmdutil/...)

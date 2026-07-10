@@ -22,16 +22,7 @@ func DefaultGinMiddlewares(logger *otelzap.Logger) []gin.HandlerFunc {
 	}
 }
 
-// DefaultConnectInterceptors returns the Connect interceptors that don't need
-// external dependencies (auth/RBAC/ratelimit are pass-through skeletons).
-// The otelconnect interceptor and audit interceptor are added by the server
-// layer (they need the otel SDK / logger).
-func DefaultConnectInterceptors() []Option {
-	return []Option{
-		WithConnectInterceptor(
-			ConnectAuth(),
-			ConnectRBAC(),
-			ConnectRateLimit(),
-		),
-	}
-}
+// Note: Connect interceptors are assembled inline in server.ProvideServerConfig
+// (connect.go) because they need runtime dependencies (otelconnect, logger).
+// There is no DefaultConnectInterceptors() — each interceptor factory is called
+// directly where the chain is built.
