@@ -32,7 +32,7 @@ func InitializeApp() (*App, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	deps := api.NewHTTPDeps(logger, pool)
+	v := api.NewPingFunc(pool)
 	handler := server.ProvideMetricsHandler()
 	catalogHandler := connect.NewCatalogHandler()
 	serverConfig, err := server.ProvideServerConfig(catalogHandler, logger)
@@ -40,7 +40,7 @@ func InitializeApp() (*App, func(), error) {
 		cleanup()
 		return nil, nil, err
 	}
-	engine := server.NewHTTPServer(deps, handler, serverConfig)
+	engine := server.NewHTTPServer(logger, v, handler, serverConfig)
 	serverServer := server.NewServer(configConfig, engine, serverConfig, logger)
 	app := &App{
 		Config: configConfig,

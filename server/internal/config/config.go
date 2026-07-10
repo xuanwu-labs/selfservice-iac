@@ -17,6 +17,7 @@ type Config struct {
 	LogLevel string        `mapstructure:"log_level"`
 	DB       DBConfig      `mapstructure:"db"`
 	Connect  ConnectConfig `mapstructure:"connect"`
+	OTel     OTelConfig    `mapstructure:"otel"`
 }
 
 // DBConfig holds PostgreSQL connection parameters.
@@ -32,6 +33,16 @@ type ConnectConfig struct {
 	Enabled bool `mapstructure:"enabled"`
 }
 
+// OTelConfig holds OpenTelemetry collector backend parameters.
+// If Endpoint is empty, trace/metric exporters are noop (dev convenience).
+type OTelConfig struct {
+	// Endpoint is the OTLP/HTTP collector address (e.g. "localhost:4318").
+	// Leave empty to disable trace export (spans generated but not sent).
+	Endpoint string `mapstructure:"endpoint"`
+	// ServiceName overrides the OTel resource service.name (default: "aether-server").
+	ServiceName string `mapstructure:"service_name"`
+}
+
 // Load reads configuration from env vars + defaults and returns a typed Config.
 // In骨架 phase we only use env vars + defaults (no config file yet).
 func Load() (*Config, error) {
@@ -43,6 +54,8 @@ func Load() (*Config, error) {
 	v.SetDefault("db.max_conns", 10)
 	v.SetDefault("db.timeout", "5s")
 	v.SetDefault("connect.enabled", true)
+	v.SetDefault("otel.endpoint", "")
+	v.SetDefault("otel.service_name", "aether-server")
 
 	// Env var binding (AETHER_HTTP_ADDR, AETHER_DB_DSN, etc.)
 	v.SetEnvPrefix("AETHER")
@@ -57,6 +70,8 @@ func Load() (*Config, error) {
 	_ = v.BindEnv("db.max_conns")
 	_ = v.BindEnv("db.timeout")
 	_ = v.BindEnv("connect.enabled")
+	_ = v.BindEnv("otel.endpoint")
+	_ = v.BindEnv("otel.service_name")
 
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {

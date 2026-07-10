@@ -40,7 +40,7 @@ func TestEndToEndTraceGinToPgx(t *testing.T) {
 	}
 
 	// 1. Set up OTel with an in-memory exporter to capture spans.
-	sdk, err := otelinternal.Init(context.Background(), "trace-test", "test")
+	sdk, err := otelinternal.Init(context.Background(), "trace-test", "test", "")
 	require.NoError(t, err)
 	defer func() { _ = sdk.Shutdown(context.Background()) }()
 

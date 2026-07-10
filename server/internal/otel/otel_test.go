@@ -20,7 +20,7 @@ import (
 // TestInitSetsGlobalPropagator verifies that Init() installs the W3C
 // TraceContext+Baggage propagator globally (D41 "pit #1: propagator must be set").
 func TestInitSetsGlobalPropagator(t *testing.T) {
-	sdk, err := otelinternal.Init(context.Background(), "aether-test", "test")
+	sdk, err := otelinternal.Init(context.Background(), "aether-test", "test", "")
 	require.NoError(t, err)
 	defer func() { _ = sdk.Shutdown(context.Background()) }()
 
@@ -44,7 +44,7 @@ func TestInitSetsGlobalPropagator(t *testing.T) {
 // TestMetricsHandlerServesPrometheus verifies /metrics returns Prometheus
 // exposition format (D41: /metrics endpoint).
 func TestMetricsHandlerServesPrometheus(t *testing.T) {
-	sdk, err := otelinternal.Init(context.Background(), "aether-test", "test")
+	sdk, err := otelinternal.Init(context.Background(), "aether-test", "test", "")
 	require.NoError(t, err)
 	defer func() { _ = sdk.Shutdown(context.Background()) }()
 
@@ -69,7 +69,7 @@ func TestMetricsHandlerServesPrometheus(t *testing.T) {
 // TestTracerProviderInitialized verifies Init returns a working TracerProvider
 // that produces valid spans.
 func TestTracerProviderInitialized(t *testing.T) {
-	sdk, err := otelinternal.Init(context.Background(), "aether-test", "test")
+	sdk, err := otelinternal.Init(context.Background(), "aether-test", "test", "")
 	require.NoError(t, err)
 	defer func() { _ = sdk.Shutdown(context.Background()) }()
 
@@ -94,7 +94,7 @@ func TestTracerProviderInitialized(t *testing.T) {
 // TestShutdownIsIdempotent verifies Shutdown can be called multiple times
 // without error (defer-safety).
 func TestShutdownIsIdempotent(t *testing.T) {
-	sdk, err := otelinternal.Init(context.Background(), "aether-test", "test")
+	sdk, err := otelinternal.Init(context.Background(), "aether-test", "test", "")
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -107,7 +107,7 @@ func TestShutdownIsIdempotent(t *testing.T) {
 func TestNoExporterEndpointWorks(t *testing.T) {
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 
-	sdk, err := otelinternal.Init(context.Background(), "aether-test", "test")
+	sdk, err := otelinternal.Init(context.Background(), "aether-test", "test", "")
 	require.NoError(t, err, "Init must succeed without a collector endpoint")
 	defer func() { _ = sdk.Shutdown(context.Background()) }()
 }

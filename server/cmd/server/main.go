@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/xuanwu-labs/selfservice-iac/server/internal/config"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/otel"
 	"go.uber.org/zap"
 )
@@ -18,9 +19,17 @@ import (
 func main() {
 	ctx := context.Background()
 
-	// OTel SDK must be initialized BEFORE wire, because pgxpool/gin read the
-	// global TracerProvider + propagator at construction time (D41).
-	otelSDK, err := otel.Init(ctx, "aether-server", "0.1.0")
+	// Load config BEFORE wire — OTel needs the collector endpoint, and wire
+	// providers (pgxpool/gin) read the global TracerProvider at construction.
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+
+	// OTel SDK must be initialized BEFORE wire (D41).
+	// Endpoint from config: empty = noop (dev convenience), set = push to collector.
+	otelSDK, err := otel.Init(ctx, cfg.OTel.ServiceName, "0.1.0", cfg.OTel.Endpoint)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to init otel: %v\n", err)
 		os.Exit(1)

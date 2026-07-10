@@ -5,7 +5,7 @@
 // Design (D41):
 //   - TraceContext propagator (W3C traceparent) so traces survive across the
 //     gin → pgx → http-outbound chain and into River job handlers (task 9).
-//   - OTLP/HTTP exporter reads OTEL_EXPORTER_OTLP_ENDPOINT at startup.
+//   - OTLP/HTTP exporter endpoint comes from config (AETHER_OTEL_ENDPOINT).
 //   - Prometheus exporter exposes /metrics for scraping.
 //   - zap is wrapped with otelzap so every log line carries the active trace_id.
 package otel
@@ -15,7 +15,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -77,13 +76,11 @@ func buildResource(serviceName, serviceVersion string) *resource.Resource {
 // Init sets up the global OTel SDK: propagator, TracerProvider (OTLP/HTTP export),
 // MeterProvider (Prometheus), and returns the SDK for lifecycle control.
 //
-// serviceName / serviceVersion label every span/metric (e.g. "aether-server" / v0.1).
-// The OTLP trace exporter endpoint is read from OTEL_EXPORTER_OTLP_ENDPOINT;
-// if unset, traces are dropped silently (dev convenience — no collector running).
-func Init(ctx context.Context, serviceName, serviceVersion string) (*SDK, error) {
+// serviceName / serviceVersion label every span/metric.
+// otlpEndpoint is the OTLP/HTTP collector address (e.g. "localhost:4318").
+// Empty = noop (spans generated but not sent — dev convenience).
+func Init(ctx context.Context, serviceName, serviceVersion, otlpEndpoint string) (*SDK, error) {
 	// (a) Global propagator: W3C TraceContext + Baggage.
-	// This MUST be set before any handler starts so cross-process trace
-	// propagation (HTTP headers, River job metadata) works end-to-end.
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
 		propagation.Baggage{},
@@ -92,7 +89,7 @@ func Init(ctx context.Context, serviceName, serviceVersion string) (*SDK, error)
 	res := buildResource(serviceName, serviceVersion)
 
 	// (b) TracerProvider with OTLP/HTTP exporter.
-	tp, err := newTracerProvider(ctx, res)
+	tp, err := newTracerProvider(ctx, res, otlpEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("init tracer provider: %w", err)
 	}
@@ -113,15 +110,12 @@ func Init(ctx context.Context, serviceName, serviceVersion string) (*SDK, error)
 	}, nil
 }
 
-func newTracerProvider(ctx context.Context, res *resource.Resource) (*sdktrace.TracerProvider, error) {
-	// OTLP endpoint comes from the standard env var; if absent we use a noop
-	// exporter so the server runs without a collector (dev/CI convenience).
-	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-
+func newTracerProvider(ctx context.Context, res *resource.Resource, otlpEndpoint string) (*sdktrace.TracerProvider, error) {
+	// If no endpoint configured, use noop exporter (dev/CI convenience).
 	var exp sdktrace.SpanExporter
-	if endpoint != "" {
+	if otlpEndpoint != "" {
 		var err error
-		exp, err = otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpoint))
+		exp, err = otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(otlpEndpoint))
 		if err != nil {
 			return nil, fmt.Errorf("create OTLP trace exporter: %w", err)
 		}
