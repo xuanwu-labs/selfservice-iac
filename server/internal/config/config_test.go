@@ -46,7 +46,6 @@ func TestLoadDefaults(t *testing.T) {
 	assert.Equal(t, int32(10), cfg.Data.Database.MaxConns)
 	assert.Equal(t, "test", cfg.Service.Env)
 	assert.Equal(t, "aether-server", cfg.Service.Name)
-	assert.Equal(t, "postgres", cfg.Data.Database.Driver)
 }
 
 func TestLogConfig(t *testing.T) {

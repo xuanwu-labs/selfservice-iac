@@ -16,7 +16,6 @@ log_level: "info"
 
 data:
   database:
-    driver: "postgres"
     host: "192.168.31.33"        # dev PG (aether-postgres container)
     port: 5433
     user: "aether"

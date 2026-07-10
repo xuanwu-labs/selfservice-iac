@@ -55,13 +55,12 @@ type DataConfig struct {
 // DatabaseConfig holds PostgreSQL connection parameters.
 // Structured (not a flat DSN) so each field can be overridden via env or yaml.
 type DatabaseConfig struct {
-	Driver   string `mapstructure:"driver"` // always "postgres"
 	Host     string `mapstructure:"host"`
 	Port     int    `mapstructure:"port"`
 	User     string `mapstructure:"user"`
-	Password string `mapstructure:"password"` // from env var (sensitive)
-	Database string `mapstructure:"database"` // DB name
-	SSLMode  string `mapstructure:"ssl_mode"` // disable/require/verify-full
+	Password string `mapstructure:"password"`
+	Database string `mapstructure:"database"`
+	SSLMode  string `mapstructure:"ssl_mode"`
 	MaxConns int32  `mapstructure:"max_conns"`
 	Timeout  string `mapstructure:"timeout"`
 }
@@ -119,7 +118,6 @@ func Load(configPath, env string) (*Config, error) {
 	v.SetDefault("server.addr", ":8080")
 	v.SetDefault("server.timeout", "30s")
 	v.SetDefault("log_level", "info")
-	v.SetDefault("data.database.driver", "postgres")
 	v.SetDefault("data.database.host", "localhost")
 	v.SetDefault("data.database.port", 5432)
 	v.SetDefault("data.database.ssl_mode", "disable")
