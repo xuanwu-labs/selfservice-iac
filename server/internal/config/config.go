@@ -23,13 +23,10 @@ import (
 // Config holds all platform configuration.
 // Modeled after ferret's Bootstrap, adapted for single-process Connect-RPC.
 type Config struct {
-	// Service holds service identity (name/version/env).
-	Service ServiceConfig `mapstructure:"service"`
-	// Server holds transport parameters.
-	Server ServerConfig `mapstructure:"server"`
-	// Data holds infrastructure connections (DB, Redis, future MQ).
-	Data DataConfig `mapstructure:"data"`
-	// LogLevel controls zap verbosity.
+	Service  ServiceConfig `mapstructure:"service"`
+	Server   ServerConfig  `mapstructure:"server"`
+	Data     DataConfig    `mapstructure:"data"`
+	Auth     AuthConfig    `mapstructure:"auth"`
 	LogLevel string        `mapstructure:"log_level"`
 	Connect  ConnectConfig `mapstructure:"connect"`
 	OTel     OTelConfig    `mapstructure:"otel"`
@@ -99,6 +96,21 @@ type ConnectConfig struct {
 	Enabled bool `mapstructure:"enabled"`
 }
 
+// AuthConfig holds JWT/OIDC authentication parameters.
+// Inspired by ferret's Bootstrap{AuthKey, PublicKey}, structured for multi-issuer.
+type AuthConfig struct {
+	// JWT signing secret (HS256). From env var (sensitive).
+	// Leave empty to disable JWT (e.g. dev mode behind gateway).
+	JWTSecret string `mapstructure:"jwt_secret"`
+	// JWT issuer claim (e.g. "aether-server").
+	JWTIssuer string `mapstructure:"jwt_issuer"`
+	// JWT token TTL (e.g. "24h").
+	JWTTTL string `mapstructure:"jwt_ttl"`
+	// OIDC issuer URLs for external IdP trust (D10/D10.1).
+	// Each URL is an OIDC provider to verify tokens from.
+	OIDCIssuers []string `mapstructure:"oidc_issuers"`
+}
+
 // OTelConfig holds OpenTelemetry collector backend parameters.
 type OTelConfig struct {
 	Endpoint    string `mapstructure:"endpoint"`
@@ -128,6 +140,8 @@ func Load(configPath, env string) (*Config, error) {
 	v.SetDefault("data.database.max_conns", 10)
 	v.SetDefault("data.database.timeout", "5s")
 	v.SetDefault("connect.enabled", true)
+	v.SetDefault("auth.jwt_issuer", "aether-server")
+	v.SetDefault("auth.jwt_ttl", "24h")
 	v.SetDefault("otel.endpoint", "")
 	v.SetDefault("otel.service_name", "aether-server")
 
@@ -163,6 +177,9 @@ func Load(configPath, env string) (*Config, error) {
 	_ = v.BindEnv("data.database.timeout")
 	_ = v.BindEnv("data.redis.addr")
 	_ = v.BindEnv("data.redis.password")
+	_ = v.BindEnv("auth.jwt_secret")
+	_ = v.BindEnv("auth.jwt_issuer")
+	_ = v.BindEnv("auth.jwt_ttl")
 	_ = v.BindEnv("connect.enabled")
 	_ = v.BindEnv("otel.endpoint")
 	_ = v.BindEnv("otel.service_name")
@@ -202,6 +219,10 @@ func Log(logger *zap.Logger, cfg *Config) {
 		zap.String("db.name", cfg.Data.Database.Database),
 		zap.Int32("db.max_conns", cfg.Data.Database.MaxConns),
 		zap.String("redis.addr", cfg.Data.Redis.Addr),
+		zap.String("auth.jwt_issuer", cfg.Auth.JWTIssuer),
+		zap.String("auth.jwt_ttl", cfg.Auth.JWTTTL),
+		zap.Bool("auth.jwt_configured", cfg.Auth.JWTSecret != ""),
+		zap.Strings("auth.oidc_issuers", cfg.Auth.OIDCIssuers),
 		zap.Bool("connect.enabled", cfg.Connect.Enabled),
 		zap.String("otel.endpoint", cfg.OTel.Endpoint),
 	)

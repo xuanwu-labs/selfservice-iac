@@ -1,7 +1,7 @@
 # Aether Server — Default Configuration
 #
 # Loading priority: -config flag > env vars (AETHER_*) > this file > defaults.
-# Sensitive values (passwords) should come from env vars, NOT this file.
+# Sensitive values (passwords, secrets) should come from env vars, NOT this file.
 
 service:
   name: "aether-server"
@@ -27,6 +27,12 @@ data:
     # password: set via AETHER_DATA_DATABASE_PASSWORD (sensitive)
   redis:
     addr: ""                     # empty = Redis disabled
+
+auth:
+  jwt_issuer: "aether-server"
+  jwt_ttl: "24h"
+  # jwt_secret: set via AETHER_AUTH_JWT_SECRET (sensitive)
+  oidc_issuers: []               # external IdP issuer URLs (D10/D10.1, future)
 
 connect:
   enabled: true
