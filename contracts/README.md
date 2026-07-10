@@ -19,14 +19,14 @@ contracts/                        ← 唯一 .proto 源(人编辑这里)
   ┌─────────────────────────────────────────────┐
   │                                             │
   ▼                  ▼                          ▼
-server/internal/proto/   server/api/grpc/      web/(TS 客户端)
+server/internal/proto/   server/api/connect/    web/(TS 客户端)
   *.pb.go(messages)      Connect 服务接口       *.ts(由 connect-es 生成)
 ```
 
 | 产物 | 位置 | 内容 | 谁消费 |
 |---|---|---|---|
 | Go messages | `server/internal/proto/*.pb.go` | protobuf message 定义 | server 内部 |
-| Go Connect 接口 | `server/api/grpc/` | Connect service handler 接口 | server 的 gRPC handler |
+| Go Connect 接口 | `server/api/connect/` | Connect service handler 接口 | server 的 Connect handler |
 | TS 客户端 | `web/`(未来) | connect-es 客户端 | 前端 |
 
 **为什么 `server/api/proto/` 不存在**:proto 源只此一处(contracts/)。后端不再保留 proto 源副本,避免双源漂移。
