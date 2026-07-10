@@ -17,8 +17,8 @@ log_level: "info"
 data:
   database:
     driver: "postgres"
-    host: "localhost"
-    port: 5432
+    host: "192.168.31.33"        # dev PG (aether-postgres container)
+    port: 5433
     user: "aether"
     database: "aether_dev"
     ssl_mode: "disable"
@@ -26,13 +26,11 @@ data:
     timeout: "5s"
     # password: set via AETHER_DATA_DATABASE_PASSWORD (sensitive)
   redis:
-    addr: ""              # empty = Redis disabled (Phase 1 doesn't use Redis)
-    db: 0
-    # password: set via AETHER_DATA_REDIS_PASSWORD (sensitive)
+    addr: ""                     # empty = Redis disabled
 
 connect:
   enabled: true
 
 otel:
-  endpoint: ""            # empty = noop; set to collector addr in prod
+  endpoint: ""                   # empty = noop; set to collector addr in prod
   service_name: "aether-server"
