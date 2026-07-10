@@ -22,17 +22,33 @@ import (
 )
 
 // Config holds all platform configuration.
+// Modeled after ferret's Bootstrap, adapted for single-process Connect-RPC.
 type Config struct {
-	// Env is the deployment environment (dev/staging/prod), from -env flag.
-	Env      string        `mapstructure:"env"`
-	HTTPAddr string        `mapstructure:"http_addr"`
+	// Service holds service identity (name/version/env).
+	Service ServiceConfig `mapstructure:"service"`
+	// Server holds transport parameters.
+	Server ServerConfig `mapstructure:"server"`
+	// LogLevel controls zap verbosity.
 	LogLevel string        `mapstructure:"log_level"`
 	DB       DBConfig      `mapstructure:"db"`
 	Connect  ConnectConfig `mapstructure:"connect"`
 	OTel     OTelConfig    `mapstructure:"otel"`
 }
 
-// DBConfig holds PostgreSQL connection parameters.
+// ServiceConfig holds service identity (ferret: Service{Env, Name, Version}).
+type ServiceConfig struct {
+	Name    string `mapstructure:"name"`
+	Version string `mapstructure:"version"`
+	Env     string `mapstructure:"env"`
+}
+
+// ServerConfig holds HTTP server parameters (ferret: Server.HTTP{Network, Addr, Timeout}).
+type ServerConfig struct {
+	Addr    string `mapstructure:"addr"`    // listen address (:8080)
+	Timeout string `mapstructure:"timeout"` // read/write timeout (e.g. "30s")
+}
+
+// DBConfig holds PostgreSQL connection parameters (ferret: Data.Database{Driver, Source}).
 type DBConfig struct {
 	DSN      string `mapstructure:"dsn"`
 	MaxConns int32  `mapstructure:"max_conns"`
@@ -60,8 +76,11 @@ func Load(configPath, env string) (*Config, error) {
 	v := viper.New()
 
 	// Layer 4: defaults (lowest)
-	v.SetDefault("env", env)
-	v.SetDefault("http_addr", ":8080")
+	v.SetDefault("service.name", "aether-server")
+	v.SetDefault("service.version", "0.1.0")
+	v.SetDefault("service.env", env)
+	v.SetDefault("server.addr", ":8080")
+	v.SetDefault("server.timeout", "30s")
 	v.SetDefault("log_level", "info")
 	v.SetDefault("db.max_conns", 10)
 	v.SetDefault("db.timeout", "5s")
@@ -84,9 +103,12 @@ func Load(configPath, env string) (*Config, error) {
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
-	// Explicit bindings for nested keys (viper's AutomaticEnv doesn't always
-	// pick up nested keys on Unmarshal without explicit BindEnv).
-	_ = v.BindEnv("http_addr")
+	// Explicit bindings for nested keys.
+	_ = v.BindEnv("service.name")
+	_ = v.BindEnv("service.version")
+	_ = v.BindEnv("service.env")
+	_ = v.BindEnv("server.addr")
+	_ = v.BindEnv("server.timeout")
 	_ = v.BindEnv("log_level")
 	_ = v.BindEnv("db.dsn")
 	_ = v.BindEnv("db.max_conns")
@@ -115,8 +137,9 @@ func Load(configPath, env string) (*Config, error) {
 // Log prints the config with sensitive fields redacted.
 func Log(logger *zap.Logger, cfg *Config) {
 	logger.Info("config loaded",
-		zap.String("env", cfg.Env),
-		zap.String("http_addr", cfg.HTTPAddr),
+		zap.String("env", cfg.Service.Env),
+		zap.String("service_name", cfg.Service.Name),
+		zap.String("server_addr", cfg.Server.Addr),
 		zap.String("log_level", cfg.LogLevel),
 		zap.Int32("db.max_conns", cfg.DB.MaxConns),
 		zap.String("db.timeout", cfg.DB.Timeout),

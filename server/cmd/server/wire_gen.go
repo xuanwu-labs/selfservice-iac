@@ -78,6 +78,6 @@ func provideAppContext() context.Context { return context.Background() }
 
 // allProviders aggregates every layer's ProviderSet. Adding a new package
 // means adding its ProviderSet here — nothing else changes in wire.go.
-var allProviders = wire.NewSet(config.ProviderSet, data.ProviderSet, core.ProviderSet, api.ProviderSet, connect.ProviderSet, server.ProviderSet, provideLogger,
+var allProviders = wire.NewSet(data.ProviderSet, core.ProviderSet, api.ProviderSet, connect.ProviderSet, server.ProviderSet, provideLogger,
 	provideAppContext, wire.Struct(new(App), "*"),
 )

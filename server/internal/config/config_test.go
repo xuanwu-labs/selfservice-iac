@@ -12,18 +12,17 @@ import (
 
 func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("AETHER_DB_DSN", "postgres://aether:secret@localhost:5432/aether")
-	t.Setenv("AETHER_HTTP_ADDR", ":9090")
+	t.Setenv("AETHER_SERVER_ADDR", ":9090")
 	t.Setenv("AETHER_LOG_LEVEL", "debug")
 
 	cfg, err := Load("nonexistent.yaml", "test")
 	require.NoError(t, err)
-	assert.Equal(t, ":9090", cfg.HTTPAddr)
+	assert.Equal(t, ":9090", cfg.Server.Addr)
 	assert.Equal(t, "debug", cfg.LogLevel)
 	assert.Equal(t, "postgres://aether:secret@localhost:5432/aether", cfg.DB.DSN)
 }
 
 func TestLoadMissingDSN(t *testing.T) {
-	// Ensure AETHER_DB_DSN is not set
 	os.Unsetenv("AETHER_DB_DSN") //nolint:errcheck // best-effort cleanup in test
 
 	_, err := Load("nonexistent.yaml", "test")
@@ -33,13 +32,14 @@ func TestLoadMissingDSN(t *testing.T) {
 
 func TestLoadDefaults(t *testing.T) {
 	t.Setenv("AETHER_DB_DSN", "postgres://aether:secret@localhost:5432/aether")
-	// Don't set HTTP_ADDR or LOG_LEVEL — should use defaults
 
 	cfg, err := Load("nonexistent.yaml", "test")
 	require.NoError(t, err)
-	assert.Equal(t, ":8080", cfg.HTTPAddr)
+	assert.Equal(t, ":8080", cfg.Server.Addr)
 	assert.Equal(t, "info", cfg.LogLevel)
 	assert.Equal(t, int32(10), cfg.DB.MaxConns)
+	assert.Equal(t, "test", cfg.Service.Env)
+	assert.Equal(t, "aether-server", cfg.Service.Name)
 }
 
 func TestRedactDSN(t *testing.T) {
@@ -71,7 +71,8 @@ func TestRedactDSN(t *testing.T) {
 
 func TestLogConfig(t *testing.T) {
 	cfg := &Config{
-		HTTPAddr: ":8080",
+		Service:  ServiceConfig{Name: "aether", Env: "test"},
+		Server:   ServerConfig{Addr: ":8080"},
 		LogLevel: "info",
 		DB: DBConfig{
 			DSN:      "postgres://aether:secret@localhost:5432/db",
@@ -80,6 +81,5 @@ func TestLogConfig(t *testing.T) {
 		},
 	}
 
-	// Should not panic
 	Log(zap.NewNop(), cfg)
 }

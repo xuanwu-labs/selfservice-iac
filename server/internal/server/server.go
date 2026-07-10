@@ -50,7 +50,7 @@ func NewServer(cfg *config.Config, ginEngine *gin.Engine, mwCfg *middleware.Serv
 
 	return &Server{
 		httpServer: &http.Server{
-			Addr:    cfg.HTTPAddr,
+			Addr:    cfg.Server.Addr,
 			Handler: mux,
 		},
 		logger: logger,

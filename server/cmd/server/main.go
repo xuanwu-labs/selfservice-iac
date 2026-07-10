@@ -38,7 +38,7 @@ func main() {
 
 	// OTel SDK must be initialized BEFORE wire (D41).
 	// Endpoint from config: empty = noop (dev convenience), set = push to collector.
-	otelSDK, err := otel.Init(ctx, cfg.OTel.ServiceName, "0.1.0", cfg.OTel.Endpoint)
+	otelSDK, err := otel.Init(ctx, cfg.Service.Name, cfg.Service.Version, cfg.OTel.Endpoint)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to init otel: %v\n", err)
 		os.Exit(1)
@@ -56,7 +56,8 @@ func main() {
 
 	logger := app.Logger
 	logger.Info("Aether platform starting",
-		zap.String("http_addr", app.Config.HTTPAddr),
+		zap.String("env", app.Config.Service.Env),
+		zap.String("server_addr", app.Config.Server.Addr),
 		zap.Bool("connect_enabled", app.Config.Connect.Enabled),
 	)
 
