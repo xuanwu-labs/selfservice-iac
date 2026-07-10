@@ -1,0 +1,22 @@
+# Aether Server — Default Configuration
+#
+# Loading priority: -config flag > env vars (AETHER_*) > this file > defaults.
+# Sensitive values (db.dsn) should come from env vars, NOT this file.
+# Override this file with: ./server -config /path/to/config.yaml
+
+env: "dev"
+
+http_addr: ":8080"
+log_level: "info"
+
+connect:
+  enabled: true
+
+db:
+  max_conns: 10
+  timeout: "5s"
+  # dsn: set via AETHER_DB_DSN env var (sensitive, not in this file)
+
+otel:
+  endpoint: ""              # empty = noop; set to collector addr in prod
+  service_name: "aether-server"

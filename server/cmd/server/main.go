@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -19,9 +20,17 @@ import (
 func main() {
 	ctx := context.Background()
 
-	// Load config BEFORE wire — OTel needs the collector endpoint, and wire
-	// providers (pgxpool/gin) read the global TracerProvider at construction.
-	cfg, err := config.Load()
+	// Layer 1 (highest): command-line flags — only infra params.
+	var (
+		configPath string
+		env        string
+	)
+	flag.StringVar(&configPath, "config", "config.yaml", "config file path")
+	flag.StringVar(&env, "env", "dev", "environment (dev/staging/prod)")
+	flag.Parse()
+
+	// Load config (flags > env vars > yaml file > defaults).
+	cfg, err := config.Load(configPath, env)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
 		os.Exit(1)
@@ -38,7 +47,7 @@ func main() {
 	// Wire-generated initialization (compile-time DI).
 	// OTel was initialized above, so wire's provideLogger already returns a
 	// trace-aware *otelzap.Logger — no post-wire wrapping needed (D41).
-	app, cleanup, err := InitializeApp()
+	app, cleanup, err := InitializeApp(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to initialize: %v\n", err)
 		os.Exit(1)

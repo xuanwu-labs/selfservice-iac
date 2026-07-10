@@ -60,7 +60,9 @@ var allProviders = wire.NewSet(
 	wire.Struct(new(App), "*"),
 )
 
-func InitializeApp() (*App, func(), error) {
+// InitializeApp builds the server app via wire. cfg is loaded by main.go
+// (before wire) from flags + env + yaml — wire receives it as a bound value.
+func InitializeApp(cfg *config.Config) (*App, func(), error) {
 	wire.Build(allProviders)
 	return nil, nil, nil
 }

@@ -21,14 +21,12 @@ import (
 
 // Injectors from wire.go:
 
-func InitializeApp() (*App, func(), error) {
-	configConfig, err := config.Load()
-	if err != nil {
-		return nil, nil, err
-	}
-	logger := provideLogger(configConfig)
+// InitializeApp builds the server app via wire. cfg is loaded by main.go
+// (before wire) from flags + env + yaml — wire receives it as a bound value.
+func InitializeApp(cfg *config.Config) (*App, func(), error) {
+	logger := provideLogger(cfg)
 	context := provideAppContext()
-	pool, cleanup, err := data.NewPgxPool(context, configConfig)
+	pool, cleanup, err := data.NewPgxPool(context, cfg)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -41,9 +39,9 @@ func InitializeApp() (*App, func(), error) {
 		return nil, nil, err
 	}
 	engine := server.NewHTTPServer(logger, v, handler, serverConfig)
-	serverServer := server.NewServer(configConfig, engine, serverConfig, logger)
+	serverServer := server.NewServer(cfg, engine, serverConfig, logger)
 	app := &App{
-		Config: configConfig,
+		Config: cfg,
 		Logger: logger,
 		Server: serverServer,
 	}

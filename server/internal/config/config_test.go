@@ -15,7 +15,7 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("AETHER_HTTP_ADDR", ":9090")
 	t.Setenv("AETHER_LOG_LEVEL", "debug")
 
-	cfg, err := Load()
+	cfg, err := Load("nonexistent.yaml", "test")
 	require.NoError(t, err)
 	assert.Equal(t, ":9090", cfg.HTTPAddr)
 	assert.Equal(t, "debug", cfg.LogLevel)
@@ -26,7 +26,7 @@ func TestLoadMissingDSN(t *testing.T) {
 	// Ensure AETHER_DB_DSN is not set
 	os.Unsetenv("AETHER_DB_DSN") //nolint:errcheck // best-effort cleanup in test
 
-	_, err := Load()
+	_, err := Load("nonexistent.yaml", "test")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "AETHER_DB_DSN")
 }
@@ -35,7 +35,7 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("AETHER_DB_DSN", "postgres://aether:secret@localhost:5432/aether")
 	// Don't set HTTP_ADDR or LOG_LEVEL — should use defaults
 
-	cfg, err := Load()
+	cfg, err := Load("nonexistent.yaml", "test")
 	require.NoError(t, err)
 	assert.Equal(t, ":8080", cfg.HTTPAddr)
 	assert.Equal(t, "info", cfg.LogLevel)
