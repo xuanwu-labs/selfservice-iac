@@ -1,13 +1,12 @@
 # Aether Server — Default Configuration
 #
 # Loading priority: -config flag > env vars (AETHER_*) > this file > defaults.
-# Sensitive values (db.dsn) should come from env vars, NOT this file.
-# Override this file with: ./server -config /path/to/config.yaml
+# Sensitive values (passwords) should come from env vars, NOT this file.
 
 service:
   name: "aether-server"
   version: "0.1.0"
-  env: "dev"                    # overridden by -env flag
+  env: "dev"
 
 server:
   addr: ":8080"
@@ -15,14 +14,25 @@ server:
 
 log_level: "info"
 
+data:
+  database:
+    driver: "postgres"
+    host: "localhost"
+    port: 5432
+    user: "aether"
+    database: "aether_dev"
+    ssl_mode: "disable"
+    max_conns: 10
+    timeout: "5s"
+    # password: set via AETHER_DATA_DATABASE_PASSWORD (sensitive)
+  redis:
+    addr: ""              # empty = Redis disabled (Phase 1 doesn't use Redis)
+    db: 0
+    # password: set via AETHER_DATA_REDIS_PASSWORD (sensitive)
+
 connect:
   enabled: true
 
-db:
-  max_conns: 10
-  timeout: "5s"
-  # dsn: set via AETHER_DB_DSN env var (sensitive, not in this file)
-
 otel:
-  endpoint: ""                  # empty = noop; set to collector addr in prod
-  service_name: "aether-server" # overrides service.name for OTel resource
+  endpoint: ""            # empty = noop; set to collector addr in prod
+  service_name: "aether-server"

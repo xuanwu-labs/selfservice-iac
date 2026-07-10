@@ -24,9 +24,18 @@ var ProviderSet = wire.NewSet(
 // otelpgx so every query becomes a child span of the request trace (D41).
 // TODO(task-09): split into NewAPIPool + NewWorkerPool for connection isolation.
 func NewPgxPool(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, func(), error) {
-	poolCfg, err := pgxpool.ParseConfig(cfg.DB.DSN)
+	dsn := cfg.Data.Database.DSN()
+	if dsn == "" {
+		return nil, nil, fmt.Errorf("database not configured (set data.database.* in config)")
+	}
+
+	poolCfg, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, nil, fmt.Errorf("parse pgxpool config: %w", err)
+	}
+	// Apply pool size from config.
+	if cfg.Data.Database.MaxConns > 0 {
+		poolCfg.MaxConns = cfg.Data.Database.MaxConns
 	}
 	// otelpgx: wrap each query in a span + record pool stats as OTel metrics.
 	poolCfg.ConnConfig.Tracer = otelpgx.NewTracer(otelpgx.WithTrimSQLInSpanName())
@@ -35,7 +44,6 @@ func NewPgxPool(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, func(),
 	if err != nil {
 		return nil, nil, fmt.Errorf("create pgxpool: %w", err)
 	}
-	// RecordStats emits connection-pool metrics (DB connection gauge, etc.).
 	_ = otelpgx.RecordStats(pool)
 
 	if err := pool.Ping(ctx); err != nil {
