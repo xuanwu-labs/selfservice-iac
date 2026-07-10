@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"embed"
+	"flag"
 	"fmt"
 	"io/fs"
 	"os"
@@ -12,25 +13,40 @@ import (
 
 	"github.com/pressly/goose/v3"
 	"github.com/spf13/cobra"
+
+	"github.com/xuanwu-labs/selfservice-iac/server/internal/config"
 )
 
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
-var dbDSN string
-
 func main() {
+	// Load config (same four-layer priority as server: flag > env > yaml > default).
+	var configPath string
+	flag.StringVar(&configPath, "config", "config.yaml", "config file path")
+	flag.Parse()
+
+	cfg, err := config.Load(configPath, "migrate")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+	dbDSN := cfg.Data.Database.DSN()
+	if dbDSN == "" {
+		fmt.Fprintln(os.Stderr, "database not configured")
+		os.Exit(1)
+	}
+
 	rootCmd := &cobra.Command{
 		Use:   "aether-migrate",
 		Short: "Aether database migration runner (goose)",
 	}
-	rootCmd.PersistentFlags().StringVar(&dbDSN, "dsn", getEnv("AETHER_DB_DSN", ""), "PostgreSQL DSN (or AETHER_DB_DSN env)")
 
 	upCmd := &cobra.Command{
 		Use:   "up",
 		Short: "Apply all pending migrations",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return withGoose(cmd.Context(), func(g *goose.Provider) error {
+			return withGoose(cmd.Context(), dbDSN, func(g *goose.Provider) error {
 				results, err := g.Up(cmd.Context())
 				if err != nil {
 					return err
@@ -47,7 +63,7 @@ func main() {
 		Use:   "down",
 		Short: "Roll back the last migration",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return withGoose(cmd.Context(), func(g *goose.Provider) error {
+			return withGoose(cmd.Context(), dbDSN, func(g *goose.Provider) error {
 				result, err := g.Down(cmd.Context())
 				if err != nil {
 					return err
@@ -64,7 +80,7 @@ func main() {
 		Use:   "status",
 		Short: "Show migration status (full version history)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return withGoose(cmd.Context(), func(g *goose.Provider) error {
+			return withGoose(cmd.Context(), dbDSN, func(g *goose.Provider) error {
 				statuses, err := g.Status(cmd.Context())
 				if err != nil {
 					return err
@@ -87,7 +103,7 @@ func main() {
 		Use:   "redo",
 		Short: "Roll back then re-apply the last migration (idempotency check)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return withGoose(cmd.Context(), func(g *goose.Provider) error {
+			return withGoose(cmd.Context(), dbDSN, func(g *goose.Provider) error {
 				if _, err := g.Down(cmd.Context()); err != nil {
 					return err
 				}
@@ -105,13 +121,9 @@ func main() {
 }
 
 // withGoose connects to PG (via database/sql for goose), creates provider with embedded migrations.
-func withGoose(ctx context.Context, fn func(*goose.Provider) error) error {
-	if dbDSN == "" {
-		return fmt.Errorf("--dsn or AETHER_DB_DSN is required")
-	}
-
+func withGoose(ctx context.Context, dsn string, fn func(*goose.Provider) error) error {
 	// goose requires *sql.DB (standard library), so use lib/pq compatible DSN
-	db, err := openDB(dbDSN)
+	db, err := openDB(dsn)
 	if err != nil {
 		return fmt.Errorf("open DB: %w", err)
 	}

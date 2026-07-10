@@ -11,7 +11,7 @@ build:
 test:
 	go test -race -short ./...
 
-# Run ALL tests including DB-dependent ones (requires AETHER_DB_DSN + live PostgreSQL)
+# Run ALL tests including DB-dependent ones (requires Docker via DOCKER_HOST)
 test-db:
 	go test -race -p 1 ./...
 
@@ -19,22 +19,15 @@ test-db:
 lint:
 	golangci-lint run ./...
 
-# Database migrations
-# DB_DSN MUST be provided via env (e.g. export DB_DSN=postgres://user:pass@host:5432/dbname)
-# Do NOT hardcode development DSNs here.
-DB_DSN ?=
-
+# Database migrations (reads config.yaml + env vars, same as server)
 migrate-up:
-	@if [ -z "$(DB_DSN)" ]; then echo "ERROR: DB_DSN is required (export DB_DSN=postgres://user:pass@host:5432/dbname)"; exit 1; fi
-	go run ./cmd/migrate --dsn $(DB_DSN) up
+	go run ./cmd/migrate -config config.yaml up
 
 migrate-down:
-	@if [ -z "$(DB_DSN)" ]; then echo "ERROR: DB_DSN is required"; exit 1; fi
-	go run ./cmd/migrate --dsn $(DB_DSN) down
+	go run ./cmd/migrate -config config.yaml down
 
 migrate-status:
-	@if [ -z "$(DB_DSN)" ]; then echo "ERROR: DB_DSN is required"; exit 1; fi
-	go run ./cmd/migrate --dsn $(DB_DSN) status
+	go run ./cmd/migrate -config config.yaml status
 
 # Code generation
 sqlc-gen:

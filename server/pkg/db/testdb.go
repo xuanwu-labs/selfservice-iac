@@ -29,6 +29,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -73,27 +74,47 @@ func (schemaMigrator) Migrate(ctx context.Context, db *sql.DB, _ pgtestdb.Config
 }
 
 // pgContainer holds the single shared test PG container for a test run.
-// testcontainers reuses it across calls in the same process; the first call
-// pays startup (~5s), later calls attach instantly.
 var pgContainer *tcpg.PostgresContainer
 
+// testContainerConfig holds testcontainers PG parameters, overridable via env vars.
+// These are TEST infrastructure config — not application runtime config.
+type testContainerConfig struct {
+	Image    string
+	User     string
+	Password string
+	Database string
+}
+
+func loadTestContainerConfig() testContainerConfig {
+	return testContainerConfig{
+		Image:    envOrDefault("AETHER_TEST_PG_IMAGE", "postgres:16-alpine"),
+		User:     envOrDefault("AETHER_TEST_PG_USER", "postgres"),
+		Password: envOrDefault("AETHER_TEST_PG_PASSWORD", "password"),
+		Database: envOrDefault("AETHER_TEST_PG_DATABASE", "postgres"),
+	}
+}
+
+func envOrDefault(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
+}
+
 // startContainer starts (once per process) a dedicated PG container and
-// returns its reachable host + port from the test process's perspective.
-// With DOCKER_HOST=tcp://remote, testcontainers reports the remote host:port.
+// returns its reachable host + port. Testcontainers honors DOCKER_HOST env var.
 func startContainer(t testing.TB) (host, port string) {
 	t.Helper()
 	ctx := context.Background()
 
 	if pgContainer == nil {
-		c, err := tcpg.Run(ctx, "postgres:16-alpine",
-			tcpg.WithDatabase("postgres"),
-			tcpg.WithUsername("postgres"),
-			tcpg.WithPassword("password"),
+		tc := loadTestContainerConfig()
+		c, err := tcpg.Run(ctx, tc.Image,
+			tcpg.WithDatabase(tc.Database),
+			tcpg.WithUsername(tc.User),
+			tcpg.WithPassword(tc.Password),
 			// The host's default seccomp profile rejects a syscall PG 16's
-			// initdb uses, failing with "Operation not permitted". Verified
-			// empirically: --security-opt seccomp=unconfined makes it start.
-			// (Named volumes / tmpfs / PGDATA moves did NOT help — it's seccomp,
-			// not the filesystem.) Safe for an ephemeral test container.
+			// initdb uses (CentOS 7 Docker). seccomp=unconfined bypasses it.
 			testcontainers.WithHostConfigModifier(func(hc *container.HostConfig) {
 				hc.SecurityOpt = append(hc.SecurityOpt, "seccomp=unconfined")
 			}),
@@ -106,10 +127,6 @@ func startContainer(t testing.TB) (host, port string) {
 			t.Fatalf("failed to start postgres container (is DOCKER_HOST set/reachable?): %v", err)
 		}
 		pgContainer = c
-		// NOTE: container is NOT terminated per-test. It's shared across all
-		// tests in the process; ryuk (auto-started by testcontainers) reaps it
-		// when the test process exits. Do not add t.Cleanup(Terminate) here —
-		// it would destroy the container before sibling tests finish.
 	}
 
 	h, err := pgContainer.Host(ctx)
@@ -132,12 +149,13 @@ func NewDSN(t testing.TB) string {
 		t.Skip("skipping DB test in -short mode")
 	}
 	host, port := startContainer(t)
+	tc := loadTestContainerConfig()
 	conf := pgtestdb.Custom(t, pgtestdb.Config{
 		DriverName: "pgx",
 		Host:       host,
-		User:       "postgres",
-		Password:   "password",
-		Database:   "postgres",
+		User:       tc.User,
+		Password:   tc.Password,
+		Database:   tc.Database,
 		Port:       port,
 		Options:    "sslmode=disable",
 	}, schemaMigrator{})
@@ -158,15 +176,14 @@ func New(t testing.TB) *pgxpool.Pool {
 	defer cancel()
 
 	host, port := startContainer(t)
+	tc := loadTestContainerConfig()
 
-	// pgtestdb.Custom connects, migrates the template, clones a per-test DB,
-	// and returns the Config whose URL() points at the cloned DB.
 	conf := pgtestdb.Custom(t, pgtestdb.Config{
 		DriverName: "pgx",
 		Host:       host,
-		User:       "postgres",
-		Password:   "password",
-		Database:   "postgres",
+		User:       tc.User,
+		Password:   tc.Password,
+		Database:   tc.Database,
 		Port:       port,
 		Options:    "sslmode=disable",
 	}, schemaMigrator{})
