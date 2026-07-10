@@ -66,20 +66,6 @@ type DatabaseConfig struct {
 	Timeout  string `mapstructure:"timeout"`
 }
 
-// DSN assembles a PostgreSQL connection string from structured fields.
-// Falls back to the raw DSN field if set (for backward compat / external DSN).
-func (d DatabaseConfig) DSN() string {
-	if d.Host == "" {
-		return "" // not configured
-	}
-	ssl := d.SSLMode
-	if ssl == "" {
-		ssl = "disable"
-	}
-	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
-		d.User, d.Password, d.Host, d.Port, d.Database, ssl)
-}
-
 // RedisConfig holds Redis connection parameters (ferret: Data_Redis).
 // All fields optional — if Host is empty, Redis is considered disabled.
 type RedisConfig struct {

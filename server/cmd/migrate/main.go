@@ -21,7 +21,6 @@ import (
 var embedMigrations embed.FS
 
 func main() {
-	// Load config (same four-layer priority as server: flag > env > yaml > default).
 	var configPath string
 	flag.StringVar(&configPath, "config", "config.yaml", "config file path")
 	flag.Parse()
@@ -31,11 +30,15 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
 		os.Exit(1)
 	}
-	dbDSN := cfg.Data.Database.DSN()
-	if dbDSN == "" {
+	db := cfg.Data.Database
+	if db.Host == "" {
 		fmt.Fprintln(os.Stderr, "database not configured")
 		os.Exit(1)
 	}
+	// goose requires database/sql which only accepts a connection string.
+	// Assemble it here — this is the ONLY place a conn string is built for migrate.
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
+		db.User, db.Password, db.Host, db.Port, db.Database)
 
 	rootCmd := &cobra.Command{
 		Use:   "aether-migrate",
@@ -46,7 +49,7 @@ func main() {
 		Use:   "up",
 		Short: "Apply all pending migrations",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return withGoose(cmd.Context(), dbDSN, func(g *goose.Provider) error {
+			return withGoose(cmd.Context(), connStr, func(g *goose.Provider) error {
 				results, err := g.Up(cmd.Context())
 				if err != nil {
 					return err
@@ -63,7 +66,7 @@ func main() {
 		Use:   "down",
 		Short: "Roll back the last migration",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return withGoose(cmd.Context(), dbDSN, func(g *goose.Provider) error {
+			return withGoose(cmd.Context(), connStr, func(g *goose.Provider) error {
 				result, err := g.Down(cmd.Context())
 				if err != nil {
 					return err
@@ -80,7 +83,7 @@ func main() {
 		Use:   "status",
 		Short: "Show migration status (full version history)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return withGoose(cmd.Context(), dbDSN, func(g *goose.Provider) error {
+			return withGoose(cmd.Context(), connStr, func(g *goose.Provider) error {
 				statuses, err := g.Status(cmd.Context())
 				if err != nil {
 					return err
@@ -103,7 +106,7 @@ func main() {
 		Use:   "redo",
 		Short: "Roll back then re-apply the last migration (idempotency check)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return withGoose(cmd.Context(), dbDSN, func(g *goose.Provider) error {
+			return withGoose(cmd.Context(), connStr, func(g *goose.Provider) error {
 				if _, err := g.Down(cmd.Context()); err != nil {
 					return err
 				}

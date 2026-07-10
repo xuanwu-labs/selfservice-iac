@@ -49,24 +49,6 @@ func TestLoadDefaults(t *testing.T) {
 	assert.Equal(t, "postgres", cfg.Data.Database.Driver)
 }
 
-func TestDatabaseDSN(t *testing.T) {
-	db := DatabaseConfig{
-		Host:     "localhost",
-		Port:     5432,
-		User:     "aether",
-		Password: "secret",
-		Database: "aether_dev",
-	}
-	dsn := db.DSN()
-	assert.Contains(t, dsn, "postgres://aether:secret@localhost:5432/aether_dev")
-	assert.Contains(t, dsn, "sslmode=disable")
-}
-
-func TestDatabaseDSNEmpty(t *testing.T) {
-	db := DatabaseConfig{}
-	assert.Equal(t, "", db.DSN())
-}
-
 func TestLogConfig(t *testing.T) {
 	cfg := &Config{
 		Service:  ServiceConfig{Name: "aether", Env: "test"},
