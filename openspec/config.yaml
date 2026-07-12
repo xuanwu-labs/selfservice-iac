@@ -63,11 +63,16 @@ rules:
     - 涉及脚本的 task，产出脚本写入 change 目录下 scripts/ 对应功能子目录。
     - 最后一个 task 运行 `make build` 与 `make test` 做整体验证。
   git:
-    # 分支命名（Conventional Commits + GitFlow 精简版）
+    # 分支策略（一个 OpenSpec change 一个分支）
+    - 一个 OpenSpec change 对应一个 feature 分支：`feat/<change-name>`。
+    - 分支生命周期：change 开始时创建，change 归档时合并到 main，合并后分支保留不删（作为提案历史）。
+    - 紧急修复用 `fix/<描述>` 短命分支，合并后可删。
+    - 文档/配置调整在当前 change 分支上做，随 change 一起合并。
+    - 不在 main 分支直接提交；所有改动走 feature 分支 + --no-ff 合并。
+    - 新 change = 新分支；不同 change 不混在同一个分支。
+    # 分支命名
     - 分支前缀按变更类型：feat/ fix/ chore/ docs/ refactor/ test/。
-    - 分支名格式：`<type>/<简短描述>`，如 `feat/scaffold-stage1`、`fix/dsn-hardcode`、`docs/phase0-contracts`。
-    - 对应 OpenSpec change 的分支用 change 名：`feat/<change-name>`（如 `feat/platform-tech-stack-and-scaffold`）。
-    - 不在 main 分支直接提交；所有改动走 feature 分支 + 合并。
+    - 分支名格式：`<type>/<简短描述>`，如 `feat/phase0-contracts`、`fix/dsn-hardcode`。
     # 提交规范
     - 提交信息全英文，语义清晰，使用 Conventional Commits 格式：
       `<type>(<scope>): <subject>` + 空行 + body（详述做什么、为什么、如何验证）。
