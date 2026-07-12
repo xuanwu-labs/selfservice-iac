@@ -79,3 +79,29 @@ logger 全链路使用 `*otelzap.Logger`(wire 注入,带 trace_id)。
 - `make test-db` — 全量测试(testcontainers PG,远程 Docker via DOCKER_HOST)
 - pgtestdb 模板克隆:每测隔离 DB,毫秒级
 - Clock 注入:时间相关逻辑可确定性测试(FakeClock)
+
+## 配置加载
+
+四层优先级(业界标准):
+
+```
+flag (-config, -env)          ← 最高:配置文件路径 + 环境
+    ↓
+环境变量 (AETHER_*)            ← 敏感值 + 部署覆盖
+    ↓
+config.yaml                   ← 非敏感默认值
+    ↓
+内置默认值                     ← 最低
+```
+
+敏感值(密码、JWT secret)可在 yaml 或 env 里设置;env 优先(推荐生产用)。
+
+## 文档体系
+
+| 文档 | 职责 | 面向 |
+|---|---|---|
+| `server/AGENTS.md` | 工程实践(代码规范、DI/Factory/Option、config 加载、Connect 扩展、优雅关闭) | 写代码时读 |
+| `openspec/config.yaml` | 流程规则(分支策略、commit 格式、proposal/specs 格式) | 做提案时读 |
+| `docs/architecture.md` | 架构概览(本文件) | 理解项目时读 |
+| `docs/` | 用户文档(快速上手、CLI、运维) | 使用平台时读 |
+| `openspec/` | 设计过程文档(proposal/design/tasks/specs) | 做设计决策时读 |

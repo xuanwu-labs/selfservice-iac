@@ -18,10 +18,10 @@ context: |
 
   server/ 分层（领域核心顶层 / package-by-feature）：
     - cmd/{server,aether,migrate}/   二进制入口
-    - api/{http,grpc}/               传输层 handler（非契约目录）
+    - api/{http,connect}/            传输层 handler（契约在仓库根 contracts/）
     - core/<domain>/                 领域核心（顶层一等公民）
     - data/                          数据访问层（pgxpool + dbset）
-    - internal/                      私有基建（config/otel/auth/cli/cmdutil/...）
+    - internal/                      私有基建（config/otel/auth/middleware/server/cli/...）
     - pkg/db/{queries,generated}/    sqlc 输入输出
 
   构建/测试（在 server/ 下执行）：
@@ -31,6 +31,7 @@ context: |
     - make lint           -> golangci-lint v2（含 D1 depguard 守护）
     - make sqlc-gen       -> 生成 sqlc 代码（在 pkg/db/ 下）
     - make wire-gen       -> 生成 wire 装配代码
+    - make proto-gen      -> 生成 proto/Connect-RPC 代码（在 contracts/ 下 buf generate）
     - make proto-gen      -> 生成 proto/Connect-RPC 代码（在 contracts/ 下执行 buf generate）
 
   产物目录约定（本项目所有 change 必须遵守的规整性）：
