@@ -7,7 +7,9 @@
 //  3. Config file (YAML) — non-sensitive defaults, overridable per deployment
 //  4. Built-in defaults (lowest)
 //
-// Sensitive values (DSN, passwords, tokens) MUST come from env vars, NOT yaml.
+// Sensitive values (passwords, secrets) can be set in yaml OR env vars.
+// Env vars take priority (recommended for production). yaml is fine for
+// local dev as long as the file is not committed with real secrets.
 package config
 
 import (
