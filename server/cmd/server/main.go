@@ -5,12 +5,14 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/xuanwu-labs/selfservice-iac/server/internal/config"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/otel"
 	"go.uber.org/zap"
 )
@@ -18,9 +20,25 @@ import (
 func main() {
 	ctx := context.Background()
 
-	// OTel SDK must be initialized BEFORE wire, because pgxpool/gin read the
-	// global TracerProvider + propagator at construction time (D41).
-	otelSDK, err := otel.Init(ctx, "aether-server", "0.1.0")
+	// Layer 1 (highest): command-line flags — only infra params.
+	var (
+		configPath string
+		env        string
+	)
+	flag.StringVar(&configPath, "config", "config.yaml", "config file path")
+	flag.StringVar(&env, "env", "dev", "environment (dev/staging/prod)")
+	flag.Parse()
+
+	// Load config (flags > env vars > yaml file > defaults).
+	cfg, err := config.Load(configPath, env)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+
+	// OTel SDK must be initialized BEFORE wire (D41).
+	// Endpoint from config: empty = noop (dev convenience), set = push to collector.
+	otelSDK, err := otel.Init(ctx, cfg.Service.Name, cfg.Service.Version, cfg.OTel.Endpoint)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to init otel: %v\n", err)
 		os.Exit(1)
@@ -29,7 +47,7 @@ func main() {
 	// Wire-generated initialization (compile-time DI).
 	// OTel was initialized above, so wire's provideLogger already returns a
 	// trace-aware *otelzap.Logger — no post-wire wrapping needed (D41).
-	app, cleanup, err := InitializeApp()
+	app, cleanup, err := InitializeApp(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to initialize: %v\n", err)
 		os.Exit(1)
@@ -38,7 +56,8 @@ func main() {
 
 	logger := app.Logger
 	logger.Info("Aether platform starting",
-		zap.String("http_addr", app.Config.HTTPAddr),
+		zap.String("env", app.Config.Service.Env),
+		zap.String("server_addr", app.Config.Server.Addr),
 		zap.Bool("connect_enabled", app.Config.Connect.Enabled),
 	)
 

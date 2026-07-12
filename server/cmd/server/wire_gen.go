@@ -21,18 +21,16 @@ import (
 
 // Injectors from wire.go:
 
-func InitializeApp() (*App, func(), error) {
-	configConfig, err := config.Load()
-	if err != nil {
-		return nil, nil, err
-	}
-	logger := provideLogger(configConfig)
+// InitializeApp builds the server app via wire. cfg is loaded by main.go
+// (before wire) from flags + env + yaml — wire receives it as a bound value.
+func InitializeApp(cfg *config.Config) (*App, func(), error) {
+	logger := provideLogger(cfg)
 	context := provideAppContext()
-	pool, cleanup, err := data.NewPgxPool(context, configConfig)
+	pool, cleanup, err := data.NewPgxPool(context, cfg)
 	if err != nil {
 		return nil, nil, err
 	}
-	deps := api.NewHTTPDeps(logger, pool)
+	v := api.NewPingFunc(pool)
 	handler := server.ProvideMetricsHandler()
 	catalogHandler := connect.NewCatalogHandler()
 	serverConfig, err := server.ProvideServerConfig(catalogHandler, logger)
@@ -40,10 +38,10 @@ func InitializeApp() (*App, func(), error) {
 		cleanup()
 		return nil, nil, err
 	}
-	engine := server.NewHTTPServer(deps, handler, serverConfig)
-	serverServer := server.NewServer(configConfig, engine, serverConfig, logger)
+	engine := server.NewHTTPServer(logger, v, handler, serverConfig)
+	serverServer := server.NewServer(cfg, engine, serverConfig, logger)
 	app := &App{
-		Config: configConfig,
+		Config: cfg,
 		Logger: logger,
 		Server: serverServer,
 	}
@@ -80,6 +78,6 @@ func provideAppContext() context.Context { return context.Background() }
 
 // allProviders aggregates every layer's ProviderSet. Adding a new package
 // means adding its ProviderSet here — nothing else changes in wire.go.
-var allProviders = wire.NewSet(config.ProviderSet, data.ProviderSet, core.ProviderSet, api.ProviderSet, connect.ProviderSet, server.ProviderSet, provideLogger,
+var allProviders = wire.NewSet(data.ProviderSet, core.ProviderSet, api.ProviderSet, connect.ProviderSet, server.ProviderSet, provideLogger,
 	provideAppContext, wire.Struct(new(App), "*"),
 )

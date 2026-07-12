@@ -1,0 +1,43 @@
+# Aether Server — Default Configuration
+#
+# Loading priority: -config flag > env vars (AETHER_*) > this file > defaults.
+# Sensitive values (passwords, secrets) can be set here (local dev) or via
+# env vars (recommended for production). Env vars override this file.
+
+service:
+  name: "aether-server"
+  version: "0.1.0"
+  env: "dev"
+
+server:
+  addr: ":8080"
+  timeout: "30s"
+
+log_level: "info"
+
+data:
+  database:
+    host: "192.168.31.33"        # dev PG (aether-postgres container)
+    port: 5433
+    user: "aether"
+    database: "aether_dev"
+    ssl_mode: "disable"
+    max_conns: 10
+    timeout: "5s"
+    # password: local dev can set here; production use AETHER_DATA_DATABASE_PASSWORD
+  redis:
+    addr: ""                     # empty = Redis disabled
+    # password: local dev can set here; production use AETHER_DATA_REDIS_PASSWORD
+
+auth:
+  jwt_issuer: "aether-server"
+  jwt_ttl: "24h"
+  # jwt_secret: local dev can set here; production use AETHER_AUTH_JWT_SECRET
+  oidc_issuers: []               # external IdP issuer URLs (D10/D10.1, future)
+
+connect:
+  enabled: true
+
+otel:
+  endpoint: ""                   # empty = noop; set to collector addr in prod
+  service_name: "aether-server"

@@ -38,18 +38,19 @@ type Server struct {
 func NewServer(cfg *config.Config, ginEngine *gin.Engine, mwCfg *middleware.ServerConfig, logger *otelzap.Logger) *Server {
 	mux := http.NewServeMux()
 
-	// Mount Connect handlers under /api/ (if enabled + handlers registered).
+	// Mount Connect-RPC handlers under /api/ prefix (if enabled).
+	// Actual path: /api/aether.platform.v1.CatalogService/ListItems
 	if cfg.Connect.Enabled {
 		for _, h := range mwCfg.ConnectHandlers {
-			mux.Handle(h.Path, h.Handler)
+			mux.Handle("/api"+h.Path, h.Handler)
 		}
 	}
-	// Everything else goes to gin.
+	// Everything else goes to gin (healthz, ready, metrics, webhooks).
 	mux.Handle("/", ginEngine)
 
 	return &Server{
 		httpServer: &http.Server{
-			Addr:    cfg.HTTPAddr,
+			Addr:    cfg.Server.Addr,
 			Handler: mux,
 		},
 		logger: logger,

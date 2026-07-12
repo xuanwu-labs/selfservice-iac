@@ -36,13 +36,15 @@ internal/{config,otel,auth}  基建
 
 ```
 :8080 (一个 http.Server, TCP 端口)
-  ├── HTTP/1.1 → gin handler (healthz/metrics/webhook/curl)
-  └── HTTP/2   → Connect handler (gRPC 线协议)
+  ├── /healthz /ready /metrics → gin handler (HTTP/1.1, 运维端点)
+  └── /api/...                  → Connect handler (gRPC 线协议)
        ├── grpc-go 客户端      → 能连
        ├── gRPC-Web 浏览器     → 能连(Connect 原生,不需 Envoy)
        ├── Connect-JSON curl   → 能连
        └── connect-es 前端     → 能连
 ```
+
+Connect-RPC 路由统一以 `/api/` 前缀挂载(如 `/api/aether.platform.v1.CatalogService/ListItems`),和 gin 运维端点(`/healthz`、`/metrics`)层级分离。
 
 - Connect 可通过 `AETHER_CONNECT_ENABLED=false` 关闭(纯 HTTP 网关模式)
 - 没有 `grpc.NewServer` / 独立 gRPC 端口 — Connect 在 HTTP 上说标准 gRPC 线协议

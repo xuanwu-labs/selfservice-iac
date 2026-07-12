@@ -29,7 +29,7 @@
 ```
 server/
 ├── cmd/{server,aether,migrate}/     # 二进制入口(HTTP server / CLI / 迁移)
-├── api/{http,grpc,proto}/           # 传输层 handler(非契约目录,契约在仓库根 contracts/)
+├── api/{http,connect}/              # 传输层 handler(契约在仓库根 contracts/)
 ├── core/<domain>/                   # 领域核心(顶层一等公民,package-by-feature)
 ├── data/                            # 数据访问层(pgxpool provider + dbset 表分组包装)
 ├── internal/                        # 只装私有基建(config/otel/model/proto/cli/cmdutil/...)
@@ -93,6 +93,57 @@ Connect 请求(proto) → handler → core 业务逻辑 → dbset → pkg/db gen
                                                               ↓
                                             entity → mapping → proto 响应
 ```
+
+## 配置加载策略
+
+四层优先级(业界标准, 12-Factor / Spring Boot / viper):
+
+```
+flag (-config, -env)          ← 最高: 基础设施参数(配置文件路径, 环境)
+    ↓ 覆盖
+环境变量 (AETHER_*)            ← 敏感值(密码, JWT secret) + 部署覆盖
+    ↓ 覆盖
+config.yaml                   ← 非敏感默认值(端口, 日志级别, OTel 名)
+    ↓ 兜底
+内置默认值 (viper SetDefault)  ← 最低
+```
+
+**关键规则**:
+- 敏感值(密码, JWT secret, API key) **只从环境变量来**, 不入 yaml/git
+- config.yaml 只放非敏感默认值
+- Config struct 只存数据, 不含行为(无 DSN() 方法等)
+- `internal/config/config.go` 是唯一加载入口, server/migrate 都走 `config.Load()`
+
+**常用配置项**:
+| 环境变量 | 说明 |
+|---|---|
+| `AETHER_DATA_DATABASE_PASSWORD` | PG 密码(必填) |
+| `AETHER_AUTH_JWT_SECRET` | JWT 签名密钥 |
+| `AETHER_OTEL_ENDPOINT` | OTLP collector 地址(空=noop) |
+| `AETHER_CONNECT_ENABLED` | Connect 开关(false=纯 HTTP) |
+| `DOCKER_HOST` | testcontainers Docker 地址(测试用) |
+
+## Connect 服务扩展指南
+
+新增一个 Connect-RPC 服务(如 RequestService)的步骤:
+
+1. **写 proto**: `contracts/platform/v1/request.proto`
+2. **生成代码**: `cd contracts && buf generate`
+3. **写 handler**: `api/connect/request.go` — 实现 `RequestServiceHandler` 接口
+4. **注册到 ProviderSet**: `api/connect/provider.go` 加 `NewRequestHandler`
+5. **注册到 mux**: `internal/server/connect.go` 的 `ProvideServerConfig` 加 `NewRequestServiceHandler` 调用 + `WithConnectHandler`
+6. **重新生成 wire**: `make wire-gen`
+
+不需要改 `internal/server/server.go` 或 `cmd/server/wire.go` — Option 模式自动处理。
+
+## 优雅关闭
+
+关闭顺序(必须按序, 反向初始化):
+1. `httpServer.Shutdown(ctx)` — 停止接受新连接, 等 in-flight 请求完成
+2. `otelSDK.Shutdown(ctx)` — flush trace spans + meter metrics
+3. `pool.Close()` — 关闭 pgxpool(通过 wire cleanup defer)
+
+超时: 10 秒(硬编码在 main.go, 未来可从 config 读)。
 
 ## 常用命令
 

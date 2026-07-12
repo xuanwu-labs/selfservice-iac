@@ -24,7 +24,7 @@ import (
 // otelInitForTest initializes a real OTel SDK + in-memory span exporter so
 // tests can assert on emitted spans (e.g. worker trace_id == producer trace_id).
 func otelInitForTest() (*otelinternal.SDK, *tracetest.InMemoryExporter, error) {
-	sdk, err := otelinternal.Init(context.Background(), "queue-test", "test")
+	sdk, err := otelinternal.Init(context.Background(), "queue-test", "test", "")
 	if err != nil {
 		return nil, nil, err
 	}

@@ -1,4 +1,8 @@
 // Package api aggregates transport-layer providers for wire.
+//
+// The transport layer's actual dependencies (gin Deps) are defined in
+// api/http/http.go and assembled by internal/server/http.go. This package
+// exists only as a wire aggregation point.
 package api
 
 import (
@@ -6,24 +10,15 @@ import (
 
 	"github.com/google/wire"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 )
 
 // ProviderSet aggregates transport-layer dependencies.
 var ProviderSet = wire.NewSet(
-	NewHTTPDeps,
+	NewPingFunc,
 )
 
-// Deps holds transport-layer dependencies for the HTTP router.
-type Deps struct {
-	Logger   *otelzap.Logger
-	PingFunc func(ctx context.Context) error
-}
-
-// NewHTTPDeps builds the HTTP Deps from wire-provided components.
-func NewHTTPDeps(logger *otelzap.Logger, pool *pgxpool.Pool) *Deps {
-	return &Deps{
-		Logger:   logger,
-		PingFunc: func(ctx context.Context) error { return pool.Ping(ctx) },
-	}
+// NewPingFunc returns a DB health-check function for the HTTP /healthz handler.
+// It captures the pgxpool so the handler can ping without holding a direct ref.
+func NewPingFunc(pool *pgxpool.Pool) func(ctx context.Context) error {
+	return func(ctx context.Context) error { return pool.Ping(ctx) }
 }

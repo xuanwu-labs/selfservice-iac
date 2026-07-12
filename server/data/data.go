@@ -24,18 +24,19 @@ var ProviderSet = wire.NewSet(
 // otelpgx so every query becomes a child span of the request trace (D41).
 // TODO(task-09): split into NewAPIPool + NewWorkerPool for connection isolation.
 func NewPgxPool(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, func(), error) {
-	poolCfg, err := pgxpool.ParseConfig(cfg.DB.DSN)
-	if err != nil {
-		return nil, nil, fmt.Errorf("parse pgxpool config: %w", err)
+	if cfg.Data.Database.Host == "" {
+		return nil, nil, fmt.Errorf("database not configured (set data.database.* in config)")
 	}
-	// otelpgx: wrap each query in a span + record pool stats as OTel metrics.
-	poolCfg.ConnConfig.Tracer = otelpgx.NewTracer(otelpgx.WithTrimSQLInSpanName())
+
+	poolCfg, err := newPoolConfig(cfg.Data.Database)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("create pgxpool: %w", err)
 	}
-	// RecordStats emits connection-pool metrics (DB connection gauge, etc.).
 	_ = otelpgx.RecordStats(pool)
 
 	if err := pool.Ping(ctx); err != nil {
@@ -44,6 +45,41 @@ func NewPgxPool(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, func(),
 	}
 	cleanup := func() { pool.Close() }
 	return pool, cleanup, nil
+}
+
+// newPoolConfig assembles a *pgxpool.Config from structured DatabaseConfig fields.
+// This is the single place where DB connection parameters are translated into
+// pgx's internal config — no DSN string involved.
+func newPoolConfig(dbCfg config.DatabaseConfig) (*pgxpool.Config, error) {
+	// Use a minimal URL so pgx initializes sensible defaults (TLS, dialer,
+	// runtime params), then override with our structured fields.
+	// This avoids manual construction of DialFunc/LookupFunc/TLSConfig.
+	poolCfg, err := pgxpool.ParseConfig("postgres:///dummy")
+	if err != nil {
+		return nil, fmt.Errorf("init pgxpool config template: %w", err)
+	}
+
+	// Override connection fields from structured config.
+	poolCfg.ConnConfig.Host = dbCfg.Host
+	poolCfg.ConnConfig.Port = uint16(dbCfg.Port)
+	poolCfg.ConnConfig.Database = dbCfg.Database
+	poolCfg.ConnConfig.User = dbCfg.User
+	poolCfg.ConnConfig.Password = dbCfg.Password
+
+	// TLS: disable unless ssl_mode requires it.
+	if dbCfg.SSLMode == "disable" || dbCfg.SSLMode == "" {
+		poolCfg.ConnConfig.TLSConfig = nil
+	}
+
+	// Pool sizing.
+	if dbCfg.MaxConns > 0 {
+		poolCfg.MaxConns = dbCfg.MaxConns
+	}
+
+	// OTel: wrap each query in a span.
+	poolCfg.ConnConfig.Tracer = otelpgx.NewTracer(otelpgx.WithTrimSQLInSpanName())
+
+	return poolCfg, nil
 }
 
 // NewQueries creates a sqlc Queries from the pgxpool.

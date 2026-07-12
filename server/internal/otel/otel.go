@@ -5,7 +5,7 @@
 // Design (D41):
 //   - TraceContext propagator (W3C traceparent) so traces survive across the
 //     gin → pgx → http-outbound chain and into River job handlers (task 9).
-//   - OTLP/HTTP exporter reads OTEL_EXPORTER_OTLP_ENDPOINT at startup.
+//   - OTLP/HTTP exporter endpoint comes from config (AETHER_OTEL_ENDPOINT).
 //   - Prometheus exporter exposes /metrics for scraping.
 //   - zap is wrapped with otelzap so every log line carries the active trace_id.
 package otel
@@ -15,11 +15,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	promexporter "go.opentelemetry.io/otel/exporters/prometheus"
@@ -28,7 +26,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
-	"go.uber.org/zap"
 )
 
 // SDK holds the initialized OTel providers plus their shutdown functions.
@@ -36,7 +33,9 @@ import (
 type SDK struct {
 	TracerProvider *sdktrace.TracerProvider
 	MeterProvider  *sdkmetric.MeterProvider
-	promExporter   *promexporter.Exporter
+	// promRegistry is the Prometheus registry that the OTel exporter writes to.
+	// MetricsHandler() serves this registry so /metrics exposes OTel-collected metrics.
+	promRegistry *promclient.Registry
 }
 
 // Shutdown flushes and shuts down all providers. Safe to call multiple times.
@@ -46,9 +45,14 @@ func (s *SDK) Shutdown(ctx context.Context) error {
 		if err := s.TracerProvider.Shutdown(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("tracer shutdown: %w", err))
 		}
+		s.TracerProvider = nil
 	}
-	// Prometheus exporter has no Shutdown; MeterProvider is a manual reader
-	// without a background flush. Span flush is the only time-sensitive one.
+	if s.MeterProvider != nil {
+		if err := s.MeterProvider.Shutdown(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("meter shutdown: %w", err))
+		}
+		s.MeterProvider = nil
+	}
 	return errors.Join(errs...)
 }
 
@@ -72,13 +76,11 @@ func buildResource(serviceName, serviceVersion string) *resource.Resource {
 // Init sets up the global OTel SDK: propagator, TracerProvider (OTLP/HTTP export),
 // MeterProvider (Prometheus), and returns the SDK for lifecycle control.
 //
-// serviceName / serviceVersion label every span/metric (e.g. "aether-server" / v0.1).
-// The OTLP trace exporter endpoint is read from OTEL_EXPORTER_OTLP_ENDPOINT;
-// if unset, traces are dropped silently (dev convenience — no collector running).
-func Init(ctx context.Context, serviceName, serviceVersion string) (*SDK, error) {
+// serviceName / serviceVersion label every span/metric.
+// otlpEndpoint is the OTLP/HTTP collector address (e.g. "localhost:4318").
+// Empty = noop (spans generated but not sent — dev convenience).
+func Init(ctx context.Context, serviceName, serviceVersion, otlpEndpoint string) (*SDK, error) {
 	// (a) Global propagator: W3C TraceContext + Baggage.
-	// This MUST be set before any handler starts so cross-process trace
-	// propagation (HTTP headers, River job metadata) works end-to-end.
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
 		propagation.Baggage{},
@@ -87,35 +89,33 @@ func Init(ctx context.Context, serviceName, serviceVersion string) (*SDK, error)
 	res := buildResource(serviceName, serviceVersion)
 
 	// (b) TracerProvider with OTLP/HTTP exporter.
-	tp, err := newTracerProvider(ctx, res)
+	tp, err := newTracerProvider(ctx, res, otlpEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("init tracer provider: %w", err)
 	}
 	otel.SetTracerProvider(tp)
 
 	// (c) MeterProvider with Prometheus exporter (read by /metrics).
-	promExporter, mp, err := newMeterProvider(res)
+	promReg, mp, err := newMeterProvider(res)
 	if err != nil {
 		return nil, fmt.Errorf("init meter provider: %w", err)
 	}
 	otel.SetMeterProvider(mp)
+	globalPromRegistry = promReg
 
 	return &SDK{
 		TracerProvider: tp,
 		MeterProvider:  mp,
-		promExporter:   promExporter,
+		promRegistry:   promReg,
 	}, nil
 }
 
-func newTracerProvider(ctx context.Context, res *resource.Resource) (*sdktrace.TracerProvider, error) {
-	// OTLP endpoint comes from the standard env var; if absent we use a noop
-	// exporter so the server runs without a collector (dev/CI convenience).
-	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-
+func newTracerProvider(ctx context.Context, res *resource.Resource, otlpEndpoint string) (*sdktrace.TracerProvider, error) {
+	// If no endpoint configured, use noop exporter (dev/CI convenience).
 	var exp sdktrace.SpanExporter
-	if endpoint != "" {
+	if otlpEndpoint != "" {
 		var err error
-		exp, err = otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpoint))
+		exp, err = otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(otlpEndpoint))
 		if err != nil {
 			return nil, fmt.Errorf("create OTLP trace exporter: %w", err)
 		}
@@ -129,7 +129,7 @@ func newTracerProvider(ctx context.Context, res *resource.Resource) (*sdktrace.T
 	return sdktrace.NewTracerProvider(opts...), nil
 }
 
-func newMeterProvider(res *resource.Resource) (*promexporter.Exporter, *sdkmetric.MeterProvider, error) {
+func newMeterProvider(res *resource.Resource) (*promclient.Registry, *sdkmetric.MeterProvider, error) {
 	reg := promclient.NewRegistry()
 	promExporter, err := promexporter.New(promexporter.WithRegisterer(reg))
 	if err != nil {
@@ -139,26 +139,26 @@ func newMeterProvider(res *resource.Resource) (*promexporter.Exporter, *sdkmetri
 		sdkmetric.WithResource(res),
 		sdkmetric.WithReader(promExporter),
 	)
-	return promExporter, mp, nil
+	return reg, mp, nil
 }
 
 // MetricsHandler returns the http.Handler serving Prometheus-format metrics
-// at /metrics. Wire this into the gin/http router.
+// at /metrics. Uses the SDK's private registry (not the global DefaultRegisterer)
+// to avoid duplicate-registration errors when Init is called multiple times.
+//
+// OTel SDK is global state by design (instrumentation libraries read global
+// providers at construction time), so a package-level reference to the registry
+// is consistent with that pattern.
 func MetricsHandler() http.Handler {
+	if globalPromRegistry != nil {
+		return promhttp.HandlerFor(globalPromRegistry, promhttp.HandlerOpts{})
+	}
 	return promhttp.Handler()
 }
 
-// WrapLogger wraps the base zap logger with otelzap (which injects the active
-// trace_id / span_id when the caller passes a context: otelzap.L().Ctx(ctx).Info(...))
-// and sets it as the global otelzap logger.
-func WrapLogger(base *zap.Logger) *otelzap.Logger {
-	wrapped := otelzap.New(base)
-	otelzap.ReplaceGlobals(wrapped)
-	return wrapped
-}
+// globalPromRegistry is set by Init; read by MetricsHandler.
+var globalPromRegistry *promclient.Registry
 
-// Logger returns the otelzap-wrapped global logger (D41).
-// Use otelzap.L().Ctx(ctx).Info(...) to emit logs carrying the trace context.
-func Logger() *otelzap.Logger {
-	return otelzap.L()
-}
+// WrapLogger is removed — wire's provideLogger now returns *otelzap.Logger
+// directly (otelzap.New(base)), making post-wire wrapping unnecessary.
+// If you need the global otelzap logger, use otelzap.L() directly.
