@@ -1,5 +1,16 @@
 # 00a-Phase 0 契约产物规划
 
+> ⚠️ **本文档已大幅简化——保留作历史设计参考。** 本文档设想的「OpenAPI + gRPC 双契约源 + Protocol Mapping + JSON Schema」方案已被 **D1 Connect-native** 取代：proto 是唯一契约源，Connect-RPC 单 handler 原生覆盖 gRPC / gRPC-Web / Connect-JSON，**不手写** openapi.yaml / protocol-mapping.md / schemas/*.schema.json。
+>
+> 实际落地的契约范式见：
+> - `openspec/changes/platform-contract-freeze/`（独立 change，已产出 6 service / 21 RPC）
+> - `contracts/README.md`（域目录 × srv/dto/enum 分离 + 三层服务模型）
+> - `openspec/config.yaml` `design` 规则（Connect-native + 三层服务模型 + 枚举前缀）
+>
+> 下面 §2 / §3 / §6.1 / §7 描述的 OpenAPI / Protocol Mapping / JSON Schema 产物**均未产出且不再需要**；§5（字段标准）、§8（状态机 fixture）、§9（adapter golden case）、§10（walking skeleton seed）的设计原则仍适用并被实际 fixture 继承。
+
+---
+
 > 本文承接 `docs/00-工程契约.md` 与 `specs/19-API与Schema契约.md`。目标不是继续扩展业务功能，而是把方案中的核心契约标准化为可评审、可生成、可测试、可回归的工程产物。
 
 ## 1. 定位
