@@ -53,3 +53,4 @@ MVP 主链路：管理员注册模块 → 发布目录项 → 用户申请 → p
 2. **命名对标业界**：snake_case、复数表名、单数列名、`pk_/fk_/uq_/ck_/ix_` 约束前缀。
 3. **MVP 初版可推导，后续随实现打磨**——初版覆盖主链路最小集，不追求一步到位落 52 张表。
 4. **sqlc/pgx 集成**：审计字段用 PG `DEFAULT now()` + trigger 自动维护（sqlc 不自动管审计列，需 DB 侧 trigger）。
+5. **雪花 ID 统一主键**：全库 `id BIGINT`，应用层 `internal/utils/snowflake.go` 工具类生成（参考 ferret + bwmarrin/snowflake）。所有 INSERT 调 `utils.GenerateID()`，DB 不自增。proto ID 字段保持 string（雪花 int64 ↔ string，避免 JSON 精度丢失）。

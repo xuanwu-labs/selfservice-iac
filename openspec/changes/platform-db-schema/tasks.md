@@ -1,10 +1,12 @@
 # Tasks: platform-db-schema
 
-## 01-规范基线
+## 01-规范基线 + 雪花 ID 工具类
 
-- [ ] 1.1 创建 `server/cmd/migrate/migrations/000_utils.sql`：`set_updated_at()` trigger 函数（通用，所有业务表挂）
-- [ ] 1.2 重写 `001_init.sql`：teams 表对齐新规范（`id UUID PK DEFAULT gen_random_uuid()`、补 `kind`/`tags_json`/`policy_json`/`deleted_at`、updated_at trigger、约束命名 `pk_/uq_` 前缀）
-- [ ] 1.3 在 `design.md` 固化命名规范（主键/外键/约束/枚举/审计/JSON），作为后续所有表的标准
+- [ ] 1.1 实现 `server/internal/utils/snowflake.go`：雪花 ID 生成器（参考 ferret internal/utils/snowflake.go + bwmarrin/snowflake 算法）。提供 `Init(machineID, datacenterID)` 启动初始化 + `GenerateID() int64` 生成 ID。含单测（唯一性/时间有序/并发安全/时钟回拨）。
+- [ ] 1.2 `server/internal/config/config.go` 加 `Snowflake{MachineID, DatacenterID}` 配置项；`server/config.yaml` 加默认值（0/0）；wire 启动时调 `utils.Init()`。
+- [ ] 1.3 创建 `server/cmd/migrate/migrations/000_utils.sql`：`set_updated_at()` trigger 函数（通用，所有业务表挂）。
+- [ ] 1.4 重写 `001_init.sql`：teams 表对齐新规范（`id BIGINT PK`——应用层雪花生成、补 `kind`/`tags_json`/`policy_json`/`deleted_at`、updated_at trigger、约束命名 `pk_/uq_` 前缀）。
+- [ ] 1.5 在 `design.md` 固化命名规范（雪花主键/外键/约束/枚举/审计/JSON），作为后续所有表的标准。
 
 ## 02-组织归属表
 
@@ -58,9 +60,10 @@
 - [ ] 10.1 `goose up && goose down && goose up` 全部幂等
 - [ ] 10.2 所有业务表有 created_at/updated_at + updated_at trigger
 - [ ] 10.3 所有 FK 显式 REFERENCES；所有枚举有 CHECK；JSONB 字段标类型
-- [ ] 10.4 proto 实体字段在表里有对应列（零映射）
-- [ ] 10.5 `make build && make test` 全绿
-- [ ] 10.6 docs/04 标注：MVP 表指向本 change 的实际 schema，断裂点标记已修复
+- [ ] 10.4 proto 实体字段在表里有对应列（零映射）；ID 字段 proto string ↔ DB BIGINT（雪花 int64 ↔ string 传输）
+- [ ] 10.5 所有表的 INSERT 在应用层调 `utils.GenerateID()` 生成 ID（DB 列无 DEFAULT 自增）
+- [ ] 10.6 `make build && make test` 全绿（含 snowflake 单测）
+- [ ] 10.7 docs/04 标注：MVP 表指向本 change 的实际 schema，断裂点标记已修复
 
 ## 11-非 MVP 表设计定稿（本 change 内，不落迁移）
 

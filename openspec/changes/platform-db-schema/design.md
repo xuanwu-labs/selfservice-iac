@@ -12,24 +12,43 @@
 | **proto 字段名 = DB 列名** | 零映射（`LifecycleRequest.team_id` → `requests.team_id`） | D1 精神延伸：proto 是唯一源，DB 同名 |
 | 内部字段后缀 | `_json`（JSONB）、`_at`（时间戳）、`_id`（外键） | 明确区分 proto 暴露 vs 内部 |
 
-### 1.2 主键策略
+### 1.2 主键策略：雪花 ID（应用层生成，全库统一）
 
-**全库统一 `id UUID PRIMARY KEY DEFAULT gen_random_uuid()`**（PostgreSQL 13+ 内置 `gen_random_uuid()` 产出 UUIDv4）。
+**全库统一 `id BIGINT PRIMARY KEY`**，ID 由应用层雪花 ID 工具类生成（不是 DB 自增、不是 UUID）。
 
-理由：
-- 控制面 DB 写入量低（元数据，非日志），UUID 的 B-Tree 开销可接受。
-- 全局唯一，未来分库/分表无迁移成本（bigserial 跨库要协调 sequence）。
-- 不暴露增量信息（bigserial 暴露业务量）。
-- 业界 2025 共识（Supabase/pganalyze）推荐 UUIDv7/v4 用于控制面。
+工具类位置：`server/internal/utils/snowflake.go`（参考 ferret `internal/utils/snowflake.go` + 业界 bwmarrin/snowflake 算法）。所有表的 INSERT 在应用层（sqlc query 调用方/data 层）调 `utils.GenerateID()` 生成 ID，DB 列不设 DEFAULT（不依赖 DB 生成）。
 
-**现有 teams 表（BIGSERIAL）需重写为 UUID**——但 teams 尚无业务数据（脚手架阶段），重写无成本。
+```go
+// server/internal/utils/snowflake.go
+// 全局默认生成器，启动时初始化（machineID/datacenterID 从 config 读）
+var defaultNode *Snowflake
+
+func Init(machineID, datacenterID int64) error { ... }  // 启动时 wire 调
+func GenerateID() int64 { ... }                          // 所有 INSERT 前调
+```
+
+**雪花 ID 结构**（Twitter Snowflake 标准，63 bit）：
+```
+| 1 bit unused | 41 bit 毫秒时间戳 | 5 bit datacenterID | 5 bit machineID | 12 bit 序列号 |
+```
+- 时间有序 → B-Tree 插入友好（不像 UUIDv4 随机导致页分裂）
+- 全局唯一 → 未来多实例部署只需分配不同 machineID/datacenterID
+- int64 → 比 UUID（128 bit）省存储/索引空间
+- 不暴露增量信息 → 不像 bigserial 暴露业务量
+
+**proto ID 字段类型**：保持 `string`。雪花 ID 是 int64，但 API/proto 层用 string 传输——这是业界惯例（Twitter/Discord 的雪花 ID API 都用 string），因为 JavaScript/JSON 对 >2^53 的整数会精度丢失。应用层 `int64 → strconv.FormatInt → proto string`，查询时 `string → strconv.ParseInt → int64`。
+
+**现有 teams 表（BIGSERIAL）需重写**：改为 `id BIGINT PRIMARY KEY`（去掉 BIGSERIAL 的自增），INSERT 时应用层传雪花 ID。teams 尚无业务数据，重写无成本。
+
+**machineID/datacenterID 配置**：从 `server/config.yaml` 读（`snowflake.machine_id` / `snowflake.datacenter_id`），多实例部署时每实例配不同值。单实例开发默认 0/0。
 
 ### 1.3 外键策略
 
 显式 FK 约束，命名 `fk_<table>_<col>`：
 ```sql
-team_id UUID NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,
+team_id BIGINT NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,
 ```
+- 所有 FK 列类型 `BIGINT`（与主键一致）。
 - 控制面 DB 强制引用完整性（`ON DELETE RESTRICT` 防误删，不用 CASCADE 防连锁）。
 - 逻辑引用但无 FK 是 docs/04 的缺陷，本 change 全部补 FK。
 
@@ -185,7 +204,7 @@ cloud_accounts(id, provider, account_id, name, status[active|suspended], regions
 
 #### A7. 分层（2 张，Phase 1 只 seed）
 ```
-layer_logical_refs(logical_id UUID PK, current_display_name, notes, created_at)
+layer_logical_refs(logical_id VARCHAR(64) PK, current_display_name, notes, created_at)
 layer_rule_set_versions(version_id INT PK, layers_json, status[active|superseded|deprecated|archived],
                         is_default, created_at, created_by, superseded_at, superseded_by)
 ```
@@ -381,7 +400,7 @@ import_resources(id, import_job_id FK→import_jobs, cloud_id, tf_address,
 |---|---|
 | A1 PlanArtifact 三处矛盾 | 独立 `plan_artifacts` 表（不并入 executor_runs），MVP 只建这张 |
 | A2 requests 缺 cost 字段 | 补 `cost_estimate_cents` BIGINT + `cost_currency` VARCHAR(8) |
-| A3 requests 缺 team_id | 补 `team_id` UUID FK |
+| A3 requests 缺 team_id | 补 `team_id` BIGINT FK |
 | A4 requests 缺 correlation_id | 补 `correlation_id` VARCHAR(64) |
 | A5 requests 缺 source | 补 `source` VARCHAR(32) CHECK |
 | A6 stacks 无 layer_logical_id | 本 change 在 B2 stacks 表设计中补 `layer_logical_id` 列（定稿），Wave 2 落迁移时直接含此列 |
@@ -410,7 +429,7 @@ import_resources(id, import_job_id FK→import_jobs, cloud_id, tf_address,
 
 **实现顺序**（本 change 内 MVP 落地）：
 1. 规范基线（000_utils.sql trigger 函数）
-2. 重写 teams（对齐 UUID + 审计统一）
+2. 重写 teams（对齐雪花 ID BIGINT + 审计统一）
 3. MVP 表按域分批迁移（组织→registry→catalog→layer seed→lifecycle→approval→cloud→审计）
 4. sqlc 查询 + 重新生成
 5. 测试（迁移幂等 + CRUD + 约束验证）
