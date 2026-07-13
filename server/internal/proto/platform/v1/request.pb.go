@@ -170,58 +170,6 @@ func (RequestSource) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_request_proto_rawDescGZIP(), []int{1}
 }
 
-type Actor_ActorType int32
-
-const (
-	Actor_ACTOR_TYPE_UNSPECIFIED Actor_ActorType = 0
-	Actor_ACTOR_TYPE_HUMAN       Actor_ActorType = 1
-	Actor_ACTOR_TYPE_AI          Actor_ActorType = 2
-	Actor_ACTOR_TYPE_SYSTEM      Actor_ActorType = 3
-)
-
-// Enum value maps for Actor_ActorType.
-var (
-	Actor_ActorType_name = map[int32]string{
-		0: "ACTOR_TYPE_UNSPECIFIED",
-		1: "ACTOR_TYPE_HUMAN",
-		2: "ACTOR_TYPE_AI",
-		3: "ACTOR_TYPE_SYSTEM",
-	}
-	Actor_ActorType_value = map[string]int32{
-		"ACTOR_TYPE_UNSPECIFIED": 0,
-		"ACTOR_TYPE_HUMAN":       1,
-		"ACTOR_TYPE_AI":          2,
-		"ACTOR_TYPE_SYSTEM":      3,
-	}
-)
-
-func (x Actor_ActorType) Enum() *Actor_ActorType {
-	p := new(Actor_ActorType)
-	*p = x
-	return p
-}
-
-func (x Actor_ActorType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (Actor_ActorType) Descriptor() protoreflect.EnumDescriptor {
-	return file_platform_v1_request_proto_enumTypes[2].Descriptor()
-}
-
-func (Actor_ActorType) Type() protoreflect.EnumType {
-	return &file_platform_v1_request_proto_enumTypes[2]
-}
-
-func (x Actor_ActorType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use Actor_ActorType.Descriptor instead.
-func (Actor_ActorType) EnumDescriptor() ([]byte, []int) {
-	return file_platform_v1_request_proto_rawDescGZIP(), []int{2, 0}
-}
-
 type Request struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // req_<alphanum>
@@ -486,66 +434,6 @@ func (x *RequestEvent) GetCorrelationId() string {
 	return ""
 }
 
-type Actor struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Type          Actor_ActorType        `protobuf:"varint,1,opt,name=type,proto3,enum=aether.platform.v1.Actor_ActorType" json:"type,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	TeamId        string                 `protobuf:"bytes,3,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Actor) Reset() {
-	*x = Actor{}
-	mi := &file_platform_v1_request_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Actor) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Actor) ProtoMessage() {}
-
-func (x *Actor) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_request_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Actor.ProtoReflect.Descriptor instead.
-func (*Actor) Descriptor() ([]byte, []int) {
-	return file_platform_v1_request_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *Actor) GetType() Actor_ActorType {
-	if x != nil {
-		return x.Type
-	}
-	return Actor_ACTOR_TYPE_UNSPECIFIED
-}
-
-func (x *Actor) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *Actor) GetTeamId() string {
-	if x != nil {
-		return x.TeamId
-	}
-	return ""
-}
-
 type CreateRequestRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	CatalogItemId string                 `protobuf:"bytes,1,opt,name=catalog_item_id,json=catalogItemId,proto3" json:"catalog_item_id,omitempty"`
@@ -562,7 +450,7 @@ type CreateRequestRequest struct {
 
 func (x *CreateRequestRequest) Reset() {
 	*x = CreateRequestRequest{}
-	mi := &file_platform_v1_request_proto_msgTypes[3]
+	mi := &file_platform_v1_request_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -574,7 +462,7 @@ func (x *CreateRequestRequest) String() string {
 func (*CreateRequestRequest) ProtoMessage() {}
 
 func (x *CreateRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_request_proto_msgTypes[3]
+	mi := &file_platform_v1_request_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -587,7 +475,7 @@ func (x *CreateRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRequestRequest.ProtoReflect.Descriptor instead.
 func (*CreateRequestRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_request_proto_rawDescGZIP(), []int{3}
+	return file_platform_v1_request_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CreateRequestRequest) GetCatalogItemId() string {
@@ -656,7 +544,7 @@ type CreateRequestResponse struct {
 
 func (x *CreateRequestResponse) Reset() {
 	*x = CreateRequestResponse{}
-	mi := &file_platform_v1_request_proto_msgTypes[4]
+	mi := &file_platform_v1_request_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -668,7 +556,7 @@ func (x *CreateRequestResponse) String() string {
 func (*CreateRequestResponse) ProtoMessage() {}
 
 func (x *CreateRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_request_proto_msgTypes[4]
+	mi := &file_platform_v1_request_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -681,7 +569,7 @@ func (x *CreateRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRequestResponse.ProtoReflect.Descriptor instead.
 func (*CreateRequestResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_request_proto_rawDescGZIP(), []int{4}
+	return file_platform_v1_request_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CreateRequestResponse) GetRequest() *Request {
@@ -707,7 +595,7 @@ type GetRequestRequest struct {
 
 func (x *GetRequestRequest) Reset() {
 	*x = GetRequestRequest{}
-	mi := &file_platform_v1_request_proto_msgTypes[5]
+	mi := &file_platform_v1_request_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -719,7 +607,7 @@ func (x *GetRequestRequest) String() string {
 func (*GetRequestRequest) ProtoMessage() {}
 
 func (x *GetRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_request_proto_msgTypes[5]
+	mi := &file_platform_v1_request_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -732,7 +620,7 @@ func (x *GetRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRequestRequest.ProtoReflect.Descriptor instead.
 func (*GetRequestRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_request_proto_rawDescGZIP(), []int{5}
+	return file_platform_v1_request_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetRequestRequest) GetRequestId() string {
@@ -752,7 +640,7 @@ type GetRequestResponse struct {
 
 func (x *GetRequestResponse) Reset() {
 	*x = GetRequestResponse{}
-	mi := &file_platform_v1_request_proto_msgTypes[6]
+	mi := &file_platform_v1_request_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -764,7 +652,7 @@ func (x *GetRequestResponse) String() string {
 func (*GetRequestResponse) ProtoMessage() {}
 
 func (x *GetRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_request_proto_msgTypes[6]
+	mi := &file_platform_v1_request_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -777,7 +665,7 @@ func (x *GetRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRequestResponse.ProtoReflect.Descriptor instead.
 func (*GetRequestResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_request_proto_rawDescGZIP(), []int{6}
+	return file_platform_v1_request_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetRequestResponse) GetRequest() *Request {
@@ -805,7 +693,7 @@ type ListRequestEventsRequest struct {
 
 func (x *ListRequestEventsRequest) Reset() {
 	*x = ListRequestEventsRequest{}
-	mi := &file_platform_v1_request_proto_msgTypes[7]
+	mi := &file_platform_v1_request_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -817,7 +705,7 @@ func (x *ListRequestEventsRequest) String() string {
 func (*ListRequestEventsRequest) ProtoMessage() {}
 
 func (x *ListRequestEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_request_proto_msgTypes[7]
+	mi := &file_platform_v1_request_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -830,7 +718,7 @@ func (x *ListRequestEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRequestEventsRequest.ProtoReflect.Descriptor instead.
 func (*ListRequestEventsRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_request_proto_rawDescGZIP(), []int{7}
+	return file_platform_v1_request_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ListRequestEventsRequest) GetRequestId() string {
@@ -865,7 +753,7 @@ type ListRequestEventsResponse struct {
 
 func (x *ListRequestEventsResponse) Reset() {
 	*x = ListRequestEventsResponse{}
-	mi := &file_platform_v1_request_proto_msgTypes[8]
+	mi := &file_platform_v1_request_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -877,7 +765,7 @@ func (x *ListRequestEventsResponse) String() string {
 func (*ListRequestEventsResponse) ProtoMessage() {}
 
 func (x *ListRequestEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_request_proto_msgTypes[8]
+	mi := &file_platform_v1_request_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -890,7 +778,7 @@ func (x *ListRequestEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRequestEventsResponse.ProtoReflect.Descriptor instead.
 func (*ListRequestEventsResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_request_proto_rawDescGZIP(), []int{8}
+	return file_platform_v1_request_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListRequestEventsResponse) GetEvents() []*RequestEvent {
@@ -925,7 +813,7 @@ type CancelRequestRequest struct {
 
 func (x *CancelRequestRequest) Reset() {
 	*x = CancelRequestRequest{}
-	mi := &file_platform_v1_request_proto_msgTypes[9]
+	mi := &file_platform_v1_request_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -937,7 +825,7 @@ func (x *CancelRequestRequest) String() string {
 func (*CancelRequestRequest) ProtoMessage() {}
 
 func (x *CancelRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_request_proto_msgTypes[9]
+	mi := &file_platform_v1_request_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -950,7 +838,7 @@ func (x *CancelRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelRequestRequest.ProtoReflect.Descriptor instead.
 func (*CancelRequestRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_request_proto_rawDescGZIP(), []int{9}
+	return file_platform_v1_request_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CancelRequestRequest) GetRequestId() string {
@@ -984,7 +872,7 @@ type CancelRequestResponse struct {
 
 func (x *CancelRequestResponse) Reset() {
 	*x = CancelRequestResponse{}
-	mi := &file_platform_v1_request_proto_msgTypes[10]
+	mi := &file_platform_v1_request_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -996,7 +884,7 @@ func (x *CancelRequestResponse) String() string {
 func (*CancelRequestResponse) ProtoMessage() {}
 
 func (x *CancelRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_request_proto_msgTypes[10]
+	mi := &file_platform_v1_request_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1009,7 +897,7 @@ func (x *CancelRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelRequestResponse.ProtoReflect.Descriptor instead.
 func (*CancelRequestResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_request_proto_rawDescGZIP(), []int{10}
+	return file_platform_v1_request_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CancelRequestResponse) GetRequest() *Request {
@@ -1030,7 +918,7 @@ var File_platform_v1_request_proto protoreflect.FileDescriptor
 
 const file_platform_v1_request_proto_rawDesc = "" +
 	"\n" +
-	"\x19platform/v1/request.proto\x12\x12aether.platform.v1\"\xee\x05\n" +
+	"\x19platform/v1/request.proto\x12\x12aether.platform.v1\x1a\x18platform/v1/common.proto\"\xee\x05\n" +
 	"\aRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x129\n" +
 	"\x06status\x18\x02 \x01(\x0e2!.aether.platform.v1.RequestStatusR\x06status\x12&\n" +
@@ -1066,16 +954,7 @@ const file_platform_v1_request_proto_rawDesc = "" +
 	"\x05actor\x18\x04 \x01(\v2\x19.aether.platform.v1.ActorR\x05actor\x12\x1f\n" +
 	"\voccurred_at\x18\x05 \x01(\tR\n" +
 	"occurredAt\x12%\n" +
-	"\x0ecorrelation_id\x18\x06 \x01(\tR\rcorrelationId\"\xdb\x01\n" +
-	"\x05Actor\x127\n" +
-	"\x04type\x18\x01 \x01(\x0e2#.aether.platform.v1.Actor.ActorTypeR\x04type\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x17\n" +
-	"\ateam_id\x18\x03 \x01(\tR\x06teamId\"g\n" +
-	"\tActorType\x12\x1a\n" +
-	"\x16ACTOR_TYPE_UNSPECIFIED\x10\x00\x12\x14\n" +
-	"\x10ACTOR_TYPE_HUMAN\x10\x01\x12\x11\n" +
-	"\rACTOR_TYPE_AI\x10\x02\x12\x15\n" +
-	"\x11ACTOR_TYPE_SYSTEM\x10\x03\"\xa3\x04\n" +
+	"\x0ecorrelation_id\x18\x06 \x01(\tR\rcorrelationId\"\xa3\x04\n" +
 	"\x14CreateRequestRequest\x12&\n" +
 	"\x0fcatalog_item_id\x18\x01 \x01(\tR\rcatalogItemId\x12\x15\n" +
 	"\x06env_id\x18\x02 \x01(\tR\x05envId\x12\x17\n" +
@@ -1164,53 +1043,51 @@ func file_platform_v1_request_proto_rawDescGZIP() []byte {
 	return file_platform_v1_request_proto_rawDescData
 }
 
-var file_platform_v1_request_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_platform_v1_request_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_platform_v1_request_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_platform_v1_request_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_platform_v1_request_proto_goTypes = []any{
 	(RequestStatus)(0),                // 0: aether.platform.v1.RequestStatus
 	(RequestSource)(0),                // 1: aether.platform.v1.RequestSource
-	(Actor_ActorType)(0),              // 2: aether.platform.v1.Actor.ActorType
-	(*Request)(nil),                   // 3: aether.platform.v1.Request
-	(*RequestEvent)(nil),              // 4: aether.platform.v1.RequestEvent
-	(*Actor)(nil),                     // 5: aether.platform.v1.Actor
-	(*CreateRequestRequest)(nil),      // 6: aether.platform.v1.CreateRequestRequest
-	(*CreateRequestResponse)(nil),     // 7: aether.platform.v1.CreateRequestResponse
-	(*GetRequestRequest)(nil),         // 8: aether.platform.v1.GetRequestRequest
-	(*GetRequestResponse)(nil),        // 9: aether.platform.v1.GetRequestResponse
-	(*ListRequestEventsRequest)(nil),  // 10: aether.platform.v1.ListRequestEventsRequest
-	(*ListRequestEventsResponse)(nil), // 11: aether.platform.v1.ListRequestEventsResponse
-	(*CancelRequestRequest)(nil),      // 12: aether.platform.v1.CancelRequestRequest
-	(*CancelRequestResponse)(nil),     // 13: aether.platform.v1.CancelRequestResponse
-	nil,                               // 14: aether.platform.v1.Request.FormValuesEntry
-	nil,                               // 15: aether.platform.v1.CreateRequestRequest.FormValuesEntry
-	nil,                               // 16: aether.platform.v1.CreateRequestRequest.SourceContextEntry
+	(*Request)(nil),                   // 2: aether.platform.v1.Request
+	(*RequestEvent)(nil),              // 3: aether.platform.v1.RequestEvent
+	(*CreateRequestRequest)(nil),      // 4: aether.platform.v1.CreateRequestRequest
+	(*CreateRequestResponse)(nil),     // 5: aether.platform.v1.CreateRequestResponse
+	(*GetRequestRequest)(nil),         // 6: aether.platform.v1.GetRequestRequest
+	(*GetRequestResponse)(nil),        // 7: aether.platform.v1.GetRequestResponse
+	(*ListRequestEventsRequest)(nil),  // 8: aether.platform.v1.ListRequestEventsRequest
+	(*ListRequestEventsResponse)(nil), // 9: aether.platform.v1.ListRequestEventsResponse
+	(*CancelRequestRequest)(nil),      // 10: aether.platform.v1.CancelRequestRequest
+	(*CancelRequestResponse)(nil),     // 11: aether.platform.v1.CancelRequestResponse
+	nil,                               // 12: aether.platform.v1.Request.FormValuesEntry
+	nil,                               // 13: aether.platform.v1.CreateRequestRequest.FormValuesEntry
+	nil,                               // 14: aether.platform.v1.CreateRequestRequest.SourceContextEntry
+	(*Actor)(nil),                     // 15: aether.platform.v1.Actor
 }
 var file_platform_v1_request_proto_depIdxs = []int32{
 	0,  // 0: aether.platform.v1.Request.status:type_name -> aether.platform.v1.RequestStatus
-	14, // 1: aether.platform.v1.Request.form_values:type_name -> aether.platform.v1.Request.FormValuesEntry
+	12, // 1: aether.platform.v1.Request.form_values:type_name -> aether.platform.v1.Request.FormValuesEntry
 	1,  // 2: aether.platform.v1.Request.source:type_name -> aether.platform.v1.RequestSource
-	5,  // 3: aether.platform.v1.RequestEvent.actor:type_name -> aether.platform.v1.Actor
-	2,  // 4: aether.platform.v1.Actor.type:type_name -> aether.platform.v1.Actor.ActorType
-	15, // 5: aether.platform.v1.CreateRequestRequest.form_values:type_name -> aether.platform.v1.CreateRequestRequest.FormValuesEntry
-	1,  // 6: aether.platform.v1.CreateRequestRequest.source:type_name -> aether.platform.v1.RequestSource
-	16, // 7: aether.platform.v1.CreateRequestRequest.source_context:type_name -> aether.platform.v1.CreateRequestRequest.SourceContextEntry
-	3,  // 8: aether.platform.v1.CreateRequestResponse.request:type_name -> aether.platform.v1.Request
-	3,  // 9: aether.platform.v1.GetRequestResponse.request:type_name -> aether.platform.v1.Request
-	4,  // 10: aether.platform.v1.ListRequestEventsResponse.events:type_name -> aether.platform.v1.RequestEvent
-	3,  // 11: aether.platform.v1.CancelRequestResponse.request:type_name -> aether.platform.v1.Request
-	6,  // 12: aether.platform.v1.RequestService.CreateRequest:input_type -> aether.platform.v1.CreateRequestRequest
-	8,  // 13: aether.platform.v1.RequestService.GetRequest:input_type -> aether.platform.v1.GetRequestRequest
-	10, // 14: aether.platform.v1.RequestService.ListRequestEvents:input_type -> aether.platform.v1.ListRequestEventsRequest
-	12, // 15: aether.platform.v1.RequestService.CancelRequest:input_type -> aether.platform.v1.CancelRequestRequest
-	7,  // 16: aether.platform.v1.RequestService.CreateRequest:output_type -> aether.platform.v1.CreateRequestResponse
-	9,  // 17: aether.platform.v1.RequestService.GetRequest:output_type -> aether.platform.v1.GetRequestResponse
-	11, // 18: aether.platform.v1.RequestService.ListRequestEvents:output_type -> aether.platform.v1.ListRequestEventsResponse
-	13, // 19: aether.platform.v1.RequestService.CancelRequest:output_type -> aether.platform.v1.CancelRequestResponse
-	16, // [16:20] is the sub-list for method output_type
-	12, // [12:16] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	15, // 3: aether.platform.v1.RequestEvent.actor:type_name -> aether.platform.v1.Actor
+	13, // 4: aether.platform.v1.CreateRequestRequest.form_values:type_name -> aether.platform.v1.CreateRequestRequest.FormValuesEntry
+	1,  // 5: aether.platform.v1.CreateRequestRequest.source:type_name -> aether.platform.v1.RequestSource
+	14, // 6: aether.platform.v1.CreateRequestRequest.source_context:type_name -> aether.platform.v1.CreateRequestRequest.SourceContextEntry
+	2,  // 7: aether.platform.v1.CreateRequestResponse.request:type_name -> aether.platform.v1.Request
+	2,  // 8: aether.platform.v1.GetRequestResponse.request:type_name -> aether.platform.v1.Request
+	3,  // 9: aether.platform.v1.ListRequestEventsResponse.events:type_name -> aether.platform.v1.RequestEvent
+	2,  // 10: aether.platform.v1.CancelRequestResponse.request:type_name -> aether.platform.v1.Request
+	4,  // 11: aether.platform.v1.RequestService.CreateRequest:input_type -> aether.platform.v1.CreateRequestRequest
+	6,  // 12: aether.platform.v1.RequestService.GetRequest:input_type -> aether.platform.v1.GetRequestRequest
+	8,  // 13: aether.platform.v1.RequestService.ListRequestEvents:input_type -> aether.platform.v1.ListRequestEventsRequest
+	10, // 14: aether.platform.v1.RequestService.CancelRequest:input_type -> aether.platform.v1.CancelRequestRequest
+	5,  // 15: aether.platform.v1.RequestService.CreateRequest:output_type -> aether.platform.v1.CreateRequestResponse
+	7,  // 16: aether.platform.v1.RequestService.GetRequest:output_type -> aether.platform.v1.GetRequestResponse
+	9,  // 17: aether.platform.v1.RequestService.ListRequestEvents:output_type -> aether.platform.v1.ListRequestEventsResponse
+	11, // 18: aether.platform.v1.RequestService.CancelRequest:output_type -> aether.platform.v1.CancelRequestResponse
+	15, // [15:19] is the sub-list for method output_type
+	11, // [11:15] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_platform_v1_request_proto_init() }
@@ -1218,13 +1095,14 @@ func file_platform_v1_request_proto_init() {
 	if File_platform_v1_request_proto != nil {
 		return
 	}
+	file_platform_v1_common_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_request_proto_rawDesc), len(file_platform_v1_request_proto_rawDesc)),
-			NumEnums:      3,
-			NumMessages:   14,
+			NumEnums:      2,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
