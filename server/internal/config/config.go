@@ -25,13 +25,23 @@ import (
 // Config holds all platform configuration.
 // Modeled after ferret's Bootstrap, adapted for single-process Connect-RPC.
 type Config struct {
-	Service  ServiceConfig `mapstructure:"service"`
-	Server   ServerConfig  `mapstructure:"server"`
-	Data     DataConfig    `mapstructure:"data"`
-	Auth     AuthConfig    `mapstructure:"auth"`
-	LogLevel string        `mapstructure:"log_level"`
-	Connect  ConnectConfig `mapstructure:"connect"`
-	OTel     OTelConfig    `mapstructure:"otel"`
+	Service   ServiceConfig   `mapstructure:"service"`
+	Server    ServerConfig    `mapstructure:"server"`
+	Data      DataConfig      `mapstructure:"data"`
+	Auth      AuthConfig      `mapstructure:"auth"`
+	LogLevel  string          `mapstructure:"log_level"`
+	Connect   ConnectConfig   `mapstructure:"connect"`
+	OTel      OTelConfig      `mapstructure:"otel"`
+	Snowflake SnowflakeConfig `mapstructure:"snowflake"`
+}
+
+// SnowflakeConfig holds the snowflake ID generator node coordinates.
+// Multi-instance deployments MUST assign distinct (MachineID, DatacenterID)
+// per process to guarantee global ID uniqueness. Single-instance dev uses (0,0).
+// See design.md §1.2 (platform-db-schema) for the rationale.
+type SnowflakeConfig struct {
+	MachineID    int64 `mapstructure:"machine_id"`
+	DatacenterID int64 `mapstructure:"datacenter_id"`
 }
 
 // ServiceConfig holds service identity (ferret: Service{Env, Name, Version}).
@@ -130,6 +140,10 @@ func Load(configPath, env string) (*Config, error) {
 	v.SetDefault("auth.jwt_ttl", "24h")
 	v.SetDefault("otel.endpoint", "")
 	v.SetDefault("otel.service_name", "aether-server")
+	// Snowflake: single-instance dev defaults to (0, 0). Multi-instance must
+	// override via config file or AETHER_SNOWFLAKE_MACHINE_ID/DATACENTER_ID.
+	v.SetDefault("snowflake.machine_id", 0)
+	v.SetDefault("snowflake.datacenter_id", 0)
 
 	// Layer 3: config file (yaml)
 	// File not existing is OK — fall back to env + defaults (dev convenience).
@@ -169,6 +183,8 @@ func Load(configPath, env string) (*Config, error) {
 	_ = v.BindEnv("connect.enabled")
 	_ = v.BindEnv("otel.endpoint")
 	_ = v.BindEnv("otel.service_name")
+	_ = v.BindEnv("snowflake.machine_id")
+	_ = v.BindEnv("snowflake.datacenter_id")
 
 	// Layer 1: flags (highest) — env is already set via SetDefault above,
 	// and configPath is used to locate the file. Other flag overrides can
@@ -211,5 +227,7 @@ func Log(logger *zap.Logger, cfg *Config) {
 		zap.Strings("auth.oidc_issuers", cfg.Auth.OIDCIssuers),
 		zap.Bool("connect.enabled", cfg.Connect.Enabled),
 		zap.String("otel.endpoint", cfg.OTel.Endpoint),
+		zap.Int64("snowflake.machine_id", cfg.Snowflake.MachineID),
+		zap.Int64("snowflake.datacenter_id", cfg.Snowflake.DatacenterID),
 	)
 }

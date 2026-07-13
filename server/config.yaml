@@ -41,3 +41,7 @@ connect:
 otel:
   endpoint: ""                   # empty = noop; set to collector addr in prod
   service_name: "aether-server"
+
+snowflake:
+  machine_id: 0                  # 0-31; multi-instance MUST assign distinct values
+  datacenter_id: 0               # 0-31; multi-instance MUST assign distinct values

@@ -14,6 +14,7 @@ import (
 
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/config"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/otel"
+	"github.com/xuanwu-labs/selfservice-iac/server/internal/utils"
 	"go.uber.org/zap"
 )
 
@@ -41,6 +42,14 @@ func main() {
 	otelSDK, err := otel.Init(ctx, cfg.Service.Name, cfg.Service.Version, cfg.OTel.Endpoint)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to init otel: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Snowflake ID generator must be initialized BEFORE any DB write.
+	// Multi-instance deployments MUST assign distinct (machineID, datacenterID)
+	// per process; single-instance dev uses (0, 0). See design.md §1.2.
+	if err := utils.Init(cfg.Snowflake.MachineID, cfg.Snowflake.DatacenterID); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to init snowflake: %v\n", err)
 		os.Exit(1)
 	}
 
