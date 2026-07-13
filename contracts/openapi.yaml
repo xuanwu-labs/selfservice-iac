@@ -1,0 +1,832 @@
+openapi: 3.1.0
+info:
+  title: Aether Platform API
+  version: 1.0.0
+  description: |
+    IaC self-service platform API (Phase 0 Contract Freeze).
+    Covers request lifecycle, planning, approval, apply, catalog, and artifacts.
+    All responses use a unified envelope (specs/19).
+  license:
+    name: TBD
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+# ============================================================
+# Security
+# ============================================================
+security:
+  - bearerAuth: []
+  - akskAuth: []
+
+# ============================================================
+# Tags
+# ============================================================
+tags:
+  - name: Requests
+    description: IaC change request lifecycle
+  - name: Planning
+    description: Terraform plan artifact generation
+  - name: Approval
+    description: Human approval workflow
+  - name: Apply
+    description: Saved-plan apply execution
+  - name: Catalog
+    description: Service catalog (module marketplace)
+  - name: Entitlement
+    description: Cloud account entitlements
+  - name: Webhooks
+    description: External event subscriptions (P1)
+
+# ============================================================
+# Paths
+# ============================================================
+paths:
+  # --- Requests ---
+  /api/v1/requests:
+    post:
+      tags: [Requests]
+      operationId: createRequest
+      summary: Create an IaC change request
+      description: |
+        Creates a new request from a catalog item. Idempotent via Idempotency-Key.
+        Returns the request with initial status `submitted`.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestCreate'
+      responses:
+        '201':
+          description: Request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /api/v1/requests/{requestId}:
+    get:
+      tags: [Requests]
+      operationId: getRequest
+      summary: Get request by ID
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      responses:
+        '200':
+          description: Request details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/requests/{requestId}/events:
+    get:
+      tags: [Requests]
+      operationId: listRequestEvents
+      summary: List request lifecycle events
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageToken'
+      responses:
+        '200':
+          description: Event list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestEventListResponse'
+
+  /api/v1/requests/{requestId}/gate:
+    get:
+      tags: [Requests]
+      operationId: evaluateGate
+      summary: Evaluate admission gates for a request
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      responses:
+        '200':
+          description: Gate evaluation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GateResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # --- Planning ---
+  /api/v1/requests/{requestId}/plan:
+    post:
+      tags: [Planning]
+      operationId: startPlan
+      summary: Trigger plan generation
+      description: |
+        Starts asynchronous plan generation. Returns immediately with
+        status `planning`. The plan artifact is available via
+        GET /artifacts/{artifactId} once generation completes.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: Plan started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/artifacts/{artifactId}:
+    get:
+      tags: [Planning]
+      operationId: getArtifact
+      summary: Get plan artifact metadata
+      parameters:
+        - $ref: '#/components/parameters/ArtifactId'
+      responses:
+        '200':
+          description: Artifact metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtifactResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # --- Approval ---
+  /api/v1/approvals/{runId}/decide:
+    post:
+      tags: [Approval]
+      operationId: decideApproval
+      summary: Submit an approval decision
+      description: |
+        Idempotent via Idempotency-Key. Decision must match the
+        approval policy (unanimous/majority/any).
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalDecision'
+      responses:
+        '200':
+          description: Decision recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalDecisionResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  # --- Apply ---
+  /api/v1/requests/{requestId}/apply:
+    post:
+      tags: [Apply]
+      operationId: startApply
+      summary: Trigger saved-plan apply
+      description: |
+        Applies the previously generated and approved plan artifact.
+        Uses `terraform apply <saved-plan>` — does NOT re-plan.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: Apply started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  # --- Catalog ---
+  /api/v1/catalog:
+    get:
+      tags: [Catalog]
+      operationId: listCatalogItems
+      summary: List service catalog items
+      parameters:
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageToken'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, deprecated]
+            default: active
+      responses:
+        '200':
+          description: Catalog list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogListResponse'
+
+  /api/v1/catalog/{catalogItemId}:
+    get:
+      tags: [Catalog]
+      operationId: getCatalogItem
+      summary: Get catalog item by ID
+      parameters:
+        - $ref: '#/components/parameters/CatalogItemId'
+      responses:
+        '200':
+          description: Catalog item details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogItemResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # --- Entitlement ---
+  /api/v1/requestable-cloud-accounts:
+    get:
+      tags: [Entitlement]
+      operationId: listRequestableCloudAccounts
+      summary: List cloud accounts available to the current team
+      parameters:
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageToken'
+      responses:
+        '200':
+          description: Cloud account list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CloudAccountListResponse'
+
+  # --- Webhooks (P1) ---
+  /api/v1/webhooks/subscriptions:
+    post:
+      tags: [Webhooks]
+      operationId: createWebhookSubscription
+      summary: Create a webhook subscription (P1 — reserved)
+      description: Phase 1 reserved. Does not block Phase 0 golden path.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookSubscriptionCreate'
+      responses:
+        '201':
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiEnvelope'
+
+# ============================================================
+# Components
+# ============================================================
+components:
+
+  # --- Security Schemes ---
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: OIDC JWT token (D10/D43)
+    akskAuth:
+      type: apiKey
+      in: header
+      name: X-Aether-Signature
+      description: AK/SK HMAC signature for machine identities (D17 SigV4-style)
+
+  # --- Parameters ---
+  parameters:
+    RequestId:
+      name: requestId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/RequestId'
+    RunId:
+      name: runId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^run_[a-z0-9]+$'
+    ArtifactId:
+      name: artifactId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^art_[a-z0-9]+$'
+    CatalogItemId:
+      name: catalogItemId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^cat_[a-z0-9]+$'
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+      description: Idempotency key for create/decide operations
+    PageSize:
+      name: page_size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    PageToken:
+      name: page_token
+      in: query
+      schema:
+        type: string
+
+  # --- Standard Responses ---
+  responses:
+    BadRequest:
+      description: Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Conflict:
+      description: State conflict (stale version, concurrent modification)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    UnprocessableEntity:
+      description: Business validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+
+  # --- Schemas ---
+  schemas:
+
+    # --- ID Types (00a §5: prefixed string IDs) ---
+    RequestId:
+      type: string
+      pattern: '^req_[a-z0-9]+$'
+      description: Request identifier
+      example: req_abc123def456
+
+    # --- Unified Envelope (specs/19) ---
+    ApiEnvelope:
+      type: object
+      required: [data, correlation_id]
+      properties:
+        data:
+          description: Response payload (type depends on endpoint)
+        correlation_id:
+          type: string
+          format: uuid
+          description: W3C Trace Context correlation ID
+
+    ApiError:
+      type: object
+      required: [error, correlation_id]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code (see error-codes.yaml)
+              example: REQUEST_NOT_FOUND
+            message:
+              type: string
+              description: Human-readable error message
+            details:
+              type: object
+              additionalProperties: true
+              description: Additional error context
+            remediation:
+              type: string
+              description: Suggested fix for the user
+            retryable:
+              type: boolean
+              default: false
+        correlation_id:
+          type: string
+          format: uuid
+
+    # --- Request Lifecycle ---
+    RequestStatus:
+      type: string
+      enum:
+        - submitted
+        - generating
+        - pending-admission
+        - planning
+        - plan-ready
+        - pending-approval
+        - applying
+        - reconciling
+        - succeeded
+        - rejected
+        - cancelled
+        - expired
+        - failed-retryable
+        - failed-terminal
+        - waiting-manual
+        - reconcile-pending
+      description: Request lifecycle status (D21 state machine)
+
+    RequestSource:
+      type: string
+      enum: [web, cli, cicd, ai, gateway]
+      description: Where the request originated
+
+    RequestCreate:
+      type: object
+      required: [catalog_item_id, env_id, team_id, form_values, source]
+      properties:
+        catalog_item_id:
+          type: string
+          pattern: '^cat_[a-z0-9]+$'
+        env_id:
+          type: string
+          description: Environment identifier (e.g. dev, staging, prod)
+        team_id:
+          type: string
+          pattern: '^team_[a-z0-9]+$'
+        tenant_id:
+          type: string
+          description: Optional tenant (multi-tenant scenarios)
+        bundle_id:
+          type: string
+          description: Optional bundle/project group
+        form_values:
+          type: object
+          additionalProperties: true
+          description: User-filled form values (validated against catalog item form_schema)
+        source:
+          $ref: '#/components/schemas/RequestSource'
+        source_context:
+          type: object
+          additionalProperties: true
+          description: Additional context (CI/CD pipeline info, AI session, etc.)
+
+    Request:
+      type: object
+      required: [id, status, catalog_item_id, env_id, team_id, source, created_at, updated_at, version]
+      properties:
+        id:
+          $ref: '#/components/schemas/RequestId'
+        status:
+          $ref: '#/components/schemas/RequestStatus'
+        catalog_item_id:
+          type: string
+          pattern: '^cat_[a-z0-9]+$'
+        env_id:
+          type: string
+        team_id:
+          type: string
+          pattern: '^team_[a-z0-9]+$'
+        tenant_id:
+          type: string
+        bundle_id:
+          type: string
+        form_values:
+          type: object
+          additionalProperties: true
+        form_hash:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+          description: Canonical JSON hash of form_values
+        source:
+          $ref: '#/components/schemas/RequestSource'
+        pinned_commit:
+          type: string
+          description: Git commit hash (sha256:<hex>) the codegen pinned
+        resolved_params:
+          type: object
+          description: Parameter resolution result with provenance (D28)
+        plan_artifact_id:
+          type: string
+          pattern: '^art_[a-z0-9]+$'
+          description: Plan artifact reference (set after planning)
+        cost_estimate_cents:
+          type: integer
+          description: Infracost monthly estimate in cents (D18)
+        cost_currency:
+          type: string
+          default: USD
+        created_at:
+          type: string
+          format: date-time
+          description: RFC 3339 UTC
+        updated_at:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          description: Optimistic lock version (for CAS updates)
+        correlation_id:
+          type: string
+          format: uuid
+
+    RequestEvent:
+      type: object
+      required: [id, request_id, event_type, actor, occurred_at]
+      properties:
+        id:
+          type: string
+          pattern: '^evt_[a-z0-9]+$'
+        request_id:
+          $ref: '#/components/schemas/RequestId'
+        event_type:
+          type: string
+          description: Event type (e.g. request.created, plan.ready, approval.decided)
+        actor:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [human, ai, system]
+            user_id:
+              type: string
+            team_id:
+              type: string
+        occurred_at:
+          type: string
+          format: date-time
+        correlation_id:
+          type: string
+          format: uuid
+
+    # --- Plan Artifact ---
+    PlanArtifact:
+      type: object
+      required: [id, request_id, status, plan_hash, created_at]
+      properties:
+        id:
+          type: string
+          pattern: '^art_[a-z0-9]+$'
+        request_id:
+          $ref: '#/components/schemas/RequestId'
+        status:
+          type: string
+          enum: [ready, expired, consumed]
+        plan_hash:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+          description: Hash of the saved plan file
+        summary:
+          type: object
+          properties:
+            resources_to_add:
+              type: integer
+            resources_to_change:
+              type: integer
+            resources_to_destroy:
+              type: integer
+        cost_estimate_cents:
+          type: integer
+        storage_uri:
+          type: string
+          description: Object storage URI (not a temp download URL, 00a §5)
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    # --- Approval ---
+    ApprovalDecision:
+      type: object
+      required: [decision, comment]
+      properties:
+        decision:
+          type: string
+          enum: [approved, rejected]
+        comment:
+          type: string
+          maxLength: 2000
+        expected_run_version:
+          type: integer
+          description: Optimistic lock on the approval run
+
+    ApprovalDecisionResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiEnvelope'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                run_id:
+                  type: string
+                status:
+                  type: string
+                  enum: [pending, approved, rejected, expired]
+                decided_by:
+                  type: string
+                decided_at:
+                  type: string
+                  format: date-time
+
+    # --- Gate ---
+    GateResult:
+      type: object
+      properties:
+        gate_id:
+          type: string
+        passed:
+          type: boolean
+        violations:
+          type: array
+          items:
+            type: object
+            properties:
+              policy:
+                type: string
+              message:
+                type: string
+              severity:
+                type: string
+                enum: [error, warning]
+
+    # --- Catalog ---
+    CatalogItem:
+      type: object
+      required: [id, name, status, module_version]
+      properties:
+        id:
+          type: string
+          pattern: '^cat_[a-z0-9]+$'
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [active, deprecated]
+        category:
+          type: string
+        module_version:
+          type: object
+          properties:
+            version:
+              type: string
+              pattern: '^v\d+\.\d+\.\d+$'
+            source:
+              type: string
+              description: Git registry source (e.g. github.com/org/modules/ecs)
+            providers:
+              type: array
+              items:
+                type: string
+        form_schema:
+          type: object
+          description: JSON Schema 2020-12 for the request form (D40)
+        default_tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: Platform tags injected by codegen (D18)
+
+    # --- Cloud Account ---
+    CloudAccount:
+      type: object
+      required: [id, provider, name, status]
+      properties:
+        id:
+          type: string
+        provider:
+          type: string
+          enum: [aws, aliyun, azure, gcp]
+        name:
+          type: string
+        status:
+          type: string
+          enum: [active, suspended]
+        regions:
+          type: array
+          items:
+            type: string
+
+    # --- Webhook (P1) ---
+    WebhookSubscriptionCreate:
+      type: object
+      required: [url, event_types]
+      properties:
+        url:
+          type: string
+          format: uri
+        event_types:
+          type: array
+          items:
+            type: string
+        secret_ref:
+          type: string
+          description: Reference to webhook signing secret (never the secret value, 00a §5)
+
+    # --- Response Wrappers ---
+    RequestResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Request'
+
+    RequestEventListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiEnvelope'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/RequestEvent'
+            next_page_token:
+              type: string
+
+    ArtifactResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/PlanArtifact'
+
+    GateResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiEnvelope'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                request_id:
+                  $ref: '#/components/schemas/RequestId'
+                passed:
+                  type: boolean
+                gates:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/GateResult'
+
+    CatalogListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiEnvelope'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/CatalogItem'
+            next_page_token:
+              type: string
+
+    CatalogItemResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/CatalogItem'
+
+    CloudAccountListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiEnvelope'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/CloudAccount'
+            next_page_token:
+              type: string
