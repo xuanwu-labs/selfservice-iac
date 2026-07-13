@@ -76,6 +76,27 @@ server/
 
 **Go 接口原则**:Go 的接口是隐式的(结构化类型),不需要 Java 式工厂层级。`NewXxx() Interface` 就够。消费侧定义小接口(1-3 方法),不预定义大接口。
 
+## Service 三层模型(Server / Admin / Internal)
+
+所有 proto service 归入三层之一,决定认证、授权和网络暴露。
+
+| 层 | 谁调 | 认证 | proto 位置 |
+|---|---|---|---|
+| **Server**(用户) | 终端用户(Web/CLI/AI) | OIDC JWT + RBAC | request/catalog/planning/approval/entitlement/dependency |
+| **Admin**(管理员) | 平台管理员 | OIDC JWT + **admin 角色** | admin.proto(ModuleRegistry + CatalogAdmin) |
+| **Internal**(内部) | 平台内部逻辑(codegen/executor/CMDB/drift) | **无 RPC**——进程内直接函数调用 | 不需要 proto |
+
+**为什么没有 InternalServer proto**:内部操作(codegen/executor/CMDB ingest/drift scan)是同一 Go 进程内的**函数调用**(D39 直接调用原则),不暴露 Connect-RPC。
+
+**Admin 权限拦截**:Connect 拦截器按 service 名前缀校验 admin 角色:
+- `ModuleRegistryService.*` → 需要 admin 角色
+- `CatalogAdminService.*` → 需要 admin 角色
+
+**判断标准**:
+- 终端用户调的 → Server
+- 管理员配置的 → Admin
+- 平台内部自己调的 → Internal(函数调用,不写 proto)
+
 ## 数据层架构
 
 四层模型分离(DDD 规范):

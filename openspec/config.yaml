@@ -57,6 +57,12 @@ rules:
     - 凡涉及架构图/分层/库表/时序的详细设计，拆分到 docs/ 下 `NN-中文名.md`，design.md 只保留总体方案与关键决策。
     - 对 config/HCL 变更，说明已有配置在解析/求值上如何保持兼容。
     - 说明新行为如何测试：单测 package 和/或新增 e2etests/ 场景。
+    # proto service 分层约定
+    - proto service 必须归入三层之一：Server（用户，OIDC+RBAC）/ Admin（管理员，admin 角色）/ Internal（进程内，无 RPC）。
+    - 用户操作（浏览/申请/审批）→ Server；管理员操作（注册/发布/配置）→ Admin；内部操作（codegen/executor/CMDB）→ 函数调用，不写 proto。
+    - proto 是唯一契约源（Connect-native），不手写 openapi/schema/mapping。
+    - proto 注释全英文（开源标准）。
+    - 枚举值必须带类型前缀（proto3 规范，如 REQUEST_STATUS_SUBMITTED）。
   tasks:
     - 按 `## 01-功能模块` 数字前缀分组组织。
     - 按依赖排序；每个 task 应是一个可独立测试的改动单元。
