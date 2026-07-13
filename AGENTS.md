@@ -55,6 +55,7 @@ selfservice-iac/
 - ❌ 不要让 `server/**` import `github.com/terramate-io/terramate/<任何子包>`(D1 边界,由 depguard 强制)。
 - ❌ 不要覆盖 `openspec/config.yaml` 的定制 context/rules。
 - ❌ **不要擅自执行 OpenSpec 生命周期动作**:新建 change(`/opsx:propose`)、apply、archive、sync **必须由维护者显式发起**。agent 不得自行判断"做完了"就归档,不得擅自新建第二个 change,不得通过重新定义验收范围来凑归档条件。详见下方"协作边界"与 `openspec/config.yaml` rules.lifecycle-ownership。
+- ❌ **不要为同一功能开多个分支**:一个功能(如 error 注入、模块注册)= 一个分支。该功能的实现 + review 修复 + 衍生改进全在同一个分支上累积提交,不开 `fix/xxx` 子分支。只有跨功能的独立紧急修复才用 `fix/`。详见 `openspec/config.yaml` rules.git。
 - ✅ 实现任务前先 `/opsx:explore` 或读 design.md,确保理解决策 D1–D45。
 - ✅ `docs/` 是用户文档,`openspec/` 是设计文档,两者职责不同,勿混淆。
 - ✅ 若 agent 认为 change 应推进到 apply/archive,需说明依据并等待维护者指令,而非直接执行。

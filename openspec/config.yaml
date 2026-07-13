@@ -89,13 +89,17 @@ rules:
     - 大 change（如 iac-self-service-platform）保留为设计总纲，各阶段从它拆分出去。
     - 拆分时在原 change 的 tasks.md 对应章节标注「已拆分到独立 change」。
   git:
-    # 分支策略（一个 OpenSpec change 一个分支）
+    # 分支策略（一个功能一个分支——最高优先级，凌驾下面的细则）
+    # "一个功能"= 一个内聚的工作单元（如 error 注入机制、模块注册、codegen）。
+    # 该功能的实现 + review 发现的问题修复 + 衍生的小改进，全部在同一个分支上累积提交，
+    # 最后一次性 --no-ff 合并 main。严禁为同一功能的修复/改进另开 fix/ 子分支（会导致分支爆炸）。
+    - 一个功能 = 一个分支：实现、review 修复、衍生改进全在同一个分支上累积，不开子分支。
     - 一个 OpenSpec change 对应一个 feature 分支：`feat/<change-name>`。
-    - 分支生命周期：change 开始时创建，change 归档时合并到 main，合并后分支保留不删（作为提案历史）。
-    - 紧急修复用 `fix/<描述>` 短命分支，合并后可删。
-    - 文档/配置调整在当前 change 分支上做，随 change 一起合并。
+    - 分支生命周期：change 开始时创建，change 归档时合并到 main，合并后分支删除（保持分支列表清爽；历史在 git log 和 merge 提交里可追溯）。
+    - 只有**跨功能的独立紧急修复**（如 main 上的生产 bug，不属于任何进行中的功能）才用 `fix/<描述>` 短命分支。同一功能内的修复不开 fix/ 分支。
+    - 文档/配置调整在当前功能分支上做，随功能一起合并。
     - 不在 main 分支直接提交；所有改动走 feature 分支 + --no-ff 合并。
-    - 新 change = 新分支；不同 change 不混在同一个分支。
+    - 新功能 = 新分支；不同功能不混在同一个分支。
     # 分支命名
     - 分支前缀按变更类型：feat/ fix/ chore/ docs/ refactor/ test/。
     - 分支名格式：`<type>/<简短描述>`，如 `feat/phase0-contracts`、`fix/dsn-hardcode`。
