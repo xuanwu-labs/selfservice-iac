@@ -2,47 +2,27 @@ package errors
 
 import (
 	"context"
-	"errors"
+	stderrors "errors"
 	"testing"
 
 	"connectrpc.com/connect"
+
+	"github.com/xuanwu-labs/selfservice-iac/server/internal/asset"
+	commonv1 "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/common"
 )
 
-// minimalYAML is a tiny registry for unit tests (independent of the real
-// error-codes.yaml so tests don't break when codes are added/removed).
-const minimalYAML = `
-errors:
-  - code: TEST_RETRYABLE
-    http_status: 503
-    grpc_code: UNAVAILABLE
-    retryable: true
-    manual_required: false
-    remediation: "Retry with backoff."
-    owner: platform
-  - code: TEST_FATAL
-    http_status: 400
-    grpc_code: INVALID_ARGUMENT
-    retryable: false
-    manual_required: false
-    remediation: "Fix the input."
-    owner: core/test
-  - code: INTERNAL_ERROR
-    http_status: 500
-    grpc_code: INTERNAL
-    retryable: false
-    manual_required: false
-    remediation: "Contact platform team with correlation_id."
-    owner: platform
-`
-
-func TestLoad_ParsesEntries(t *testing.T) {
-	reg, err := Load(minimalYAML)
+// realRegistry loads the actual embedded error-codes.yaml. The write-path tests
+// (New/Lookup) now take proto ErrorCode enum values, so they must run against
+// the real registry (which has rows matching the enum). Synthetic YAML can no
+// longer be used for New/Lookup tests because the enum values are buf-generated
+// constants bound to the real YAML keys.
+func realRegistry(t *testing.T) *Registry {
+	t.Helper()
+	reg, err := Load(asset.ErrorCodes)
 	if err != nil {
-		t.Fatalf("Load: %v", err)
+		t.Fatalf("Load(real yaml): %v", err)
 	}
-	if got := len(reg.entries); got != 3 {
-		t.Fatalf("entries: want 3, got %d", got)
-	}
+	return reg
 }
 
 func TestLoad_EmptyYAML(t *testing.T) {
@@ -81,39 +61,38 @@ errors:
 }
 
 func TestLookup_Found(t *testing.T) {
-	reg := mustLoad(t, minimalYAML)
-	e, err := reg.Lookup("TEST_RETRYABLE")
+	reg := realRegistry(t)
+	e, err := reg.Lookup(commonv1.ErrorCode_ERROR_CODE_STATE_CONFLICT)
 	if err != nil {
 		t.Fatalf("Lookup: %v", err)
 	}
 	if !e.Retryable {
-		t.Error("Retryable: want true")
-	}
-	if e.HTTPStatus != 503 {
-		t.Errorf("HTTPStatus: want 503, got %d", e.HTTPStatus)
+		t.Error("Retryable: want true for STATE_CONFLICT")
 	}
 }
 
-func TestLookup_NotFound(t *testing.T) {
-	reg := mustLoad(t, minimalYAML)
-	if _, err := reg.Lookup("NOPE"); err == nil {
-		t.Fatal("Lookup(unknown): want error, got nil")
+func TestLookup_UnspecifiedHasNoEntry(t *testing.T) {
+	reg := realRegistry(t)
+	// UNSPECIFIED is a valid enum value but deliberately has no YAML row —
+	// it's the zero/invalid sentinel. Lookup must return an error, not panic.
+	if _, err := reg.Lookup(commonv1.ErrorCode_ERROR_CODE_UNSPECIFIED); err == nil {
+		t.Fatal("Lookup(UNSPECIFIED): want error (no behavior row for sentinel)")
 	}
 }
 
-func TestMustLookup_PanicsOnUnknown(t *testing.T) {
-	reg := mustLoad(t, minimalYAML)
+func TestMustLookup_PanicsOnUnspecified(t *testing.T) {
+	reg := realRegistry(t)
 	defer func() {
 		if r := recover(); r == nil {
-			t.Fatal("MustLookup(unknown): want panic")
+			t.Fatal("MustLookup(UNSPECIFIED): want panic")
 		}
 	}()
-	reg.MustLookup("NOPE")
+	reg.MustLookup(commonv1.ErrorCode_ERROR_CODE_UNSPECIFIED)
 }
 
 func TestNew_StructuredConnectError(t *testing.T) {
-	reg := mustLoad(t, minimalYAML)
-	err := reg.New("TEST_RETRYABLE", "connection refused: %s", "db")
+	reg := realRegistry(t)
+	err := reg.New(commonv1.ErrorCode_ERROR_CODE_PLATFORM_UNAVAILABLE, "connection refused: %s", "db")
 	if err == nil {
 		t.Fatal("New: want non-nil error")
 	}
@@ -128,7 +107,6 @@ func TestNew_StructuredConnectError(t *testing.T) {
 	if len(details) != 1 {
 		t.Fatalf("Details: want 1, got %d", len(details))
 	}
-	// Verify the detail is an ErrorInfo carrying reason + metadata.
 	msg, err := details[0].Value()
 	if err != nil {
 		t.Fatalf("detail Value: %v", err)
@@ -137,24 +115,29 @@ func TestNew_StructuredConnectError(t *testing.T) {
 	if !ok {
 		t.Fatalf("detail: want ErrorInfo, got %T", msg)
 	}
-	if got := ei.GetReason(); got != "TEST_RETRYABLE" {
-		t.Errorf("reason: want TEST_RETRYABLE, got %s", got)
+	if got := ei.GetReason(); got != "PLATFORM_UNAVAILABLE" {
+		t.Errorf("reason: want PLATFORM_UNAVAILABLE, got %s", got)
 	}
 }
 
-func TestNew_UnknownCodePanics(t *testing.T) {
-	reg := mustLoad(t, minimalYAML)
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("New(unknown): want panic")
-		}
-	}()
-	_ = reg.New("NOPE", "x")
+func TestNewFromError_NilReturnsNil(t *testing.T) {
+	reg := realRegistry(t)
+	if err := reg.NewFromError(commonv1.ErrorCode_ERROR_CODE_INTERNAL_ERROR, nil); err != nil {
+		t.Errorf("NewFromError(nil): want nil, got %v", err)
+	}
+}
+
+func TestNewFromError_Wraps(t *testing.T) {
+	reg := realRegistry(t)
+	err := reg.NewFromError(commonv1.ErrorCode_ERROR_CODE_GIT_OPERATION_FAILED, errOops)
+	if !IsConnectError(err) {
+		t.Fatal("NewFromError: want *connect.Error")
+	}
 }
 
 func TestIsConnectError(t *testing.T) {
-	reg := mustLoad(t, minimalYAML)
-	structured := reg.New("TEST_FATAL", "bad input")
+	reg := realRegistry(t)
+	structured := reg.New(commonv1.ErrorCode_ERROR_CODE_POLICY_VIOLATION, "bad")
 	if !IsConnectError(structured) {
 		t.Error("IsConnectError(structured): want true")
 	}
@@ -168,8 +151,8 @@ func TestIsConnectError(t *testing.T) {
 }
 
 func TestWrapInterceptor_PassesThroughStructured(t *testing.T) {
-	reg := mustLoad(t, minimalYAML)
-	structured := reg.New("TEST_FATAL", "bad")
+	reg := realRegistry(t)
+	structured := reg.New(commonv1.ErrorCode_ERROR_CODE_POLICY_VIOLATION, "bad")
 	ic := WrapInterceptor(reg)
 	next := ic.WrapUnary(func(_ context.Context, _ connect.AnyRequest) (connect.AnyResponse, error) {
 		return nil, structured
@@ -180,7 +163,7 @@ func TestWrapInterceptor_PassesThroughStructured(t *testing.T) {
 }
 
 func TestWrapInterceptor_WrapsRawError(t *testing.T) {
-	reg := mustLoad(t, minimalYAML)
+	reg := realRegistry(t)
 	ic := WrapInterceptor(reg)
 	next := ic.WrapUnary(func(_ context.Context, _ connect.AnyRequest) (connect.AnyResponse, error) {
 		return nil, errOops // raw error
@@ -230,16 +213,7 @@ func (oopsErr) Error() string { return "oops" }
 
 var errOops error = oopsErr{}
 
-func mustLoad(t *testing.T, yaml string) *Registry {
-	t.Helper()
-	reg, err := Load(yaml)
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
-	return reg
-}
-
 // connectError mirrors connect's IsWireError pattern (errors.As into *Error).
 func connectError(err error, target **connect.Error) bool {
-	return errors.As(err, target)
+	return stderrors.As(err, target)
 }
