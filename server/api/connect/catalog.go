@@ -6,9 +6,9 @@ import (
 
 	"connectrpc.com/connect"
 
+	platformerrors "github.com/xuanwu-labs/selfservice-iac/server/internal/errors"
 	catalogv1 "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/catalog"
 	catalogv1connect "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/catalog/catalogv1connect"
-	platformerrors "github.com/xuanwu-labs/selfservice-iac/server/internal/errors"
 )
 
 // CatalogHandler implements the CatalogService Connect RPC.
