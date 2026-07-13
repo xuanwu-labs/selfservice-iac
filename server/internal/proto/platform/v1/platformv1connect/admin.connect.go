@@ -60,13 +60,9 @@ const (
 
 // ModuleRegistryServiceClient is a client for the aether.platform.v1.ModuleRegistryService service.
 type ModuleRegistryServiceClient interface {
-	// Register a new module or a new version.
 	RegisterModule(context.Context, *connect.Request[v1.RegisterModuleRequest]) (*connect.Response[v1.RegisterModuleResponse], error)
-	// List registered modules (filter by provider/status).
 	ListModules(context.Context, *connect.Request[v1.ListModulesRequest]) (*connect.Response[v1.ListModulesResponse], error)
-	// Get module details (includes variables contract).
 	GetModule(context.Context, *connect.Request[v1.GetModuleRequest]) (*connect.Response[v1.GetModuleResponse], error)
-	// Deprecate a module version.
 	DeprecateModule(context.Context, *connect.Request[v1.DeprecateModuleRequest]) (*connect.Response[v1.DeprecateModuleResponse], error)
 }
 
@@ -139,13 +135,9 @@ func (c *moduleRegistryServiceClient) DeprecateModule(ctx context.Context, req *
 // ModuleRegistryServiceHandler is an implementation of the aether.platform.v1.ModuleRegistryService
 // service.
 type ModuleRegistryServiceHandler interface {
-	// Register a new module or a new version.
 	RegisterModule(context.Context, *connect.Request[v1.RegisterModuleRequest]) (*connect.Response[v1.RegisterModuleResponse], error)
-	// List registered modules (filter by provider/status).
 	ListModules(context.Context, *connect.Request[v1.ListModulesRequest]) (*connect.Response[v1.ListModulesResponse], error)
-	// Get module details (includes variables contract).
 	GetModule(context.Context, *connect.Request[v1.GetModuleRequest]) (*connect.Response[v1.GetModuleResponse], error)
-	// Deprecate a module version.
 	DeprecateModule(context.Context, *connect.Request[v1.DeprecateModuleRequest]) (*connect.Response[v1.DeprecateModuleResponse], error)
 }
 
@@ -217,11 +209,8 @@ func (UnimplementedModuleRegistryServiceHandler) DeprecateModule(context.Context
 
 // CatalogAdminServiceClient is a client for the aether.platform.v1.CatalogAdminService service.
 type CatalogAdminServiceClient interface {
-	// Publish a catalog item from a module version.
 	PublishCatalogItem(context.Context, *connect.Request[v1.PublishCatalogItemRequest]) (*connect.Response[v1.PublishCatalogItemResponse], error)
-	// Update a catalog item (defaults/visibility/cardinality).
 	UpdateCatalogItem(context.Context, *connect.Request[v1.UpdateCatalogItemRequest]) (*connect.Response[v1.UpdateCatalogItemResponse], error)
-	// Deprecate a catalog item (hidden from users; existing requests continue).
 	DeprecateCatalogItem(context.Context, *connect.Request[v1.DeprecateCatalogItemRequest]) (*connect.Response[v1.DeprecateCatalogItemResponse], error)
 }
 
@@ -282,11 +271,8 @@ func (c *catalogAdminServiceClient) DeprecateCatalogItem(ctx context.Context, re
 // CatalogAdminServiceHandler is an implementation of the aether.platform.v1.CatalogAdminService
 // service.
 type CatalogAdminServiceHandler interface {
-	// Publish a catalog item from a module version.
 	PublishCatalogItem(context.Context, *connect.Request[v1.PublishCatalogItemRequest]) (*connect.Response[v1.PublishCatalogItemResponse], error)
-	// Update a catalog item (defaults/visibility/cardinality).
 	UpdateCatalogItem(context.Context, *connect.Request[v1.UpdateCatalogItemRequest]) (*connect.Response[v1.UpdateCatalogItemResponse], error)
-	// Deprecate a catalog item (hidden from users; existing requests continue).
 	DeprecateCatalogItem(context.Context, *connect.Request[v1.DeprecateCatalogItemRequest]) (*connect.Response[v1.DeprecateCatalogItemResponse], error)
 }
 

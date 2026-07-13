@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package aether.platform.v1;
+
+option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1";
+
+// ============================================================
+// GateService — Admission gate evaluation.
+// Runs OPA policies, budget checks, tag validation between plan-ready
+// and pending-approval (D16/D18/D22).
+// ============================================================
+service GateService {
+  rpc EvaluateGate(EvaluateGateRequest) returns (EvaluateGateResponse) {}
+}
+
+message EvaluateGateRequest {
+  string request_id = 1;
+}
+
+message EvaluateGateResponse {
+  string request_id = 1;
+  bool passed = 2;
+  repeated GateResult gates = 3;
+  string correlation_id = 4;
+}
+
+message GateResult {
+  string gate_id = 1;
+  bool passed = 2;
+
+  enum Severity {
+    SEVERITY_UNSPECIFIED = 0;
+    SEVERITY_ERROR = 1;
+    SEVERITY_WARNING = 2;
+  }
+  string policy = 3;
+  string message = 4;
+  Severity severity = 5;
+}

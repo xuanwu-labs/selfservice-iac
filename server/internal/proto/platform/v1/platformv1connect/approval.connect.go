@@ -23,8 +23,6 @@ const _ = connect.IsAtLeastVersion1_13_0
 const (
 	// ApprovalServiceName is the fully-qualified name of the ApprovalService service.
 	ApprovalServiceName = "aether.platform.v1.ApprovalService"
-	// ApplyServiceName is the fully-qualified name of the ApplyService service.
-	ApplyServiceName = "aether.platform.v1.ApplyService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -38,8 +36,6 @@ const (
 	// ApprovalServiceDecideApprovalProcedure is the fully-qualified name of the ApprovalService's
 	// DecideApproval RPC.
 	ApprovalServiceDecideApprovalProcedure = "/aether.platform.v1.ApprovalService/DecideApproval"
-	// ApplyServiceStartApplyProcedure is the fully-qualified name of the ApplyService's StartApply RPC.
-	ApplyServiceStartApplyProcedure = "/aether.platform.v1.ApplyService/StartApply"
 )
 
 // ApprovalServiceClient is a client for the aether.platform.v1.ApprovalService service.
@@ -110,74 +106,4 @@ type UnimplementedApprovalServiceHandler struct{}
 
 func (UnimplementedApprovalServiceHandler) DecideApproval(context.Context, *connect.Request[v1.DecideApprovalRequest]) (*connect.Response[v1.DecideApprovalResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.ApprovalService.DecideApproval is not implemented"))
-}
-
-// ApplyServiceClient is a client for the aether.platform.v1.ApplyService service.
-type ApplyServiceClient interface {
-	StartApply(context.Context, *connect.Request[v1.StartApplyRequest]) (*connect.Response[v1.StartApplyResponse], error)
-}
-
-// NewApplyServiceClient constructs a client for the aether.platform.v1.ApplyService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewApplyServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ApplyServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	applyServiceMethods := v1.File_platform_v1_approval_proto.Services().ByName("ApplyService").Methods()
-	return &applyServiceClient{
-		startApply: connect.NewClient[v1.StartApplyRequest, v1.StartApplyResponse](
-			httpClient,
-			baseURL+ApplyServiceStartApplyProcedure,
-			connect.WithSchema(applyServiceMethods.ByName("StartApply")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// applyServiceClient implements ApplyServiceClient.
-type applyServiceClient struct {
-	startApply *connect.Client[v1.StartApplyRequest, v1.StartApplyResponse]
-}
-
-// StartApply calls aether.platform.v1.ApplyService.StartApply.
-func (c *applyServiceClient) StartApply(ctx context.Context, req *connect.Request[v1.StartApplyRequest]) (*connect.Response[v1.StartApplyResponse], error) {
-	return c.startApply.CallUnary(ctx, req)
-}
-
-// ApplyServiceHandler is an implementation of the aether.platform.v1.ApplyService service.
-type ApplyServiceHandler interface {
-	StartApply(context.Context, *connect.Request[v1.StartApplyRequest]) (*connect.Response[v1.StartApplyResponse], error)
-}
-
-// NewApplyServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewApplyServiceHandler(svc ApplyServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	applyServiceMethods := v1.File_platform_v1_approval_proto.Services().ByName("ApplyService").Methods()
-	applyServiceStartApplyHandler := connect.NewUnaryHandler(
-		ApplyServiceStartApplyProcedure,
-		svc.StartApply,
-		connect.WithSchema(applyServiceMethods.ByName("StartApply")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/aether.platform.v1.ApplyService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case ApplyServiceStartApplyProcedure:
-			applyServiceStartApplyHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
-}
-
-// UnimplementedApplyServiceHandler returns CodeUnimplemented from all methods.
-type UnimplementedApplyServiceHandler struct{}
-
-func (UnimplementedApplyServiceHandler) StartApply(context.Context, *connect.Request[v1.StartApplyRequest]) (*connect.Response[v1.StartApplyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.ApplyService.StartApply is not implemented"))
 }

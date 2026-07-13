@@ -73,7 +73,7 @@ func (Actor_ActorType) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_proto_rawDescGZIP(), []int{2, 0}
 }
 
-// Pagination request fields, embedded in list RPC requests.
+// PageRequest is embedded in list RPC requests for pagination.
 type PageRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PageSize      int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
@@ -126,7 +126,7 @@ func (x *PageRequest) GetPageToken() string {
 	return ""
 }
 
-// Pagination response fields, embedded in list RPC responses.
+// PageResponse is embedded in list RPC responses for pagination.
 type PageResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	NextPageToken string                 `protobuf:"bytes,1,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
@@ -171,7 +171,7 @@ func (x *PageResponse) GetNextPageToken() string {
 	return ""
 }
 
-// Unified actor model (D10/D10.1).
+// Actor is the unified identity model (D10/D10.1).
 type Actor struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Type          Actor_ActorType        `protobuf:"varint,1,opt,name=type,proto3,enum=aether.platform.v1.Actor_ActorType" json:"type,omitempty"`
@@ -232,6 +232,177 @@ func (x *Actor) GetTeamId() string {
 	return ""
 }
 
+// ModuleVersion describes a registered Terraform module version.
+type ModuleVersion struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	Version               string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`                                                            // semver e.g. v1.2.0
+	CommitSha             string                 `protobuf:"bytes,2,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`                                       // sha256:<hex>
+	Providers             []string               `protobuf:"bytes,3,rep,name=providers,proto3" json:"providers,omitempty"`                                                        // e.g. ["aws@>=5.0"]
+	VariablesContractJson string                 `protobuf:"bytes,4,opt,name=variables_contract_json,json=variablesContractJson,proto3" json:"variables_contract_json,omitempty"` // parsed from variables.tf
+	Dependencies          []*ModuleDependency    `protobuf:"bytes,5,rep,name=dependencies,proto3" json:"dependencies,omitempty"`                                                  // declared cross-module deps
+	RegisteredAt          string                 `protobuf:"bytes,6,opt,name=registered_at,json=registeredAt,proto3" json:"registered_at,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *ModuleVersion) Reset() {
+	*x = ModuleVersion{}
+	mi := &file_platform_v1_common_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ModuleVersion) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModuleVersion) ProtoMessage() {}
+
+func (x *ModuleVersion) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_common_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModuleVersion.ProtoReflect.Descriptor instead.
+func (*ModuleVersion) Descriptor() ([]byte, []int) {
+	return file_platform_v1_common_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ModuleVersion) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *ModuleVersion) GetCommitSha() string {
+	if x != nil {
+		return x.CommitSha
+	}
+	return ""
+}
+
+func (x *ModuleVersion) GetProviders() []string {
+	if x != nil {
+		return x.Providers
+	}
+	return nil
+}
+
+func (x *ModuleVersion) GetVariablesContractJson() string {
+	if x != nil {
+		return x.VariablesContractJson
+	}
+	return ""
+}
+
+func (x *ModuleVersion) GetDependencies() []*ModuleDependency {
+	if x != nil {
+		return x.Dependencies
+	}
+	return nil
+}
+
+func (x *ModuleVersion) GetRegisteredAt() string {
+	if x != nil {
+		return x.RegisteredAt
+	}
+	return ""
+}
+
+// ModuleDependency declares a cross-module dependency (from variables.tf).
+// Example: ECS module depends on VPC module's vswitch_id output.
+type ModuleDependency struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	VariableName    string                 `protobuf:"bytes,1,opt,name=variable_name,json=variableName,proto3" json:"variable_name,omitempty"`            // e.g. "vswitch_id"
+	Description     string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`                                  // e.g. "VSwitch ID for the ECS instance"
+	DependsOnLayer  string                 `protobuf:"bytes,3,opt,name=depends_on_layer,json=dependsOnLayer,proto3" json:"depends_on_layer,omitempty"`    // e.g. "global"
+	DependsOnModule string                 `protobuf:"bytes,4,opt,name=depends_on_module,json=dependsOnModule,proto3" json:"depends_on_module,omitempty"` // e.g. "vpc"
+	OutputKey       string                 `protobuf:"bytes,5,opt,name=output_key,json=outputKey,proto3" json:"output_key,omitempty"`                     // e.g. "vswitch_id"
+	Required        bool                   `protobuf:"varint,6,opt,name=required,proto3" json:"required,omitempty"`                                       // whether this dependency is mandatory
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ModuleDependency) Reset() {
+	*x = ModuleDependency{}
+	mi := &file_platform_v1_common_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ModuleDependency) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModuleDependency) ProtoMessage() {}
+
+func (x *ModuleDependency) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_common_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModuleDependency.ProtoReflect.Descriptor instead.
+func (*ModuleDependency) Descriptor() ([]byte, []int) {
+	return file_platform_v1_common_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ModuleDependency) GetVariableName() string {
+	if x != nil {
+		return x.VariableName
+	}
+	return ""
+}
+
+func (x *ModuleDependency) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *ModuleDependency) GetDependsOnLayer() string {
+	if x != nil {
+		return x.DependsOnLayer
+	}
+	return ""
+}
+
+func (x *ModuleDependency) GetDependsOnModule() string {
+	if x != nil {
+		return x.DependsOnModule
+	}
+	return ""
+}
+
+func (x *ModuleDependency) GetOutputKey() string {
+	if x != nil {
+		return x.OutputKey
+	}
+	return ""
+}
+
+func (x *ModuleDependency) GetRequired() bool {
+	if x != nil {
+		return x.Required
+	}
+	return false
+}
+
 var File_platform_v1_common_proto protoreflect.FileDescriptor
 
 const file_platform_v1_common_proto_rawDesc = "" +
@@ -251,7 +422,23 @@ const file_platform_v1_common_proto_rawDesc = "" +
 	"\x16ACTOR_TYPE_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10ACTOR_TYPE_HUMAN\x10\x01\x12\x11\n" +
 	"\rACTOR_TYPE_AI\x10\x02\x12\x15\n" +
-	"\x11ACTOR_TYPE_SYSTEM\x10\x03BUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
+	"\x11ACTOR_TYPE_SYSTEM\x10\x03\"\x8d\x02\n" +
+	"\rModuleVersion\x12\x18\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\x12\x1d\n" +
+	"\n" +
+	"commit_sha\x18\x02 \x01(\tR\tcommitSha\x12\x1c\n" +
+	"\tproviders\x18\x03 \x03(\tR\tproviders\x126\n" +
+	"\x17variables_contract_json\x18\x04 \x01(\tR\x15variablesContractJson\x12H\n" +
+	"\fdependencies\x18\x05 \x03(\v2$.aether.platform.v1.ModuleDependencyR\fdependencies\x12#\n" +
+	"\rregistered_at\x18\x06 \x01(\tR\fregisteredAt\"\xea\x01\n" +
+	"\x10ModuleDependency\x12#\n" +
+	"\rvariable_name\x18\x01 \x01(\tR\fvariableName\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12(\n" +
+	"\x10depends_on_layer\x18\x03 \x01(\tR\x0edependsOnLayer\x12*\n" +
+	"\x11depends_on_module\x18\x04 \x01(\tR\x0fdependsOnModule\x12\x1d\n" +
+	"\n" +
+	"output_key\x18\x05 \x01(\tR\toutputKey\x12\x1a\n" +
+	"\brequired\x18\x06 \x01(\bR\brequiredBUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
 
 var (
 	file_platform_v1_common_proto_rawDescOnce sync.Once
@@ -266,20 +453,23 @@ func file_platform_v1_common_proto_rawDescGZIP() []byte {
 }
 
 var file_platform_v1_common_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_platform_v1_common_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_platform_v1_common_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_platform_v1_common_proto_goTypes = []any{
-	(Actor_ActorType)(0), // 0: aether.platform.v1.Actor.ActorType
-	(*PageRequest)(nil),  // 1: aether.platform.v1.PageRequest
-	(*PageResponse)(nil), // 2: aether.platform.v1.PageResponse
-	(*Actor)(nil),        // 3: aether.platform.v1.Actor
+	(Actor_ActorType)(0),     // 0: aether.platform.v1.Actor.ActorType
+	(*PageRequest)(nil),      // 1: aether.platform.v1.PageRequest
+	(*PageResponse)(nil),     // 2: aether.platform.v1.PageResponse
+	(*Actor)(nil),            // 3: aether.platform.v1.Actor
+	(*ModuleVersion)(nil),    // 4: aether.platform.v1.ModuleVersion
+	(*ModuleDependency)(nil), // 5: aether.platform.v1.ModuleDependency
 }
 var file_platform_v1_common_proto_depIdxs = []int32{
 	0, // 0: aether.platform.v1.Actor.type:type_name -> aether.platform.v1.Actor.ActorType
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	5, // 1: aether.platform.v1.ModuleVersion.dependencies:type_name -> aether.platform.v1.ModuleDependency
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_platform_v1_common_proto_init() }
@@ -293,7 +483,7 @@ func file_platform_v1_common_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_common_proto_rawDesc), len(file_platform_v1_common_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   3,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

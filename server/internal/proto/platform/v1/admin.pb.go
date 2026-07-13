@@ -80,9 +80,9 @@ type PublishCatalogItemRequest_Cardinality int32
 
 const (
 	PublishCatalogItemRequest_CARDINALITY_UNSPECIFIED PublishCatalogItemRequest_Cardinality = 0
-	PublishCatalogItemRequest_CARDINALITY_SINGLE      PublishCatalogItemRequest_Cardinality = 1 // single instance
-	PublishCatalogItemRequest_CARDINALITY_LIST        PublishCatalogItemRequest_Cardinality = 2 // count = N
-	PublishCatalogItemRequest_CARDINALITY_MAP         PublishCatalogItemRequest_Cardinality = 3 // for_each = tomap({...})
+	PublishCatalogItemRequest_CARDINALITY_SINGLE      PublishCatalogItemRequest_Cardinality = 1
+	PublishCatalogItemRequest_CARDINALITY_LIST        PublishCatalogItemRequest_Cardinality = 2
+	PublishCatalogItemRequest_CARDINALITY_MAP         PublishCatalogItemRequest_Cardinality = 3
 )
 
 // Enum value maps for PublishCatalogItemRequest_Cardinality.
@@ -125,7 +125,7 @@ func (x PublishCatalogItemRequest_Cardinality) Number() protoreflect.EnumNumber 
 
 // Deprecated: Use PublishCatalogItemRequest_Cardinality.Descriptor instead.
 func (PublishCatalogItemRequest_Cardinality) EnumDescriptor() ([]byte, []int) {
-	return file_platform_v1_admin_proto_rawDescGZIP(), []int{10, 0}
+	return file_platform_v1_admin_proto_rawDescGZIP(), []int{9, 0}
 }
 
 type Module struct {
@@ -136,7 +136,7 @@ type Module struct {
 	GitSource     string                 `protobuf:"bytes,4,opt,name=git_source,json=gitSource,proto3" json:"git_source,omitempty"` // e.g. github.com/org/modules/ecs
 	Provider      string                 `protobuf:"bytes,5,opt,name=provider,proto3" json:"provider,omitempty"`                    // aws / alicloud / azure / gcp
 	Status        Module_ModuleStatus    `protobuf:"varint,6,opt,name=status,proto3,enum=aether.platform.v1.Module_ModuleStatus" json:"status,omitempty"`
-	Versions      []*ModuleVersion       `protobuf:"bytes,7,rep,name=versions,proto3" json:"versions,omitempty"`                    // all registered versions
+	Versions      []*ModuleVersion       `protobuf:"bytes,7,rep,name=versions,proto3" json:"versions,omitempty"`                    // from common.proto
 	CreatedAt     string                 `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"` // RFC 3339 UTC
 	UpdatedAt     string                 `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -236,99 +236,13 @@ func (x *Module) GetUpdatedAt() string {
 	return ""
 }
 
-// ModuleDependency declares a cross-module dependency (parsed from variables.tf).
-// Example: ECS module depends on VPC module's vswitch_id output.
-type ModuleDependency struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	VariableName    string                 `protobuf:"bytes,1,opt,name=variable_name,json=variableName,proto3" json:"variable_name,omitempty"`            // e.g. "vswitch_id"
-	Description     string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`                                  // e.g. "VSwitch ID for the ECS instance"
-	DependsOnLayer  string                 `protobuf:"bytes,3,opt,name=depends_on_layer,json=dependsOnLayer,proto3" json:"depends_on_layer,omitempty"`    // e.g. "global"
-	DependsOnModule string                 `protobuf:"bytes,4,opt,name=depends_on_module,json=dependsOnModule,proto3" json:"depends_on_module,omitempty"` // e.g. "vpc"
-	OutputKey       string                 `protobuf:"bytes,5,opt,name=output_key,json=outputKey,proto3" json:"output_key,omitempty"`                     // e.g. "vswitch_id"
-	Required        bool                   `protobuf:"varint,6,opt,name=required,proto3" json:"required,omitempty"`                                       // whether this dependency is mandatory
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *ModuleDependency) Reset() {
-	*x = ModuleDependency{}
-	mi := &file_platform_v1_admin_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ModuleDependency) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ModuleDependency) ProtoMessage() {}
-
-func (x *ModuleDependency) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_admin_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ModuleDependency.ProtoReflect.Descriptor instead.
-func (*ModuleDependency) Descriptor() ([]byte, []int) {
-	return file_platform_v1_admin_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *ModuleDependency) GetVariableName() string {
-	if x != nil {
-		return x.VariableName
-	}
-	return ""
-}
-
-func (x *ModuleDependency) GetDescription() string {
-	if x != nil {
-		return x.Description
-	}
-	return ""
-}
-
-func (x *ModuleDependency) GetDependsOnLayer() string {
-	if x != nil {
-		return x.DependsOnLayer
-	}
-	return ""
-}
-
-func (x *ModuleDependency) GetDependsOnModule() string {
-	if x != nil {
-		return x.DependsOnModule
-	}
-	return ""
-}
-
-func (x *ModuleDependency) GetOutputKey() string {
-	if x != nil {
-		return x.OutputKey
-	}
-	return ""
-}
-
-func (x *ModuleDependency) GetRequired() bool {
-	if x != nil {
-		return x.Required
-	}
-	return false
-}
-
 type RegisterModuleRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	GitSource     string                 `protobuf:"bytes,1,opt,name=git_source,json=gitSource,proto3" json:"git_source,omitempty"`    // Git repository URL
+	GitSource     string                 `protobuf:"bytes,1,opt,name=git_source,json=gitSource,proto3" json:"git_source,omitempty"`
 	ModulePath    string                 `protobuf:"bytes,2,opt,name=module_path,json=modulePath,proto3" json:"module_path,omitempty"` // path within repo (e.g. atomic/ecs)
 	Version       string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`                         // tag or commit to register
-	Provider      string                 `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`                       // cloud provider
-	Name          string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`                               // display name
+	Provider      string                 `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`
+	Name          string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
 	Description   string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -336,7 +250,7 @@ type RegisterModuleRequest struct {
 
 func (x *RegisterModuleRequest) Reset() {
 	*x = RegisterModuleRequest{}
-	mi := &file_platform_v1_admin_proto_msgTypes[2]
+	mi := &file_platform_v1_admin_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -348,7 +262,7 @@ func (x *RegisterModuleRequest) String() string {
 func (*RegisterModuleRequest) ProtoMessage() {}
 
 func (x *RegisterModuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_admin_proto_msgTypes[2]
+	mi := &file_platform_v1_admin_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -361,7 +275,7 @@ func (x *RegisterModuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterModuleRequest.ProtoReflect.Descriptor instead.
 func (*RegisterModuleRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_admin_proto_rawDescGZIP(), []int{2}
+	return file_platform_v1_admin_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *RegisterModuleRequest) GetGitSource() string {
@@ -415,7 +329,7 @@ type RegisterModuleResponse struct {
 
 func (x *RegisterModuleResponse) Reset() {
 	*x = RegisterModuleResponse{}
-	mi := &file_platform_v1_admin_proto_msgTypes[3]
+	mi := &file_platform_v1_admin_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -427,7 +341,7 @@ func (x *RegisterModuleResponse) String() string {
 func (*RegisterModuleResponse) ProtoMessage() {}
 
 func (x *RegisterModuleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_admin_proto_msgTypes[3]
+	mi := &file_platform_v1_admin_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -440,7 +354,7 @@ func (x *RegisterModuleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterModuleResponse.ProtoReflect.Descriptor instead.
 func (*RegisterModuleResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_admin_proto_rawDescGZIP(), []int{3}
+	return file_platform_v1_admin_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *RegisterModuleResponse) GetModule() *Module {
@@ -461,7 +375,7 @@ type ListModulesRequest struct {
 
 func (x *ListModulesRequest) Reset() {
 	*x = ListModulesRequest{}
-	mi := &file_platform_v1_admin_proto_msgTypes[4]
+	mi := &file_platform_v1_admin_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -473,7 +387,7 @@ func (x *ListModulesRequest) String() string {
 func (*ListModulesRequest) ProtoMessage() {}
 
 func (x *ListModulesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_admin_proto_msgTypes[4]
+	mi := &file_platform_v1_admin_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -486,7 +400,7 @@ func (x *ListModulesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListModulesRequest.ProtoReflect.Descriptor instead.
 func (*ListModulesRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_admin_proto_rawDescGZIP(), []int{4}
+	return file_platform_v1_admin_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ListModulesRequest) GetPagination() *PageRequest {
@@ -520,7 +434,7 @@ type ListModulesResponse struct {
 
 func (x *ListModulesResponse) Reset() {
 	*x = ListModulesResponse{}
-	mi := &file_platform_v1_admin_proto_msgTypes[5]
+	mi := &file_platform_v1_admin_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -532,7 +446,7 @@ func (x *ListModulesResponse) String() string {
 func (*ListModulesResponse) ProtoMessage() {}
 
 func (x *ListModulesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_admin_proto_msgTypes[5]
+	mi := &file_platform_v1_admin_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -545,7 +459,7 @@ func (x *ListModulesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListModulesResponse.ProtoReflect.Descriptor instead.
 func (*ListModulesResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_admin_proto_rawDescGZIP(), []int{5}
+	return file_platform_v1_admin_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ListModulesResponse) GetModules() []*Module {
@@ -571,7 +485,7 @@ type GetModuleRequest struct {
 
 func (x *GetModuleRequest) Reset() {
 	*x = GetModuleRequest{}
-	mi := &file_platform_v1_admin_proto_msgTypes[6]
+	mi := &file_platform_v1_admin_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -583,7 +497,7 @@ func (x *GetModuleRequest) String() string {
 func (*GetModuleRequest) ProtoMessage() {}
 
 func (x *GetModuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_admin_proto_msgTypes[6]
+	mi := &file_platform_v1_admin_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -596,7 +510,7 @@ func (x *GetModuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetModuleRequest.ProtoReflect.Descriptor instead.
 func (*GetModuleRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_admin_proto_rawDescGZIP(), []int{6}
+	return file_platform_v1_admin_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetModuleRequest) GetModuleId() string {
@@ -615,7 +529,7 @@ type GetModuleResponse struct {
 
 func (x *GetModuleResponse) Reset() {
 	*x = GetModuleResponse{}
-	mi := &file_platform_v1_admin_proto_msgTypes[7]
+	mi := &file_platform_v1_admin_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -627,7 +541,7 @@ func (x *GetModuleResponse) String() string {
 func (*GetModuleResponse) ProtoMessage() {}
 
 func (x *GetModuleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_admin_proto_msgTypes[7]
+	mi := &file_platform_v1_admin_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -640,7 +554,7 @@ func (x *GetModuleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetModuleResponse.ProtoReflect.Descriptor instead.
 func (*GetModuleResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_admin_proto_rawDescGZIP(), []int{7}
+	return file_platform_v1_admin_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetModuleResponse) GetModule() *Module {
@@ -653,7 +567,7 @@ func (x *GetModuleResponse) GetModule() *Module {
 type DeprecateModuleRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ModuleId      string                 `protobuf:"bytes,1,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"`
-	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"` // specific version to deprecate
+	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
 	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -661,7 +575,7 @@ type DeprecateModuleRequest struct {
 
 func (x *DeprecateModuleRequest) Reset() {
 	*x = DeprecateModuleRequest{}
-	mi := &file_platform_v1_admin_proto_msgTypes[8]
+	mi := &file_platform_v1_admin_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -673,7 +587,7 @@ func (x *DeprecateModuleRequest) String() string {
 func (*DeprecateModuleRequest) ProtoMessage() {}
 
 func (x *DeprecateModuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_admin_proto_msgTypes[8]
+	mi := &file_platform_v1_admin_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -686,7 +600,7 @@ func (x *DeprecateModuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeprecateModuleRequest.ProtoReflect.Descriptor instead.
 func (*DeprecateModuleRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_admin_proto_rawDescGZIP(), []int{8}
+	return file_platform_v1_admin_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DeprecateModuleRequest) GetModuleId() string {
@@ -719,7 +633,7 @@ type DeprecateModuleResponse struct {
 
 func (x *DeprecateModuleResponse) Reset() {
 	*x = DeprecateModuleResponse{}
-	mi := &file_platform_v1_admin_proto_msgTypes[9]
+	mi := &file_platform_v1_admin_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -731,7 +645,7 @@ func (x *DeprecateModuleResponse) String() string {
 func (*DeprecateModuleResponse) ProtoMessage() {}
 
 func (x *DeprecateModuleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_admin_proto_msgTypes[9]
+	mi := &file_platform_v1_admin_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -744,7 +658,7 @@ func (x *DeprecateModuleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeprecateModuleResponse.ProtoReflect.Descriptor instead.
 func (*DeprecateModuleResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_admin_proto_rawDescGZIP(), []int{9}
+	return file_platform_v1_admin_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *DeprecateModuleResponse) GetModule() *Module {
@@ -756,27 +670,27 @@ func (x *DeprecateModuleResponse) GetModule() *Module {
 
 type PublishCatalogItemRequest struct {
 	state             protoimpl.MessageState                `protogen:"open.v1"`
-	ModuleId          string                                `protobuf:"bytes,1,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"`                // source module
-	ModuleVersion     string                                `protobuf:"bytes,2,opt,name=module_version,json=moduleVersion,proto3" json:"module_version,omitempty"` // which version to publish
-	Name              string                                `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`                                        // catalog item display name
+	ModuleId          string                                `protobuf:"bytes,1,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"`
+	ModuleVersion     string                                `protobuf:"bytes,2,opt,name=module_version,json=moduleVersion,proto3" json:"module_version,omitempty"`
+	Name              string                                `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	Description       string                                `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
-	Category          string                                `protobuf:"bytes,5,opt,name=category,proto3" json:"category,omitempty"` // e.g. "compute" / "database" / "network"
+	Category          string                                `protobuf:"bytes,5,opt,name=category,proto3" json:"category,omitempty"`
 	Cardinality       PublishCatalogItemRequest_Cardinality `protobuf:"varint,6,opt,name=cardinality,proto3,enum=aether.platform.v1.PublishCatalogItemRequest_Cardinality" json:"cardinality,omitempty"`
-	InstanceKey       string                                `protobuf:"bytes,7,opt,name=instance_key,json=instanceKey,proto3" json:"instance_key,omitempty"`                                                                                  // for_each key variable name
-	PerInstanceFields []string                              `protobuf:"bytes,8,rep,name=per_instance_fields,json=perInstanceFields,proto3" json:"per_instance_fields,omitempty"`                                                              // fields that differ per instance
-	SharedFields      []string                              `protobuf:"bytes,9,rep,name=shared_fields,json=sharedFields,proto3" json:"shared_fields,omitempty"`                                                                               // fields shared across instances
-	FormSchemaJson    string                                `protobuf:"bytes,10,opt,name=form_schema_json,json=formSchemaJson,proto3" json:"form_schema_json,omitempty"`                                                                      // trimmed form schema (from variables contract)
-	DefaultValues     map[string]string                     `protobuf:"bytes,11,rep,name=default_values,json=defaultValues,proto3" json:"default_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // best-practice defaults
-	VisibleToTeams    []string                              `protobuf:"bytes,12,rep,name=visible_to_teams,json=visibleToTeams,proto3" json:"visible_to_teams,omitempty"`                                                                      // visibility control (empty = all)
-	LayerLogicalId    string                                `protobuf:"bytes,13,opt,name=layer_logical_id,json=layerLogicalId,proto3" json:"layer_logical_id,omitempty"`                                                                      // which layer (global/middleware/application)
-	DefaultTags       map[string]string                     `protobuf:"bytes,14,rep,name=default_tags,json=defaultTags,proto3" json:"default_tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`       // platform-mandated tags (D18)
+	InstanceKey       string                                `protobuf:"bytes,7,opt,name=instance_key,json=instanceKey,proto3" json:"instance_key,omitempty"`
+	PerInstanceFields []string                              `protobuf:"bytes,8,rep,name=per_instance_fields,json=perInstanceFields,proto3" json:"per_instance_fields,omitempty"`
+	SharedFields      []string                              `protobuf:"bytes,9,rep,name=shared_fields,json=sharedFields,proto3" json:"shared_fields,omitempty"`
+	FormSchemaJson    string                                `protobuf:"bytes,10,opt,name=form_schema_json,json=formSchemaJson,proto3" json:"form_schema_json,omitempty"`
+	DefaultValues     map[string]string                     `protobuf:"bytes,11,rep,name=default_values,json=defaultValues,proto3" json:"default_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	VisibleToTeams    []string                              `protobuf:"bytes,12,rep,name=visible_to_teams,json=visibleToTeams,proto3" json:"visible_to_teams,omitempty"`
+	LayerLogicalId    string                                `protobuf:"bytes,13,opt,name=layer_logical_id,json=layerLogicalId,proto3" json:"layer_logical_id,omitempty"`
+	DefaultTags       map[string]string                     `protobuf:"bytes,14,rep,name=default_tags,json=defaultTags,proto3" json:"default_tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
 
 func (x *PublishCatalogItemRequest) Reset() {
 	*x = PublishCatalogItemRequest{}
-	mi := &file_platform_v1_admin_proto_msgTypes[10]
+	mi := &file_platform_v1_admin_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -788,7 +702,7 @@ func (x *PublishCatalogItemRequest) String() string {
 func (*PublishCatalogItemRequest) ProtoMessage() {}
 
 func (x *PublishCatalogItemRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_admin_proto_msgTypes[10]
+	mi := &file_platform_v1_admin_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -801,7 +715,7 @@ func (x *PublishCatalogItemRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishCatalogItemRequest.ProtoReflect.Descriptor instead.
 func (*PublishCatalogItemRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_admin_proto_rawDescGZIP(), []int{10}
+	return file_platform_v1_admin_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *PublishCatalogItemRequest) GetModuleId() string {
@@ -911,7 +825,7 @@ type PublishCatalogItemResponse struct {
 
 func (x *PublishCatalogItemResponse) Reset() {
 	*x = PublishCatalogItemResponse{}
-	mi := &file_platform_v1_admin_proto_msgTypes[11]
+	mi := &file_platform_v1_admin_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -923,7 +837,7 @@ func (x *PublishCatalogItemResponse) String() string {
 func (*PublishCatalogItemResponse) ProtoMessage() {}
 
 func (x *PublishCatalogItemResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_admin_proto_msgTypes[11]
+	mi := &file_platform_v1_admin_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -936,7 +850,7 @@ func (x *PublishCatalogItemResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishCatalogItemResponse.ProtoReflect.Descriptor instead.
 func (*PublishCatalogItemResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_admin_proto_rawDescGZIP(), []int{11}
+	return file_platform_v1_admin_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *PublishCatalogItemResponse) GetItem() *CatalogItem {
@@ -948,10 +862,10 @@ func (x *PublishCatalogItemResponse) GetItem() *CatalogItem {
 
 type UpdateCatalogItemRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	CatalogItemId  string                 `protobuf:"bytes,1,opt,name=catalog_item_id,json=catalogItemId,proto3" json:"catalog_item_id,omitempty"` // cat_<alphanum>
+	CatalogItemId  string                 `protobuf:"bytes,1,opt,name=catalog_item_id,json=catalogItemId,proto3" json:"catalog_item_id,omitempty"`
 	DefaultValues  map[string]string      `protobuf:"bytes,2,rep,name=default_values,json=defaultValues,proto3" json:"default_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	VisibleToTeams []string               `protobuf:"bytes,3,rep,name=visible_to_teams,json=visibleToTeams,proto3" json:"visible_to_teams,omitempty"`
-	FormSchemaJson string                 `protobuf:"bytes,4,opt,name=form_schema_json,json=formSchemaJson,proto3" json:"form_schema_json,omitempty"` // updated form schema
+	FormSchemaJson string                 `protobuf:"bytes,4,opt,name=form_schema_json,json=formSchemaJson,proto3" json:"form_schema_json,omitempty"`
 	DefaultTags    map[string]string      `protobuf:"bytes,5,rep,name=default_tags,json=defaultTags,proto3" json:"default_tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -959,7 +873,7 @@ type UpdateCatalogItemRequest struct {
 
 func (x *UpdateCatalogItemRequest) Reset() {
 	*x = UpdateCatalogItemRequest{}
-	mi := &file_platform_v1_admin_proto_msgTypes[12]
+	mi := &file_platform_v1_admin_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -971,7 +885,7 @@ func (x *UpdateCatalogItemRequest) String() string {
 func (*UpdateCatalogItemRequest) ProtoMessage() {}
 
 func (x *UpdateCatalogItemRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_admin_proto_msgTypes[12]
+	mi := &file_platform_v1_admin_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -984,7 +898,7 @@ func (x *UpdateCatalogItemRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCatalogItemRequest.ProtoReflect.Descriptor instead.
 func (*UpdateCatalogItemRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_admin_proto_rawDescGZIP(), []int{12}
+	return file_platform_v1_admin_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UpdateCatalogItemRequest) GetCatalogItemId() string {
@@ -1031,7 +945,7 @@ type UpdateCatalogItemResponse struct {
 
 func (x *UpdateCatalogItemResponse) Reset() {
 	*x = UpdateCatalogItemResponse{}
-	mi := &file_platform_v1_admin_proto_msgTypes[13]
+	mi := &file_platform_v1_admin_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1043,7 +957,7 @@ func (x *UpdateCatalogItemResponse) String() string {
 func (*UpdateCatalogItemResponse) ProtoMessage() {}
 
 func (x *UpdateCatalogItemResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_admin_proto_msgTypes[13]
+	mi := &file_platform_v1_admin_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1056,7 +970,7 @@ func (x *UpdateCatalogItemResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCatalogItemResponse.ProtoReflect.Descriptor instead.
 func (*UpdateCatalogItemResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_admin_proto_rawDescGZIP(), []int{13}
+	return file_platform_v1_admin_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *UpdateCatalogItemResponse) GetItem() *CatalogItem {
@@ -1076,7 +990,7 @@ type DeprecateCatalogItemRequest struct {
 
 func (x *DeprecateCatalogItemRequest) Reset() {
 	*x = DeprecateCatalogItemRequest{}
-	mi := &file_platform_v1_admin_proto_msgTypes[14]
+	mi := &file_platform_v1_admin_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1088,7 +1002,7 @@ func (x *DeprecateCatalogItemRequest) String() string {
 func (*DeprecateCatalogItemRequest) ProtoMessage() {}
 
 func (x *DeprecateCatalogItemRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_admin_proto_msgTypes[14]
+	mi := &file_platform_v1_admin_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1101,7 +1015,7 @@ func (x *DeprecateCatalogItemRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeprecateCatalogItemRequest.ProtoReflect.Descriptor instead.
 func (*DeprecateCatalogItemRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_admin_proto_rawDescGZIP(), []int{14}
+	return file_platform_v1_admin_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *DeprecateCatalogItemRequest) GetCatalogItemId() string {
@@ -1127,7 +1041,7 @@ type DeprecateCatalogItemResponse struct {
 
 func (x *DeprecateCatalogItemResponse) Reset() {
 	*x = DeprecateCatalogItemResponse{}
-	mi := &file_platform_v1_admin_proto_msgTypes[15]
+	mi := &file_platform_v1_admin_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1139,7 +1053,7 @@ func (x *DeprecateCatalogItemResponse) String() string {
 func (*DeprecateCatalogItemResponse) ProtoMessage() {}
 
 func (x *DeprecateCatalogItemResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_admin_proto_msgTypes[15]
+	mi := &file_platform_v1_admin_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1152,7 +1066,7 @@ func (x *DeprecateCatalogItemResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeprecateCatalogItemResponse.ProtoReflect.Descriptor instead.
 func (*DeprecateCatalogItemResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_admin_proto_rawDescGZIP(), []int{15}
+	return file_platform_v1_admin_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DeprecateCatalogItemResponse) GetItem() *CatalogItem {
@@ -1185,15 +1099,7 @@ const file_platform_v1_admin_proto_rawDesc = "" +
 	" MODULE_STATUS_PENDING_VALIDATION\x10\x01\x12\x1b\n" +
 	"\x17MODULE_STATUS_VALIDATED\x10\x02\x12#\n" +
 	"\x1fMODULE_STATUS_VALIDATION_FAILED\x10\x03\x12\x1c\n" +
-	"\x18MODULE_STATUS_DEPRECATED\x10\x04\"\xea\x01\n" +
-	"\x10ModuleDependency\x12#\n" +
-	"\rvariable_name\x18\x01 \x01(\tR\fvariableName\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription\x12(\n" +
-	"\x10depends_on_layer\x18\x03 \x01(\tR\x0edependsOnLayer\x12*\n" +
-	"\x11depends_on_module\x18\x04 \x01(\tR\x0fdependsOnModule\x12\x1d\n" +
-	"\n" +
-	"output_key\x18\x05 \x01(\tR\toutputKey\x12\x1a\n" +
-	"\brequired\x18\x06 \x01(\bR\brequired\"\xc3\x01\n" +
+	"\x18MODULE_STATUS_DEPRECATED\x10\x04\"\xc3\x01\n" +
 	"\x15RegisterModuleRequest\x12\x1d\n" +
 	"\n" +
 	"git_source\x18\x01 \x01(\tR\tgitSource\x12\x1f\n" +
@@ -1297,67 +1203,66 @@ func file_platform_v1_admin_proto_rawDescGZIP() []byte {
 }
 
 var file_platform_v1_admin_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_platform_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_platform_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_platform_v1_admin_proto_goTypes = []any{
 	(Module_ModuleStatus)(0),                   // 0: aether.platform.v1.Module.ModuleStatus
 	(PublishCatalogItemRequest_Cardinality)(0), // 1: aether.platform.v1.PublishCatalogItemRequest.Cardinality
 	(*Module)(nil),                             // 2: aether.platform.v1.Module
-	(*ModuleDependency)(nil),                   // 3: aether.platform.v1.ModuleDependency
-	(*RegisterModuleRequest)(nil),              // 4: aether.platform.v1.RegisterModuleRequest
-	(*RegisterModuleResponse)(nil),             // 5: aether.platform.v1.RegisterModuleResponse
-	(*ListModulesRequest)(nil),                 // 6: aether.platform.v1.ListModulesRequest
-	(*ListModulesResponse)(nil),                // 7: aether.platform.v1.ListModulesResponse
-	(*GetModuleRequest)(nil),                   // 8: aether.platform.v1.GetModuleRequest
-	(*GetModuleResponse)(nil),                  // 9: aether.platform.v1.GetModuleResponse
-	(*DeprecateModuleRequest)(nil),             // 10: aether.platform.v1.DeprecateModuleRequest
-	(*DeprecateModuleResponse)(nil),            // 11: aether.platform.v1.DeprecateModuleResponse
-	(*PublishCatalogItemRequest)(nil),          // 12: aether.platform.v1.PublishCatalogItemRequest
-	(*PublishCatalogItemResponse)(nil),         // 13: aether.platform.v1.PublishCatalogItemResponse
-	(*UpdateCatalogItemRequest)(nil),           // 14: aether.platform.v1.UpdateCatalogItemRequest
-	(*UpdateCatalogItemResponse)(nil),          // 15: aether.platform.v1.UpdateCatalogItemResponse
-	(*DeprecateCatalogItemRequest)(nil),        // 16: aether.platform.v1.DeprecateCatalogItemRequest
-	(*DeprecateCatalogItemResponse)(nil),       // 17: aether.platform.v1.DeprecateCatalogItemResponse
-	nil,                                        // 18: aether.platform.v1.PublishCatalogItemRequest.DefaultValuesEntry
-	nil,                                        // 19: aether.platform.v1.PublishCatalogItemRequest.DefaultTagsEntry
-	nil,                                        // 20: aether.platform.v1.UpdateCatalogItemRequest.DefaultValuesEntry
-	nil,                                        // 21: aether.platform.v1.UpdateCatalogItemRequest.DefaultTagsEntry
-	(*ModuleVersion)(nil),                      // 22: aether.platform.v1.ModuleVersion
-	(*PageRequest)(nil),                        // 23: aether.platform.v1.PageRequest
-	(*PageResponse)(nil),                       // 24: aether.platform.v1.PageResponse
-	(*CatalogItem)(nil),                        // 25: aether.platform.v1.CatalogItem
+	(*RegisterModuleRequest)(nil),              // 3: aether.platform.v1.RegisterModuleRequest
+	(*RegisterModuleResponse)(nil),             // 4: aether.platform.v1.RegisterModuleResponse
+	(*ListModulesRequest)(nil),                 // 5: aether.platform.v1.ListModulesRequest
+	(*ListModulesResponse)(nil),                // 6: aether.platform.v1.ListModulesResponse
+	(*GetModuleRequest)(nil),                   // 7: aether.platform.v1.GetModuleRequest
+	(*GetModuleResponse)(nil),                  // 8: aether.platform.v1.GetModuleResponse
+	(*DeprecateModuleRequest)(nil),             // 9: aether.platform.v1.DeprecateModuleRequest
+	(*DeprecateModuleResponse)(nil),            // 10: aether.platform.v1.DeprecateModuleResponse
+	(*PublishCatalogItemRequest)(nil),          // 11: aether.platform.v1.PublishCatalogItemRequest
+	(*PublishCatalogItemResponse)(nil),         // 12: aether.platform.v1.PublishCatalogItemResponse
+	(*UpdateCatalogItemRequest)(nil),           // 13: aether.platform.v1.UpdateCatalogItemRequest
+	(*UpdateCatalogItemResponse)(nil),          // 14: aether.platform.v1.UpdateCatalogItemResponse
+	(*DeprecateCatalogItemRequest)(nil),        // 15: aether.platform.v1.DeprecateCatalogItemRequest
+	(*DeprecateCatalogItemResponse)(nil),       // 16: aether.platform.v1.DeprecateCatalogItemResponse
+	nil,                                        // 17: aether.platform.v1.PublishCatalogItemRequest.DefaultValuesEntry
+	nil,                                        // 18: aether.platform.v1.PublishCatalogItemRequest.DefaultTagsEntry
+	nil,                                        // 19: aether.platform.v1.UpdateCatalogItemRequest.DefaultValuesEntry
+	nil,                                        // 20: aether.platform.v1.UpdateCatalogItemRequest.DefaultTagsEntry
+	(*ModuleVersion)(nil),                      // 21: aether.platform.v1.ModuleVersion
+	(*PageRequest)(nil),                        // 22: aether.platform.v1.PageRequest
+	(*PageResponse)(nil),                       // 23: aether.platform.v1.PageResponse
+	(*CatalogItem)(nil),                        // 24: aether.platform.v1.CatalogItem
 }
 var file_platform_v1_admin_proto_depIdxs = []int32{
 	0,  // 0: aether.platform.v1.Module.status:type_name -> aether.platform.v1.Module.ModuleStatus
-	22, // 1: aether.platform.v1.Module.versions:type_name -> aether.platform.v1.ModuleVersion
+	21, // 1: aether.platform.v1.Module.versions:type_name -> aether.platform.v1.ModuleVersion
 	2,  // 2: aether.platform.v1.RegisterModuleResponse.module:type_name -> aether.platform.v1.Module
-	23, // 3: aether.platform.v1.ListModulesRequest.pagination:type_name -> aether.platform.v1.PageRequest
+	22, // 3: aether.platform.v1.ListModulesRequest.pagination:type_name -> aether.platform.v1.PageRequest
 	0,  // 4: aether.platform.v1.ListModulesRequest.status_filter:type_name -> aether.platform.v1.Module.ModuleStatus
 	2,  // 5: aether.platform.v1.ListModulesResponse.modules:type_name -> aether.platform.v1.Module
-	24, // 6: aether.platform.v1.ListModulesResponse.pagination:type_name -> aether.platform.v1.PageResponse
+	23, // 6: aether.platform.v1.ListModulesResponse.pagination:type_name -> aether.platform.v1.PageResponse
 	2,  // 7: aether.platform.v1.GetModuleResponse.module:type_name -> aether.platform.v1.Module
 	2,  // 8: aether.platform.v1.DeprecateModuleResponse.module:type_name -> aether.platform.v1.Module
 	1,  // 9: aether.platform.v1.PublishCatalogItemRequest.cardinality:type_name -> aether.platform.v1.PublishCatalogItemRequest.Cardinality
-	18, // 10: aether.platform.v1.PublishCatalogItemRequest.default_values:type_name -> aether.platform.v1.PublishCatalogItemRequest.DefaultValuesEntry
-	19, // 11: aether.platform.v1.PublishCatalogItemRequest.default_tags:type_name -> aether.platform.v1.PublishCatalogItemRequest.DefaultTagsEntry
-	25, // 12: aether.platform.v1.PublishCatalogItemResponse.item:type_name -> aether.platform.v1.CatalogItem
-	20, // 13: aether.platform.v1.UpdateCatalogItemRequest.default_values:type_name -> aether.platform.v1.UpdateCatalogItemRequest.DefaultValuesEntry
-	21, // 14: aether.platform.v1.UpdateCatalogItemRequest.default_tags:type_name -> aether.platform.v1.UpdateCatalogItemRequest.DefaultTagsEntry
-	25, // 15: aether.platform.v1.UpdateCatalogItemResponse.item:type_name -> aether.platform.v1.CatalogItem
-	25, // 16: aether.platform.v1.DeprecateCatalogItemResponse.item:type_name -> aether.platform.v1.CatalogItem
-	4,  // 17: aether.platform.v1.ModuleRegistryService.RegisterModule:input_type -> aether.platform.v1.RegisterModuleRequest
-	6,  // 18: aether.platform.v1.ModuleRegistryService.ListModules:input_type -> aether.platform.v1.ListModulesRequest
-	8,  // 19: aether.platform.v1.ModuleRegistryService.GetModule:input_type -> aether.platform.v1.GetModuleRequest
-	10, // 20: aether.platform.v1.ModuleRegistryService.DeprecateModule:input_type -> aether.platform.v1.DeprecateModuleRequest
-	12, // 21: aether.platform.v1.CatalogAdminService.PublishCatalogItem:input_type -> aether.platform.v1.PublishCatalogItemRequest
-	14, // 22: aether.platform.v1.CatalogAdminService.UpdateCatalogItem:input_type -> aether.platform.v1.UpdateCatalogItemRequest
-	16, // 23: aether.platform.v1.CatalogAdminService.DeprecateCatalogItem:input_type -> aether.platform.v1.DeprecateCatalogItemRequest
-	5,  // 24: aether.platform.v1.ModuleRegistryService.RegisterModule:output_type -> aether.platform.v1.RegisterModuleResponse
-	7,  // 25: aether.platform.v1.ModuleRegistryService.ListModules:output_type -> aether.platform.v1.ListModulesResponse
-	9,  // 26: aether.platform.v1.ModuleRegistryService.GetModule:output_type -> aether.platform.v1.GetModuleResponse
-	11, // 27: aether.platform.v1.ModuleRegistryService.DeprecateModule:output_type -> aether.platform.v1.DeprecateModuleResponse
-	13, // 28: aether.platform.v1.CatalogAdminService.PublishCatalogItem:output_type -> aether.platform.v1.PublishCatalogItemResponse
-	15, // 29: aether.platform.v1.CatalogAdminService.UpdateCatalogItem:output_type -> aether.platform.v1.UpdateCatalogItemResponse
-	17, // 30: aether.platform.v1.CatalogAdminService.DeprecateCatalogItem:output_type -> aether.platform.v1.DeprecateCatalogItemResponse
+	17, // 10: aether.platform.v1.PublishCatalogItemRequest.default_values:type_name -> aether.platform.v1.PublishCatalogItemRequest.DefaultValuesEntry
+	18, // 11: aether.platform.v1.PublishCatalogItemRequest.default_tags:type_name -> aether.platform.v1.PublishCatalogItemRequest.DefaultTagsEntry
+	24, // 12: aether.platform.v1.PublishCatalogItemResponse.item:type_name -> aether.platform.v1.CatalogItem
+	19, // 13: aether.platform.v1.UpdateCatalogItemRequest.default_values:type_name -> aether.platform.v1.UpdateCatalogItemRequest.DefaultValuesEntry
+	20, // 14: aether.platform.v1.UpdateCatalogItemRequest.default_tags:type_name -> aether.platform.v1.UpdateCatalogItemRequest.DefaultTagsEntry
+	24, // 15: aether.platform.v1.UpdateCatalogItemResponse.item:type_name -> aether.platform.v1.CatalogItem
+	24, // 16: aether.platform.v1.DeprecateCatalogItemResponse.item:type_name -> aether.platform.v1.CatalogItem
+	3,  // 17: aether.platform.v1.ModuleRegistryService.RegisterModule:input_type -> aether.platform.v1.RegisterModuleRequest
+	5,  // 18: aether.platform.v1.ModuleRegistryService.ListModules:input_type -> aether.platform.v1.ListModulesRequest
+	7,  // 19: aether.platform.v1.ModuleRegistryService.GetModule:input_type -> aether.platform.v1.GetModuleRequest
+	9,  // 20: aether.platform.v1.ModuleRegistryService.DeprecateModule:input_type -> aether.platform.v1.DeprecateModuleRequest
+	11, // 21: aether.platform.v1.CatalogAdminService.PublishCatalogItem:input_type -> aether.platform.v1.PublishCatalogItemRequest
+	13, // 22: aether.platform.v1.CatalogAdminService.UpdateCatalogItem:input_type -> aether.platform.v1.UpdateCatalogItemRequest
+	15, // 23: aether.platform.v1.CatalogAdminService.DeprecateCatalogItem:input_type -> aether.platform.v1.DeprecateCatalogItemRequest
+	4,  // 24: aether.platform.v1.ModuleRegistryService.RegisterModule:output_type -> aether.platform.v1.RegisterModuleResponse
+	6,  // 25: aether.platform.v1.ModuleRegistryService.ListModules:output_type -> aether.platform.v1.ListModulesResponse
+	8,  // 26: aether.platform.v1.ModuleRegistryService.GetModule:output_type -> aether.platform.v1.GetModuleResponse
+	10, // 27: aether.platform.v1.ModuleRegistryService.DeprecateModule:output_type -> aether.platform.v1.DeprecateModuleResponse
+	12, // 28: aether.platform.v1.CatalogAdminService.PublishCatalogItem:output_type -> aether.platform.v1.PublishCatalogItemResponse
+	14, // 29: aether.platform.v1.CatalogAdminService.UpdateCatalogItem:output_type -> aether.platform.v1.UpdateCatalogItemResponse
+	16, // 30: aether.platform.v1.CatalogAdminService.DeprecateCatalogItem:output_type -> aether.platform.v1.DeprecateCatalogItemResponse
 	24, // [24:31] is the sub-list for method output_type
 	17, // [17:24] is the sub-list for method input_type
 	17, // [17:17] is the sub-list for extension type_name
@@ -1378,7 +1283,7 @@ func file_platform_v1_admin_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_admin_proto_rawDesc), len(file_platform_v1_admin_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   20,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

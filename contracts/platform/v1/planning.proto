@@ -14,50 +14,6 @@ service PlanningService {
   rpc StartPlan(StartPlanRequest) returns (StartPlanResponse) {}
 }
 
-// ============================================================
-// ArtifactService — Plan artifact metadata.
-// ============================================================
-service ArtifactService {
-  rpc GetArtifact(GetArtifactRequest) returns (GetArtifactResponse) {}
-}
-
-// ============================================================
-// GateService — Admission gate evaluation.
-// Runs OPA policies, budget checks, tag validation between plan-ready
-// and pending-approval (D16/D18/D22).
-// ============================================================
-service GateService {
-  rpc EvaluateGate(EvaluateGateRequest) returns (EvaluateGateResponse) {}
-}
-
-// --- Messages ---
-
-message PlanArtifact {
-  string id = 1;                    // art_<alphanum>
-  string request_id = 2;
-  enum ArtifactStatus {
-    ARTIFACT_STATUS_UNSPECIFIED = 0;
-    ARTIFACT_STATUS_READY = 1;
-    ARTIFACT_STATUS_EXPIRED = 2;
-    ARTIFACT_STATUS_CONSUMED = 3;
-  }
-  ArtifactStatus status = 3;
-  string plan_hash = 4;             // sha256:<hex>
-  PlanSummary summary = 5;
-  int64 cost_estimate_cents = 6;
-  string storage_uri = 7;
-  string expires_at = 8;            // RFC 3339 UTC
-  string created_at = 9;
-}
-
-message PlanSummary {
-  int32 resources_to_add = 1;
-  int32 resources_to_change = 2;
-  int32 resources_to_destroy = 3;
-}
-
-// --- RPC Messages ---
-
 message StartPlanRequest {
   string request_id = 1;
 }
@@ -65,40 +21,4 @@ message StartPlanRequest {
 message StartPlanResponse {
   Request request = 1;              // updated request with status=planning
   string correlation_id = 2;
-}
-
-message GetArtifactRequest {
-  string artifact_id = 1;
-}
-
-message GetArtifactResponse {
-  PlanArtifact artifact = 1;
-  string correlation_id = 2;
-}
-
-// --- Gate ---
-
-message EvaluateGateRequest {
-  string request_id = 1;
-}
-
-message EvaluateGateResponse {
-  string request_id = 1;
-  bool passed = 2;
-  repeated GateResult gates = 3;
-  string correlation_id = 4;
-}
-
-message GateResult {
-  string gate_id = 1;
-  bool passed = 2;
-
-  enum Severity {
-    SEVERITY_UNSPECIFIED = 0;
-    SEVERITY_ERROR = 1;
-    SEVERITY_WARNING = 2;
-  }
-  string policy = 3;
-  string message = 4;
-  Severity severity = 5;
 }
