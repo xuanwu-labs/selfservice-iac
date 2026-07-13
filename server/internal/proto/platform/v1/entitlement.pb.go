@@ -7,7 +7,6 @@
 package platformv1
 
 import (
-	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -318,7 +317,7 @@ var File_platform_v1_entitlement_proto protoreflect.FileDescriptor
 
 const file_platform_v1_entitlement_proto_rawDesc = "" +
 	"\n" +
-	"\x1dplatform/v1/entitlement.proto\x12\x12aether.platform.v1\x1a\x1cgoogle/api/annotations.proto\"\xe1\x03\n" +
+	"\x1dplatform/v1/entitlement.proto\x12\x12aether.platform.v1\"\xe1\x03\n" +
 	"\fCloudAccount\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12J\n" +
 	"\bprovider\x18\x02 \x01(\x0e2..aether.platform.v1.CloudAccount.CloudProviderR\bprovider\x12\x12\n" +
@@ -342,9 +341,9 @@ const file_platform_v1_entitlement_proto_rawDesc = "" +
 	"$ListRequestableCloudAccountsResponse\x12<\n" +
 	"\baccounts\x18\x01 \x03(\v2 .aether.platform.v1.CloudAccountR\baccounts\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12%\n" +
-	"\x0ecorrelation_id\x18\x03 \x01(\tR\rcorrelationId2\xd0\x01\n" +
-	"\x12EntitlementService\x12\xb9\x01\n" +
-	"\x1cListRequestableCloudAccounts\x127.aether.platform.v1.ListRequestableCloudAccountsRequest\x1a8.aether.platform.v1.ListRequestableCloudAccountsResponse\"&\x82\xd3\xe4\x93\x02 \x12\x1e/v1/requestable-cloud-accountsBUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
+	"\x0ecorrelation_id\x18\x03 \x01(\tR\rcorrelationId2\xaa\x01\n" +
+	"\x12EntitlementService\x12\x93\x01\n" +
+	"\x1cListRequestableCloudAccounts\x127.aether.platform.v1.ListRequestableCloudAccountsRequest\x1a8.aether.platform.v1.ListRequestableCloudAccountsResponse\"\x00BUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
 
 var (
 	file_platform_v1_entitlement_proto_rawDescOnce sync.Once
