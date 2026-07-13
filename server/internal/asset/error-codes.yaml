@@ -1,10 +1,3 @@
-# ============================================================
-# DO NOT EDIT — this is a synchronized copy.
-# Source of truth: contracts/error-codes.yaml (repo root).
-# Regenerate with: make proto-gen
-# Embedded into the server binary via //go:embed in internal/asset/asset.go.
-# ============================================================
-
 # Aether Platform Error Code Registry
 #
 # Phase 0 Contract Freeze (task 0.5).
