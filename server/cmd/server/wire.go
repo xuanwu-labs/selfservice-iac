@@ -16,9 +16,7 @@ import (
 	connectapi "github.com/xuanwu-labs/selfservice-iac/server/api/connect"
 	"github.com/xuanwu-labs/selfservice-iac/server/core"
 	"github.com/xuanwu-labs/selfservice-iac/server/data"
-	"github.com/xuanwu-labs/selfservice-iac/server/internal/asset"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/config"
-	platformerrors "github.com/xuanwu-labs/selfservice-iac/server/internal/errors"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/server"
 )
 
@@ -48,15 +46,6 @@ func provideLogger(cfg *config.Config) *otelzap.Logger {
 // providers (e.g. pgxpool construction).
 func provideAppContext() context.Context { return context.Background() }
 
-// provideRegistry loads the error-code registry from the embedded
-// error-codes.yaml (internal/asset) into an in-memory *errors.Registry.
-// This is the runtime source of truth for error behavior (retryable,
-// manual_required, remediation, owner); handlers and the fallback
-// interceptor consume it. See specs/03-平台契约.md "错误码注册表".
-func provideRegistry() (*platformerrors.Registry, error) {
-	return platformerrors.Load(asset.ErrorCodes)
-}
-
 // allProviders aggregates every layer's ProviderSet. Adding a new package
 // means adding its ProviderSet here — nothing else changes in wire.go.
 var allProviders = wire.NewSet(
@@ -67,7 +56,6 @@ var allProviders = wire.NewSet(
 	server.ProviderSet,
 	provideLogger,
 	provideAppContext,
-	provideRegistry,
 	wire.Struct(new(App), "*"),
 )
 

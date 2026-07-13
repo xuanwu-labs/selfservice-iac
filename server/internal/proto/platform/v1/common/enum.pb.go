@@ -853,12 +853,13 @@ func (ApprovalNodeStatus) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{14}
 }
 
-// ErrorCode enumerates every platform error code. The value name (minus the
-// ERROR_CODE_ prefix) is the key into contracts/error-codes.yaml, which holds
-// the behavior fields (http_status, grpc_code, retryable, manual_required,
-// remediation, owner) that a proto enum cannot express. proto is the source
-// for the code identity (this enum); YAML is the source for the code behavior.
-// Adding a code: add the enum value here AND the behavior row in error-codes.yaml.
+// ErrorCode enumerates every platform error code — the single source of truth
+// for error-code identity. The value name (minus the ERROR_CODE_ prefix) is the
+// ErrorInfo reason clients match against. Transport semantics (gRPC Code,
+// retryable, HTTP status) are supplied by the caller at the call site and
+// derived from connect.Code per the gRPC standard; no separate behavior table
+// is maintained (kratos-style: code identity in enum, behavior via Code).
+// Adding a code: add the enum value here and run buf generate.
 type ErrorCode int32
 
 const (

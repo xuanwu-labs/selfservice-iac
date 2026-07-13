@@ -35,11 +35,11 @@
 - **THEN** 未来 Go Gateway SHALL 将 Dubbo method 转换为平台 Connect 调用，核心平台不得暴露 Dubbo service，也不得为 Dubbo 定义独立状态机、权限模型、CMDB 模型或 FinOps 模型
 
 ### Requirement: Phase 0 契约产物（Connect-native）
-平台 SHALL 在进入大规模业务开发前产出可机器校验的契约产物：`contracts/platform/v1/**/*.proto`（proto 唯一契约源，Connect-native）、`contracts/error-codes.yaml`（错误码注册表）、`contracts/fixtures/state-machine/*.json`、`contracts/fixtures/adapter/*.json`、`contracts/fixtures/walking-skeleton/*.json`。这些产物 SHALL 通过 `buf lint && buf generate` 校验。**平台 SHALL NOT 产出** `openapi.yaml`、`protocol-mapping.md`、`schemas/*.json`（proto 是唯一源，Connect-RPC 原生覆盖三协议）。
+平台 SHALL 在进入大规模业务开发前产出可机器校验的契约产物：`contracts/platform/v1/**/*.proto`（proto 唯一契约源，Connect-native，含 ErrorCode enum 作为错误码身份单源）、`contracts/fixtures/state-machine/*.json`、`contracts/fixtures/adapter/*.json`、`contracts/fixtures/walking-skeleton/*.json`。这些产物 SHALL 通过 `buf lint && buf generate` 校验。**平台 SHALL NOT 产出** `openapi.yaml`、`protocol-mapping.md`、`schemas/*.json`、`error-codes.yaml`（proto enum 是错误码唯一源；Connect-RPC 原生覆盖三协议）。
 
 #### Scenario: 契约不是 Markdown 说明
 - **WHEN** Phase 0 验收 API、schema、状态机、Adapter 和 walking skeleton
-- **THEN** 验收依据 SHALL 是 `contracts/` 下的 proto、error-codes.yaml 和 fixture 产物（经 buf lint 校验），而不是仅阅读设计文档
+- **THEN** 验收依据 SHALL 是 `contracts/` 下的 proto 和 fixture 产物（经 buf lint 校验），而不是仅阅读设计文档
 
 ### Requirement: RequestCreate Schema
 `POST /requests` 的请求 schema SHALL 包含 `catalog_item_id`、`env_id`、`team_id`、`form_values`、`source`，并可选包含 `tenant_id`、`bundle_id`、`source_context`。平台 SHALL 对 `form_values` 做 canonical JSON 计算 `form_hash`。

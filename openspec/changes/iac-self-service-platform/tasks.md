@@ -62,7 +62,7 @@
 - [x] 0.2 产出 `contracts/platform/v1/{common,lifecycle,catalog,cloud}/{srv,dto}.proto`（域目录 × srv/dto/enum 分离；6 service / 21 RPC）
 - [x] 0.3 ~~产出 `contracts/protocol-mapping.md`~~ → **废弃**：Connect-RPC 单 handler 原生覆盖三协议，无需手写映射文档
 - [x] 0.4 ~~产出 `contracts/schemas/*.schema.json`~~ → **废弃**：消息定义即 proto message，前端用 connect-es 自带类型，无需手写 JSON Schema
-- [x] 0.5 产出 `contracts/error-codes.yaml`：冻结错误码、HTTP status、gRPC code、retryable、manual_required、remediation、owner
+- [x] 0.5 ~~产出 `contracts/error-codes.yaml`~~ → **改为 proto enum 单源**：错误码身份由 `common/enum.proto` 的 ErrorCode enum 定义（buf 生成），传输语义（gRPC Code/retryable/HTTP status）调用时传 + 从 Code 派生，对标 kratos/ferret
 - [x] 0.6 产出 `contracts/fixtures/state-machine/main-lifecycle.json`：17 test cases（RLC/ERR/IDEMP/CONC/EXPR）
 - [x] 0.7 产出 `contracts/fixtures/adapter/terramate-adapter.json`：4 golden cases（plan/saved-plan apply/drift/import），明确 forbidden command，禁止 Orchestrator 绕过 Terramate
 - [x] 0.8 产出 `contracts/fixtures/walking-skeleton/seed-data.json`：tenant/env/team/bundle/catalog/module/cloud grant/toolchain/path/approval/plan artifact seed

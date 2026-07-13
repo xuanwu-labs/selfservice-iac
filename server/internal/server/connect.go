@@ -24,9 +24,9 @@ import (
 //
 // This is the wire provider that bundles middleware.DefaultGinMiddlewares,
 // middleware.DefaultConnectInterceptors, the otelconnect interceptor, the
-// audit interceptor (needs logger), the error-wrap fallback interceptor
-// (needs the error registry), and registers all Connect service handlers.
-func ProvideServerConfig(catalog *connectapi.CatalogHandler, reg *platformerrors.Registry, logger *otelzap.Logger) (*middleware.ServerConfig, error) {
+// audit interceptor (needs logger), the error-wrap fallback interceptor, and
+// registers all Connect service handlers.
+func ProvideServerConfig(catalog *connectapi.CatalogHandler, logger *otelzap.Logger) (*middleware.ServerConfig, error) {
 	// Build the Connect interceptor chain: otelconnect + auth/rbac/ratelimit + audit + error-wrap.
 	otelIC, err := otelconnect.NewInterceptor(otelconnect.WithTrustRemote())
 	if err != nil {
@@ -42,9 +42,9 @@ func ProvideServerConfig(catalog *connectapi.CatalogHandler, reg *platformerrors
 			middleware.ConnectRateLimit(),
 			middleware.ConnectAudit(logger),
 			// Error-wrap interceptor: last in the chain so it sees the final
-			// handler error. Raw (non-registry) errors get wrapped as
+			// handler error. Raw (non-structured) errors get wrapped as
 			// INTERNAL_ERROR; structured errors pass through unchanged.
-			platformerrors.WrapInterceptor(reg),
+			platformerrors.WrapInterceptor(),
 		),
 	}
 
