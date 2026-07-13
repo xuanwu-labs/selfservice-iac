@@ -19,7 +19,7 @@
 
 | 产物 | 位置 | 状态 |
 |---|---|---|
-| proto service 定义（6 service / 21 RPC） | `contracts/platform/v1/{common,lifecycle,catalog,cloud}/` | ✅ 已产出 |
+| proto service 定义（6 service / 24 RPC） | `contracts/platform/v1/{common,lifecycle,catalog,registry,cloud}/` | ✅ 已产出 |
 | error-codes.yaml（20 错误码） | `contracts/error-codes.yaml` | ✅ 已产出 |
 | state-machine fixtures（17 test cases） | `contracts/fixtures/state-machine/` | ✅ 已产出 |
 | adapter golden cases（4 cases） | `contracts/fixtures/adapter/` | ✅ 已产出 |
@@ -28,13 +28,15 @@
 ## Proto 范式（Connect-native，遵循 OpenSpec config `design` 规则）
 
 - **Connect-native**：proto 是唯一契约源，不手写 openapi.yaml / schemas / protocol-mapping.md（D1）。
-- **域目录组织**：每个业务域一个目录（`common/` / `lifecycle/` / `catalog/` / `cloud/`）。
+- **域目录组织**：每个业务域一个目录（`common/` / `lifecycle/` / `catalog/` / `registry/` / `cloud/`）。
 - **srv/dto/enum 分离**：域内 `srv.proto` 只放 service 定义；`dto.proto` 放该域全部 message；跨域枚举集中在 `common/enum.proto`。
 - **三层服务模型**：Server（用户，OIDC+RBAC）/ Admin（操作员，admin 角色）/ Internal（进程内函数调用，不写 proto）。详见 `contracts/README.md`。
-- **admin 分离**：admin 操作（RegistryAdminService / CatalogAdminService）与用户操作（CatalogService）分开 service，拦截器按 service 名前缀做权限控制。
-- **枚举命名**：proto3 标准，类型前缀（如 `REQUEST_STATUS_SUBMITTED`、`CLOUD_PROVIDER_AWS`）。
+- **域与 capability 对齐**：registry = module-registry（specs/01）、catalog = service-catalog（specs/02），不混域。
+- **枚举命名**：proto3 标准，类型前缀（如 `REQUEST_STATUS_SUBMITTED`、`CLOUD_PROVIDER_AWS`、`APPROVAL_GATE_PRE_PLAN`）。
 - **注释全英文**：开源标准。
 
 ## 本 change 范围（Phase 0 = MVP 主链路契约，非全部平台接口）
 
 只冻结 MVP 主链路需要的接口：管理员注册模块 → 发布目录项 → 用户申请 → 代码生成（占位）→ plan → gate → 审批 → apply。Phase 2+ 扩展能力（PR-first、Run Hooks、Scheduled Runs、AI/MCP、半自动 StateMover）只保留 schema 预留，不进入主链路阻塞条件（遵循 `iac-self-service-platform/tasks.md` 00b Phase 1 feature flag 约束）。
+
+运行时验证（云账号 bootstrap、Day-1 资源栈、walking skeleton 跑通）属 Wave 5（依赖 Wave 1-4 实现），不在本契约 change 范围。
