@@ -10,44 +10,55 @@ import (
 )
 
 const createTeam = `-- name: CreateTeam :one
-INSERT INTO teams (name, slug)
-VALUES ($1, $2)
-RETURNING id, name, slug, created_at, updated_at
+INSERT INTO teams (id, name, slug, kind, status, tags_json, policy_json)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, name, slug, kind, status, tags_json, policy_json, created_at, updated_at, deleted_at
 `
 
 type CreateTeamParams struct {
-	Name string `json:"name"`
-	Slug string `json:"slug"`
+	ID         int64  `json:"id"`
+	Name       string `json:"name"`
+	Slug       string `json:"slug"`
+	Kind       string `json:"kind"`
+	Status     string `json:"status"`
+	TagsJson   []byte `json:"tags_json"`
+	PolicyJson []byte `json:"policy_json"`
 }
 
 func (q *Queries) CreateTeam(ctx context.Context, arg CreateTeamParams) (Team, error) {
-	row := q.db.QueryRow(ctx, createTeam, arg.Name, arg.Slug)
+	row := q.db.QueryRow(ctx, createTeam,
+		arg.ID,
+		arg.Name,
+		arg.Slug,
+		arg.Kind,
+		arg.Status,
+		arg.TagsJson,
+		arg.PolicyJson,
+	)
 	var i Team
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Slug,
+		&i.Kind,
+		&i.Status,
+		&i.TagsJson,
+		&i.PolicyJson,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
-const deleteTeam = `-- name: DeleteTeam :exec
-DELETE FROM teams
-WHERE id = $1
-`
-
-func (q *Queries) DeleteTeam(ctx context.Context, id int64) error {
-	_, err := q.db.Exec(ctx, deleteTeam, id)
-	return err
-}
-
 const getTeam = `-- name: GetTeam :one
-SELECT id, name, slug, created_at, updated_at FROM teams
-WHERE id = $1
+
+SELECT id, name, slug, kind, status, tags_json, policy_json, created_at, updated_at, deleted_at FROM teams
+WHERE id = $1 AND deleted_at IS NULL
 `
 
+// teams queries. ID is app-generated (snowflake), passed by caller.
+// Soft-delete aware: active filters use WHERE deleted_at IS NULL.
 func (q *Queries) GetTeam(ctx context.Context, id int64) (Team, error) {
 	row := q.db.QueryRow(ctx, getTeam, id)
 	var i Team
@@ -55,15 +66,20 @@ func (q *Queries) GetTeam(ctx context.Context, id int64) (Team, error) {
 		&i.ID,
 		&i.Name,
 		&i.Slug,
+		&i.Kind,
+		&i.Status,
+		&i.TagsJson,
+		&i.PolicyJson,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getTeamBySlug = `-- name: GetTeamBySlug :one
-SELECT id, name, slug, created_at, updated_at FROM teams
-WHERE slug = $1
+SELECT id, name, slug, kind, status, tags_json, policy_json, created_at, updated_at, deleted_at FROM teams
+WHERE slug = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) GetTeamBySlug(ctx context.Context, slug string) (Team, error) {
@@ -73,14 +89,20 @@ func (q *Queries) GetTeamBySlug(ctx context.Context, slug string) (Team, error) 
 		&i.ID,
 		&i.Name,
 		&i.Slug,
+		&i.Kind,
+		&i.Status,
+		&i.TagsJson,
+		&i.PolicyJson,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const listTeams = `-- name: ListTeams :many
-SELECT id, name, slug, created_at, updated_at FROM teams
+SELECT id, name, slug, kind, status, tags_json, policy_json, created_at, updated_at, deleted_at FROM teams
+WHERE deleted_at IS NULL
 ORDER BY name
 `
 
@@ -97,8 +119,13 @@ func (q *Queries) ListTeams(ctx context.Context) ([]Team, error) {
 			&i.ID,
 			&i.Name,
 			&i.Slug,
+			&i.Kind,
+			&i.Status,
+			&i.TagsJson,
+			&i.PolicyJson,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -108,4 +135,89 @@ func (q *Queries) ListTeams(ctx context.Context) ([]Team, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const listTeamsByKind = `-- name: ListTeamsByKind :many
+SELECT id, name, slug, kind, status, tags_json, policy_json, created_at, updated_at, deleted_at FROM teams
+WHERE kind = $1 AND deleted_at IS NULL
+ORDER BY name
+`
+
+func (q *Queries) ListTeamsByKind(ctx context.Context, kind string) ([]Team, error) {
+	rows, err := q.db.Query(ctx, listTeamsByKind, kind)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Team{}
+	for rows.Next() {
+		var i Team
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Slug,
+			&i.Kind,
+			&i.Status,
+			&i.TagsJson,
+			&i.PolicyJson,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const softDeleteTeam = `-- name: SoftDeleteTeam :exec
+UPDATE teams
+SET deleted_at = now(), status = 'deprecated'
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) SoftDeleteTeam(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, softDeleteTeam, id)
+	return err
+}
+
+const updateTeam = `-- name: UpdateTeam :one
+UPDATE teams
+SET name = $2, tags_json = $3, policy_json = $4, updated_at = now()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, name, slug, kind, status, tags_json, policy_json, created_at, updated_at, deleted_at
+`
+
+type UpdateTeamParams struct {
+	ID         int64  `json:"id"`
+	Name       string `json:"name"`
+	TagsJson   []byte `json:"tags_json"`
+	PolicyJson []byte `json:"policy_json"`
+}
+
+func (q *Queries) UpdateTeam(ctx context.Context, arg UpdateTeamParams) (Team, error) {
+	row := q.db.QueryRow(ctx, updateTeam,
+		arg.ID,
+		arg.Name,
+		arg.TagsJson,
+		arg.PolicyJson,
+	)
+	var i Team
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Slug,
+		&i.Kind,
+		&i.Status,
+		&i.TagsJson,
+		&i.PolicyJson,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }
