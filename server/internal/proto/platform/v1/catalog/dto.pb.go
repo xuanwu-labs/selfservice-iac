@@ -24,14 +24,14 @@ const (
 
 type CatalogItem struct {
 	state          protoimpl.MessageState   `protogen:"open.v1"`
-	Id             string                   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // cat_<alphanum>
+	Id             string                   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name           string                   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Description    string                   `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	Category       string                   `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`
 	Status         common.CatalogItemStatus `protobuf:"varint,5,opt,name=status,proto3,enum=aether.platform.v1.common.CatalogItemStatus" json:"status,omitempty"`
 	ModuleVersion  *ModuleVersion           `protobuf:"bytes,6,opt,name=module_version,json=moduleVersion,proto3" json:"module_version,omitempty"`
-	FormSchemaJson string                   `protobuf:"bytes,7,opt,name=form_schema_json,json=formSchemaJson,proto3" json:"form_schema_json,omitempty"`                                                                // JSON Schema 2020-12 (D40)
-	DefaultTags    map[string]string        `protobuf:"bytes,8,rep,name=default_tags,json=defaultTags,proto3" json:"default_tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // platform tags (D18)
+	FormSchemaJson string                   `protobuf:"bytes,7,opt,name=form_schema_json,json=formSchemaJson,proto3" json:"form_schema_json,omitempty"`
+	DefaultTags    map[string]string        `protobuf:"bytes,8,rep,name=default_tags,json=defaultTags,proto3" json:"default_tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -124,10 +124,10 @@ func (x *CatalogItem) GetDefaultTags() map[string]string {
 
 type ModuleVersion struct {
 	state                 protoimpl.MessageState `protogen:"open.v1"`
-	Version               string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`                                                            // semver e.g. v1.2.0
-	CommitSha             string                 `protobuf:"bytes,2,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`                                       // sha256:<hex>
-	Providers             []string               `protobuf:"bytes,3,rep,name=providers,proto3" json:"providers,omitempty"`                                                        // e.g. ["aws@>=5.0"]
-	VariablesContractJson string                 `protobuf:"bytes,4,opt,name=variables_contract_json,json=variablesContractJson,proto3" json:"variables_contract_json,omitempty"` // parsed from variables.tf
+	Version               string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	CommitSha             string                 `protobuf:"bytes,2,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`
+	Providers             []string               `protobuf:"bytes,3,rep,name=providers,proto3" json:"providers,omitempty"`
+	VariablesContractJson string                 `protobuf:"bytes,4,opt,name=variables_contract_json,json=variablesContractJson,proto3" json:"variables_contract_json,omitempty"`
 	Dependencies          []*ModuleDependency    `protobuf:"bytes,5,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
 	RegisteredAt          string                 `protobuf:"bytes,6,opt,name=registered_at,json=registeredAt,proto3" json:"registered_at,omitempty"`
 	unknownFields         protoimpl.UnknownFields
@@ -208,11 +208,11 @@ func (x *ModuleVersion) GetRegisteredAt() string {
 
 type ModuleDependency struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
-	VariableName    string                 `protobuf:"bytes,1,opt,name=variable_name,json=variableName,proto3" json:"variable_name,omitempty"` // e.g. "vswitch_id"
+	VariableName    string                 `protobuf:"bytes,1,opt,name=variable_name,json=variableName,proto3" json:"variable_name,omitempty"`
 	Description     string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	DependsOnLayer  string                 `protobuf:"bytes,3,opt,name=depends_on_layer,json=dependsOnLayer,proto3" json:"depends_on_layer,omitempty"`    // e.g. "global"
-	DependsOnModule string                 `protobuf:"bytes,4,opt,name=depends_on_module,json=dependsOnModule,proto3" json:"depends_on_module,omitempty"` // e.g. "vpc"
-	OutputKey       string                 `protobuf:"bytes,5,opt,name=output_key,json=outputKey,proto3" json:"output_key,omitempty"`                     // e.g. "vswitch_id"
+	DependsOnLayer  string                 `protobuf:"bytes,3,opt,name=depends_on_layer,json=dependsOnLayer,proto3" json:"depends_on_layer,omitempty"`
+	DependsOnModule string                 `protobuf:"bytes,4,opt,name=depends_on_module,json=dependsOnModule,proto3" json:"depends_on_module,omitempty"`
+	OutputKey       string                 `protobuf:"bytes,5,opt,name=output_key,json=outputKey,proto3" json:"output_key,omitempty"`
 	Required        bool                   `protobuf:"varint,6,opt,name=required,proto3" json:"required,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
@@ -292,7 +292,7 @@ func (x *ModuleDependency) GetRequired() bool {
 
 type Module struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // mod_<alphanum>
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	GitSource     string                 `protobuf:"bytes,4,opt,name=git_source,json=gitSource,proto3" json:"git_source,omitempty"`
@@ -492,7 +492,7 @@ func (x *ModuleDependencyInfo) GetAvailableStacks() []*AvailableStack {
 
 type AvailableStack struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	StackId        string                 `protobuf:"bytes,1,opt,name=stack_id,json=stackId,proto3" json:"stack_id,omitempty"` // stk_<alphanum>
+	StackId        string                 `protobuf:"bytes,1,opt,name=stack_id,json=stackId,proto3" json:"stack_id,omitempty"`
 	DisplayName    string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	EnvId          string                 `protobuf:"bytes,3,opt,name=env_id,json=envId,proto3" json:"env_id,omitempty"`
 	TeamId         string                 `protobuf:"bytes,4,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"`
@@ -594,7 +594,7 @@ var File_platform_v1_catalog_dto_proto protoreflect.FileDescriptor
 
 const file_platform_v1_catalog_dto_proto_rawDesc = "" +
 	"\n" +
-	"\x1dplatform/v1/catalog/dto.proto\x12\x1aaether.platform.v1.catalog\x1a\x1dplatform/v1/common/enum.proto\"\xce\x03\n" +
+	"\x1dplatform/v1/catalog/dto.proto\x12\x1aaether.platform.v1.catalog\x1a\x1cplatform/v1/common/dto.proto\x1a\x1dplatform/v1/common/enum.proto\"\xce\x03\n" +
 	"\vCatalogItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +

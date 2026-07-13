@@ -102,7 +102,7 @@ var File_platform_v1_cloud_dto_proto protoreflect.FileDescriptor
 
 const file_platform_v1_cloud_dto_proto_rawDesc = "" +
 	"\n" +
-	"\x1bplatform/v1/cloud/dto.proto\x12\x18aether.platform.v1.cloud\x1a\x1dplatform/v1/common/enum.proto\"\xd9\x01\n" +
+	"\x1bplatform/v1/cloud/dto.proto\x12\x18aether.platform.v1.cloud\x1a\x1cplatform/v1/common/dto.proto\x1a\x1dplatform/v1/common/enum.proto\"\xd9\x01\n" +
 	"\fCloudAccount\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12D\n" +
 	"\bprovider\x18\x02 \x01(\x0e2(.aether.platform.v1.common.CloudProviderR\bprovider\x12\x12\n" +

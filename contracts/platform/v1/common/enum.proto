@@ -5,10 +5,9 @@ package aether.platform.v1.common;
 option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/common;commonv1";
 
 // ============================================================
-// Shared enums across all business domains.
+// Shared enums across all domains.
 // ============================================================
 
-// ActorType identifies who initiated an action.
 enum ActorType {
   ACTOR_TYPE_UNSPECIFIED = 0;
   ACTOR_TYPE_HUMAN = 1;
@@ -16,7 +15,6 @@ enum ActorType {
   ACTOR_TYPE_SYSTEM = 3;
 }
 
-// RequestStatus is the lifecycle state of an IaC change request (D21).
 enum RequestStatus {
   REQUEST_STATUS_UNSPECIFIED = 0;
   REQUEST_STATUS_SUBMITTED = 1;
@@ -37,7 +35,6 @@ enum RequestStatus {
   REQUEST_STATUS_RECONCILE_PENDING = 16;
 }
 
-// RequestSource identifies where a request originated.
 enum RequestSource {
   REQUEST_SOURCE_UNSPECIFIED = 0;
   REQUEST_SOURCE_WEB = 1;
@@ -47,14 +44,12 @@ enum RequestSource {
   REQUEST_SOURCE_GATEWAY = 5;
 }
 
-// ApprovalDecision is the outcome of an approval step.
 enum ApprovalDecision {
   APPROVAL_DECISION_UNSPECIFIED = 0;
   APPROVAL_DECISION_APPROVED = 1;
   APPROVAL_DECISION_REJECTED = 2;
 }
 
-// ApprovalRunStatus is the state of an approval run.
 enum ApprovalRunStatus {
   APPROVAL_RUN_STATUS_UNSPECIFIED = 0;
   APPROVAL_RUN_STATUS_PENDING = 1;
@@ -63,7 +58,6 @@ enum ApprovalRunStatus {
   APPROVAL_RUN_STATUS_EXPIRED = 4;
 }
 
-// ArtifactStatus is the state of a plan artifact.
 enum ArtifactStatus {
   ARTIFACT_STATUS_UNSPECIFIED = 0;
   ARTIFACT_STATUS_READY = 1;
@@ -71,14 +65,12 @@ enum ArtifactStatus {
   ARTIFACT_STATUS_CONSUMED = 3;
 }
 
-// GateSeverity indicates the severity of a gate violation.
 enum GateSeverity {
   GATE_SEVERITY_UNSPECIFIED = 0;
   GATE_SEVERITY_ERROR = 1;
   GATE_SEVERITY_WARNING = 2;
 }
 
-// ModuleStatus is the lifecycle state of a registered module.
 enum ModuleStatus {
   MODULE_STATUS_UNSPECIFIED = 0;
   MODULE_STATUS_PENDING_VALIDATION = 1;
@@ -87,14 +79,12 @@ enum ModuleStatus {
   MODULE_STATUS_DEPRECATED = 4;
 }
 
-// CatalogItemStatus is the visibility state of a catalog item.
 enum CatalogItemStatus {
   CATALOG_ITEM_STATUS_UNSPECIFIED = 0;
   CATALOG_ITEM_STATUS_ACTIVE = 1;
   CATALOG_ITEM_STATUS_DEPRECATED = 2;
 }
 
-// Cardinality controls multi-instance generation (D25).
 enum Cardinality {
   CARDINALITY_UNSPECIFIED = 0;
   CARDINALITY_SINGLE = 1;
@@ -102,7 +92,6 @@ enum Cardinality {
   CARDINALITY_MAP = 3;
 }
 
-// CloudProvider identifies a cloud vendor.
 enum CloudProvider {
   CLOUD_PROVIDER_UNSPECIFIED = 0;
   CLOUD_PROVIDER_AWS = 1;
@@ -111,7 +100,6 @@ enum CloudProvider {
   CLOUD_PROVIDER_GCP = 4;
 }
 
-// CloudAccountStatus is the state of a cloud account.
 enum CloudAccountStatus {
   CLOUD_ACCOUNT_STATUS_UNSPECIFIED = 0;
   CLOUD_ACCOUNT_STATUS_ACTIVE = 1;

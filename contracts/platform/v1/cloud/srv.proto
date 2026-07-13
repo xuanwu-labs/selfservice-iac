@@ -3,6 +3,7 @@ syntax = "proto3";
 package aether.platform.v1.cloud;
 
 import "platform/v1/common/dto.proto";
+import "platform/v1/common/enum.proto";
 import "platform/v1/cloud/dto.proto";
 
 option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/cloud;cloudv1";

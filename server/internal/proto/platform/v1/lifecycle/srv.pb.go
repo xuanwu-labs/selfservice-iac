@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: platform/v1/lifecycle/request_srv.proto
+// source: platform/v1/lifecycle/srv.proto
 
 package lifecyclev1
 
@@ -38,7 +38,7 @@ type CreateRequestRequest struct {
 
 func (x *CreateRequestRequest) Reset() {
 	*x = CreateRequestRequest{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[0]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -50,7 +50,7 @@ func (x *CreateRequestRequest) String() string {
 func (*CreateRequestRequest) ProtoMessage() {}
 
 func (x *CreateRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[0]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -63,7 +63,7 @@ func (x *CreateRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRequestRequest.ProtoReflect.Descriptor instead.
 func (*CreateRequestRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{0}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *CreateRequestRequest) GetCatalogItemId() string {
@@ -132,7 +132,7 @@ type CreateRequestResponse struct {
 
 func (x *CreateRequestResponse) Reset() {
 	*x = CreateRequestResponse{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[1]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -144,7 +144,7 @@ func (x *CreateRequestResponse) String() string {
 func (*CreateRequestResponse) ProtoMessage() {}
 
 func (x *CreateRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[1]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -157,7 +157,7 @@ func (x *CreateRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRequestResponse.ProtoReflect.Descriptor instead.
 func (*CreateRequestResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{1}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *CreateRequestResponse) GetRequest() *LifecycleRequest {
@@ -183,7 +183,7 @@ type GetRequestRequest struct {
 
 func (x *GetRequestRequest) Reset() {
 	*x = GetRequestRequest{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[2]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -195,7 +195,7 @@ func (x *GetRequestRequest) String() string {
 func (*GetRequestRequest) ProtoMessage() {}
 
 func (x *GetRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[2]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -208,7 +208,7 @@ func (x *GetRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRequestRequest.ProtoReflect.Descriptor instead.
 func (*GetRequestRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{2}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetRequestRequest) GetRequestId() string {
@@ -228,7 +228,7 @@ type GetRequestResponse struct {
 
 func (x *GetRequestResponse) Reset() {
 	*x = GetRequestResponse{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[3]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -240,7 +240,7 @@ func (x *GetRequestResponse) String() string {
 func (*GetRequestResponse) ProtoMessage() {}
 
 func (x *GetRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[3]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -253,7 +253,7 @@ func (x *GetRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRequestResponse.ProtoReflect.Descriptor instead.
 func (*GetRequestResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{3}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetRequestResponse) GetRequest() *LifecycleRequest {
@@ -281,7 +281,7 @@ type ListRequestEventsRequest struct {
 
 func (x *ListRequestEventsRequest) Reset() {
 	*x = ListRequestEventsRequest{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[4]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -293,7 +293,7 @@ func (x *ListRequestEventsRequest) String() string {
 func (*ListRequestEventsRequest) ProtoMessage() {}
 
 func (x *ListRequestEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[4]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -306,7 +306,7 @@ func (x *ListRequestEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRequestEventsRequest.ProtoReflect.Descriptor instead.
 func (*ListRequestEventsRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{4}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ListRequestEventsRequest) GetRequestId() string {
@@ -341,7 +341,7 @@ type ListRequestEventsResponse struct {
 
 func (x *ListRequestEventsResponse) Reset() {
 	*x = ListRequestEventsResponse{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[5]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -353,7 +353,7 @@ func (x *ListRequestEventsResponse) String() string {
 func (*ListRequestEventsResponse) ProtoMessage() {}
 
 func (x *ListRequestEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[5]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -366,7 +366,7 @@ func (x *ListRequestEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRequestEventsResponse.ProtoReflect.Descriptor instead.
 func (*ListRequestEventsResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{5}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ListRequestEventsResponse) GetEvents() []*LifecycleEvent {
@@ -401,7 +401,7 @@ type CancelRequestRequest struct {
 
 func (x *CancelRequestRequest) Reset() {
 	*x = CancelRequestRequest{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[6]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -413,7 +413,7 @@ func (x *CancelRequestRequest) String() string {
 func (*CancelRequestRequest) ProtoMessage() {}
 
 func (x *CancelRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[6]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -426,7 +426,7 @@ func (x *CancelRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelRequestRequest.ProtoReflect.Descriptor instead.
 func (*CancelRequestRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{6}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *CancelRequestRequest) GetRequestId() string {
@@ -460,7 +460,7 @@ type CancelRequestResponse struct {
 
 func (x *CancelRequestResponse) Reset() {
 	*x = CancelRequestResponse{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[7]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -472,7 +472,7 @@ func (x *CancelRequestResponse) String() string {
 func (*CancelRequestResponse) ProtoMessage() {}
 
 func (x *CancelRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[7]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -485,7 +485,7 @@ func (x *CancelRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelRequestResponse.ProtoReflect.Descriptor instead.
 func (*CancelRequestResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{7}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CancelRequestResponse) GetRequest() *LifecycleRequest {
@@ -511,7 +511,7 @@ type StartPlanRequest struct {
 
 func (x *StartPlanRequest) Reset() {
 	*x = StartPlanRequest{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[8]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -523,7 +523,7 @@ func (x *StartPlanRequest) String() string {
 func (*StartPlanRequest) ProtoMessage() {}
 
 func (x *StartPlanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[8]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -536,7 +536,7 @@ func (x *StartPlanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartPlanRequest.ProtoReflect.Descriptor instead.
 func (*StartPlanRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{8}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *StartPlanRequest) GetRequestId() string {
@@ -556,7 +556,7 @@ type StartPlanResponse struct {
 
 func (x *StartPlanResponse) Reset() {
 	*x = StartPlanResponse{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[9]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -568,7 +568,7 @@ func (x *StartPlanResponse) String() string {
 func (*StartPlanResponse) ProtoMessage() {}
 
 func (x *StartPlanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[9]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -581,7 +581,7 @@ func (x *StartPlanResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartPlanResponse.ProtoReflect.Descriptor instead.
 func (*StartPlanResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{9}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *StartPlanResponse) GetRequest() *LifecycleRequest {
@@ -607,7 +607,7 @@ type GetArtifactRequest struct {
 
 func (x *GetArtifactRequest) Reset() {
 	*x = GetArtifactRequest{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[10]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -619,7 +619,7 @@ func (x *GetArtifactRequest) String() string {
 func (*GetArtifactRequest) ProtoMessage() {}
 
 func (x *GetArtifactRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[10]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -632,7 +632,7 @@ func (x *GetArtifactRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetArtifactRequest.ProtoReflect.Descriptor instead.
 func (*GetArtifactRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{10}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetArtifactRequest) GetArtifactId() string {
@@ -652,7 +652,7 @@ type GetArtifactResponse struct {
 
 func (x *GetArtifactResponse) Reset() {
 	*x = GetArtifactResponse{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[11]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -664,7 +664,7 @@ func (x *GetArtifactResponse) String() string {
 func (*GetArtifactResponse) ProtoMessage() {}
 
 func (x *GetArtifactResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[11]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -677,7 +677,7 @@ func (x *GetArtifactResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetArtifactResponse.ProtoReflect.Descriptor instead.
 func (*GetArtifactResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{11}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetArtifactResponse) GetArtifact() *PlanArtifact {
@@ -703,7 +703,7 @@ type EvaluateGateRequest struct {
 
 func (x *EvaluateGateRequest) Reset() {
 	*x = EvaluateGateRequest{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[12]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -715,7 +715,7 @@ func (x *EvaluateGateRequest) String() string {
 func (*EvaluateGateRequest) ProtoMessage() {}
 
 func (x *EvaluateGateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[12]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -728,7 +728,7 @@ func (x *EvaluateGateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvaluateGateRequest.ProtoReflect.Descriptor instead.
 func (*EvaluateGateRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{12}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *EvaluateGateRequest) GetRequestId() string {
@@ -750,7 +750,7 @@ type EvaluateGateResponse struct {
 
 func (x *EvaluateGateResponse) Reset() {
 	*x = EvaluateGateResponse{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[13]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -762,7 +762,7 @@ func (x *EvaluateGateResponse) String() string {
 func (*EvaluateGateResponse) ProtoMessage() {}
 
 func (x *EvaluateGateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[13]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -775,7 +775,7 @@ func (x *EvaluateGateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvaluateGateResponse.ProtoReflect.Descriptor instead.
 func (*EvaluateGateResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{13}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *EvaluateGateResponse) GetRequestId() string {
@@ -818,7 +818,7 @@ type DecideApprovalRequest struct {
 
 func (x *DecideApprovalRequest) Reset() {
 	*x = DecideApprovalRequest{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[14]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -830,7 +830,7 @@ func (x *DecideApprovalRequest) String() string {
 func (*DecideApprovalRequest) ProtoMessage() {}
 
 func (x *DecideApprovalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[14]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -843,7 +843,7 @@ func (x *DecideApprovalRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecideApprovalRequest.ProtoReflect.Descriptor instead.
 func (*DecideApprovalRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{14}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DecideApprovalRequest) GetRunId() string {
@@ -884,7 +884,7 @@ type DecideApprovalResponse struct {
 
 func (x *DecideApprovalResponse) Reset() {
 	*x = DecideApprovalResponse{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[15]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -896,7 +896,7 @@ func (x *DecideApprovalResponse) String() string {
 func (*DecideApprovalResponse) ProtoMessage() {}
 
 func (x *DecideApprovalResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[15]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -909,7 +909,7 @@ func (x *DecideApprovalResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecideApprovalResponse.ProtoReflect.Descriptor instead.
 func (*DecideApprovalResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{15}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *DecideApprovalResponse) GetRun() *ApprovalRun {
@@ -935,7 +935,7 @@ type StartApplyRequest struct {
 
 func (x *StartApplyRequest) Reset() {
 	*x = StartApplyRequest{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[16]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -947,7 +947,7 @@ func (x *StartApplyRequest) String() string {
 func (*StartApplyRequest) ProtoMessage() {}
 
 func (x *StartApplyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[16]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -960,7 +960,7 @@ func (x *StartApplyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartApplyRequest.ProtoReflect.Descriptor instead.
 func (*StartApplyRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{16}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *StartApplyRequest) GetRequestId() string {
@@ -979,7 +979,7 @@ type StartApplyResponse struct {
 
 func (x *StartApplyResponse) Reset() {
 	*x = StartApplyResponse{}
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[17]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -991,7 +991,7 @@ func (x *StartApplyResponse) String() string {
 func (*StartApplyResponse) ProtoMessage() {}
 
 func (x *StartApplyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_request_srv_proto_msgTypes[17]
+	mi := &file_platform_v1_lifecycle_srv_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1004,7 +1004,7 @@ func (x *StartApplyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartApplyResponse.ProtoReflect.Descriptor instead.
 func (*StartApplyResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP(), []int{17}
+	return file_platform_v1_lifecycle_srv_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *StartApplyResponse) GetCorrelationId() string {
@@ -1014,11 +1014,11 @@ func (x *StartApplyResponse) GetCorrelationId() string {
 	return ""
 }
 
-var File_platform_v1_lifecycle_request_srv_proto protoreflect.FileDescriptor
+var File_platform_v1_lifecycle_srv_proto protoreflect.FileDescriptor
 
-const file_platform_v1_lifecycle_request_srv_proto_rawDesc = "" +
+const file_platform_v1_lifecycle_srv_proto_rawDesc = "" +
 	"\n" +
-	"'platform/v1/lifecycle/request_srv.proto\x12\x1caether.platform.v1.lifecycle\x1a\x1dplatform/v1/common/enum.proto\x1a\x1fplatform/v1/lifecycle/dto.proto\"\xbe\x04\n" +
+	"\x1fplatform/v1/lifecycle/srv.proto\x12\x1caether.platform.v1.lifecycle\x1a\x1cplatform/v1/common/dto.proto\x1a\x1dplatform/v1/common/enum.proto\x1a\x1fplatform/v1/lifecycle/dto.proto\"\xbe\x04\n" +
 	"\x14CreateRequestRequest\x12&\n" +
 	"\x0fcatalog_item_id\x18\x01 \x01(\tR\rcatalogItemId\x12\x15\n" +
 	"\x06env_id\x18\x02 \x01(\tR\x05envId\x12\x17\n" +
@@ -1110,19 +1110,19 @@ const file_platform_v1_lifecycle_request_srv_proto_rawDesc = "" +
 	"StartApply\x12/.aether.platform.v1.lifecycle.StartApplyRequest\x1a0.aether.platform.v1.lifecycle.StartApplyResponse\"\x00B`Z^github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/lifecycle;lifecyclev1b\x06proto3"
 
 var (
-	file_platform_v1_lifecycle_request_srv_proto_rawDescOnce sync.Once
-	file_platform_v1_lifecycle_request_srv_proto_rawDescData []byte
+	file_platform_v1_lifecycle_srv_proto_rawDescOnce sync.Once
+	file_platform_v1_lifecycle_srv_proto_rawDescData []byte
 )
 
-func file_platform_v1_lifecycle_request_srv_proto_rawDescGZIP() []byte {
-	file_platform_v1_lifecycle_request_srv_proto_rawDescOnce.Do(func() {
-		file_platform_v1_lifecycle_request_srv_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_platform_v1_lifecycle_request_srv_proto_rawDesc), len(file_platform_v1_lifecycle_request_srv_proto_rawDesc)))
+func file_platform_v1_lifecycle_srv_proto_rawDescGZIP() []byte {
+	file_platform_v1_lifecycle_srv_proto_rawDescOnce.Do(func() {
+		file_platform_v1_lifecycle_srv_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_platform_v1_lifecycle_srv_proto_rawDesc), len(file_platform_v1_lifecycle_srv_proto_rawDesc)))
 	})
-	return file_platform_v1_lifecycle_request_srv_proto_rawDescData
+	return file_platform_v1_lifecycle_srv_proto_rawDescData
 }
 
-var file_platform_v1_lifecycle_request_srv_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
-var file_platform_v1_lifecycle_request_srv_proto_goTypes = []any{
+var file_platform_v1_lifecycle_srv_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_platform_v1_lifecycle_srv_proto_goTypes = []any{
 	(*CreateRequestRequest)(nil),      // 0: aether.platform.v1.lifecycle.CreateRequestRequest
 	(*CreateRequestResponse)(nil),     // 1: aether.platform.v1.lifecycle.CreateRequestResponse
 	(*GetRequestRequest)(nil),         // 2: aether.platform.v1.lifecycle.GetRequestRequest
@@ -1151,7 +1151,7 @@ var file_platform_v1_lifecycle_request_srv_proto_goTypes = []any{
 	(common.ApprovalDecision)(0),      // 25: aether.platform.v1.common.ApprovalDecision
 	(*ApprovalRun)(nil),               // 26: aether.platform.v1.lifecycle.ApprovalRun
 }
-var file_platform_v1_lifecycle_request_srv_proto_depIdxs = []int32{
+var file_platform_v1_lifecycle_srv_proto_depIdxs = []int32{
 	18, // 0: aether.platform.v1.lifecycle.CreateRequestRequest.form_values:type_name -> aether.platform.v1.lifecycle.CreateRequestRequest.FormValuesEntry
 	20, // 1: aether.platform.v1.lifecycle.CreateRequestRequest.source:type_name -> aether.platform.v1.common.RequestSource
 	19, // 2: aether.platform.v1.lifecycle.CreateRequestRequest.source_context:type_name -> aether.platform.v1.lifecycle.CreateRequestRequest.SourceContextEntry
@@ -1189,9 +1189,9 @@ var file_platform_v1_lifecycle_request_srv_proto_depIdxs = []int32{
 	0,  // [0:12] is the sub-list for field type_name
 }
 
-func init() { file_platform_v1_lifecycle_request_srv_proto_init() }
-func file_platform_v1_lifecycle_request_srv_proto_init() {
-	if File_platform_v1_lifecycle_request_srv_proto != nil {
+func init() { file_platform_v1_lifecycle_srv_proto_init() }
+func file_platform_v1_lifecycle_srv_proto_init() {
+	if File_platform_v1_lifecycle_srv_proto != nil {
 		return
 	}
 	file_platform_v1_lifecycle_dto_proto_init()
@@ -1199,17 +1199,17 @@ func file_platform_v1_lifecycle_request_srv_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_lifecycle_request_srv_proto_rawDesc), len(file_platform_v1_lifecycle_request_srv_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_lifecycle_srv_proto_rawDesc), len(file_platform_v1_lifecycle_srv_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_platform_v1_lifecycle_request_srv_proto_goTypes,
-		DependencyIndexes: file_platform_v1_lifecycle_request_srv_proto_depIdxs,
-		MessageInfos:      file_platform_v1_lifecycle_request_srv_proto_msgTypes,
+		GoTypes:           file_platform_v1_lifecycle_srv_proto_goTypes,
+		DependencyIndexes: file_platform_v1_lifecycle_srv_proto_depIdxs,
+		MessageInfos:      file_platform_v1_lifecycle_srv_proto_msgTypes,
 	}.Build()
-	File_platform_v1_lifecycle_request_srv_proto = out.File
-	file_platform_v1_lifecycle_request_srv_proto_goTypes = nil
-	file_platform_v1_lifecycle_request_srv_proto_depIdxs = nil
+	File_platform_v1_lifecycle_srv_proto = out.File
+	file_platform_v1_lifecycle_srv_proto_goTypes = nil
+	file_platform_v1_lifecycle_srv_proto_depIdxs = nil
 }
