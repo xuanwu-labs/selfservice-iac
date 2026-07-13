@@ -1,0 +1,119 @@
+{
+  "description": "Walking skeleton seed data — one golden catalog item that exercises the full chain: Request → Codegen → Git → Plan → Approval → Apply → Reconcile",
+  "version": "1.0",
+
+  "tenant": {
+    "id": "corp-a",
+    "name": "Corporation A"
+  },
+
+  "environment": {
+    "id": "dev",
+    "name": "Development",
+    "layer_root": "application",
+    "tag_namespace": {"env": "dev", "cost-center": "eng-dev"}
+  },
+
+  "team": {
+    "id": "team-platform",
+    "name": "Platform Team",
+    "slug": "platform",
+    "tags": {"team": "platform"},
+    "owner_user_id": "usr_admin01"
+  },
+
+  "bundle": {
+    "id": "bundle-infra",
+    "name": "Infrastructure",
+    "team_id": "team-platform"
+  },
+
+  "catalog_item": {
+    "id": "cat-aws-ecs-service",
+    "name": "AWS ECS Service",
+    "description": "Managed container service with auto-scaling",
+    "status": "active",
+    "category": "compute",
+    "module_version": {
+      "version": "v1.2.0",
+      "source": "github.com/xuanwu-labs/modules/aws-ecs-service",
+      "commit_sha": "sha256:a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+      "providers": [{"name": "aws", "version_constraint": ">= 5.0"}]
+    },
+    "form_schema": {
+      "type": "object",
+      "required": ["name", "instance_type", "desired_count"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "maxLength": 64},
+        "instance_type": {"type": "string", "enum": ["t3.small", "t3.medium", "t3.large"], "default": "t3.small"},
+        "desired_count": {"type": "integer", "minimum": 1, "maximum": 10, "default": 2}
+      },
+      "additionalProperties": false
+    },
+    "default_tags": {
+      "platform-managed": "true"
+    }
+  },
+
+  "cloud_account": {
+    "id": "ca-aws-dev",
+    "provider": "aws",
+    "name": "AWS Dev Account",
+    "status": "active",
+    "regions": ["us-east-1", "us-west-2"],
+    "credential_ref": "secret://vault/aws-dev/creds"
+  },
+
+  "team_cloud_grant": {
+    "team_id": "team-platform",
+    "cloud_account_id": "ca-aws-dev",
+    "environment_id": "dev",
+    "permissions": ["plan", "apply"],
+    "region_scope": ["us-east-1"]
+  },
+
+  "toolchain_profile": {
+    "id": "tc-default",
+    "name": "Default Toolchain",
+    "terramate_version": "0.17.0",
+    "terraform_version": "1.9.0",
+    "terraform_flavor": "terraform",
+    "provider_locks": {"aws": ">= 5.0"}
+  },
+
+  "approval_policy": {
+    "id": "ap-dev-auto",
+    "environment_id": "dev",
+    "rules": [
+      {
+        "when": "env == 'dev' AND cost_estimate_cents < 10000",
+        "decision": "auto-approved",
+        "comment": "Dev environment under $100/month auto-approved"
+      }
+    ]
+  },
+
+  "path_generator_output": {
+    "repo_path": "application/platform-default/team-platform/infra/ecs-dev",
+    "state_key": "application/platform-default/team-platform/infra/ecs-dev",
+    "stack_id": "stk-ecs-dev-001",
+    "terramate_tags": {
+      "layer": "application",
+      "env": "dev",
+      "team": "team-platform",
+      "bundle": "bundle-infra"
+    },
+    "layer_root": "application"
+  },
+
+  "expected_request_flow": [
+    {"step": "create", "status": "submitted", "description": "POST /requests with form_values"},
+    {"step": "codegen", "status": "generating", "description": "Platform generates stack from module + form_values"},
+    {"step": "plan", "status": "planning", "description": "Terramate runs terraform plan"},
+    {"step": "plan_ready", "status": "plan-ready", "description": "Plan artifact created with hash"},
+    {"step": "gate", "status": "pending-approval", "description": "Gate passed (dev auto-approve policy)"},
+    {"step": "apply", "status": "applying", "description": "Terramate runs terraform apply with saved plan"},
+    {"step": "reconcile", "status": "reconciling", "description": "CMDB ingest + event write"},
+    {"step": "done", "status": "succeeded", "description": "Request completed successfully"}
+  ]
+}
