@@ -13,10 +13,11 @@ import (
 // already structured. This lets core/ domain code reason about error codes
 // without depending on the Registry (which lives at the wire/handler layer):
 //
-//	if errors.IsCode(err, errors.CodeStateConflict) { ... retry ... }
+//	if errors.IsCode(err, "STATE_CONFLICT") { ... retry ... }
 //
-// The handler structured the error via reg.New; the domain layer inspects it
-// via these free functions. No Registry needed on the read path.
+// The handler structured the error via reg.New (using a proto ErrorCode enum);
+// the domain layer inspects it via these free functions by the YAML key string
+// (the ErrorInfo reason). No Registry needed on the read path.
 
 // CodeOf extracts the registered error code (the ErrorInfo reason) from a
 // structured *connect.Error. Returns ("", false) if the error is not a
@@ -42,10 +43,10 @@ func CodeOf(err error) (string, bool) {
 }
 
 // IsCode reports whether err is a structured error whose registered code
-// matches code. This is the typed equivalent of errors.Is for platform error
-// codes — domain logic branches on semantic code, not on gRPC Code or message:
+// matches the YAML key. Domain logic branches on semantic code, not on gRPC
+// Code or message:
 //
-//	if errors.IsCode(err, errors.CodeStateConflict) {
+//	if errors.IsCode(err, "STATE_CONFLICT") {
 //	    return retryWithFreshVersion()
 //	}
 //

@@ -853,6 +853,123 @@ func (ApprovalNodeStatus) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{14}
 }
 
+// ErrorCode enumerates every platform error code. The value name (minus the
+// ERROR_CODE_ prefix) is the key into contracts/error-codes.yaml, which holds
+// the behavior fields (http_status, grpc_code, retryable, manual_required,
+// remediation, owner) that a proto enum cannot express. proto is the source
+// for the code identity (this enum); YAML is the source for the code behavior.
+// Adding a code: add the enum value here AND the behavior row in error-codes.yaml.
+type ErrorCode int32
+
+const (
+	ErrorCode_ERROR_CODE_UNSPECIFIED ErrorCode = 0
+	// Validation
+	ErrorCode_ERROR_CODE_SCHEMA_INVALID           ErrorCode = 1
+	ErrorCode_ERROR_CODE_MODULE_VERSION_NOT_FOUND ErrorCode = 2
+	// Auth
+	ErrorCode_ERROR_CODE_UNAUTHENTICATED   ErrorCode = 3
+	ErrorCode_ERROR_CODE_PERMISSION_DENIED ErrorCode = 4
+	// Not Found
+	ErrorCode_ERROR_CODE_REQUEST_NOT_FOUND      ErrorCode = 5
+	ErrorCode_ERROR_CODE_CATALOG_ITEM_NOT_FOUND ErrorCode = 6
+	ErrorCode_ERROR_CODE_ARTIFACT_NOT_FOUND     ErrorCode = 7
+	// State / Conflict
+	ErrorCode_ERROR_CODE_STATE_CONFLICT           ErrorCode = 8
+	ErrorCode_ERROR_CODE_ILLEGAL_STATE_TRANSITION ErrorCode = 9
+	ErrorCode_ERROR_CODE_IDEMPOTENCY_REPLAY       ErrorCode = 10
+	// Rate Limiting
+	ErrorCode_ERROR_CODE_RATE_LIMITED ErrorCode = 11
+	// Business Rules
+	ErrorCode_ERROR_CODE_BUDGET_EXCEEDED  ErrorCode = 12
+	ErrorCode_ERROR_CODE_POLICY_VIOLATION ErrorCode = 13
+	ErrorCode_ERROR_CODE_TAG_MISSING      ErrorCode = 14
+	// Manual Intervention
+	ErrorCode_ERROR_CODE_MANUAL_INTERVENTION_REQUIRED ErrorCode = 15
+	// Platform Errors
+	ErrorCode_ERROR_CODE_PLATFORM_UNAVAILABLE       ErrorCode = 16
+	ErrorCode_ERROR_CODE_CLOUD_PROVIDER_ERROR       ErrorCode = 17
+	ErrorCode_ERROR_CODE_GIT_OPERATION_FAILED       ErrorCode = 18
+	ErrorCode_ERROR_CODE_TERRAMATE_EXECUTION_FAILED ErrorCode = 19
+	ErrorCode_ERROR_CODE_INTERNAL_ERROR             ErrorCode = 20
+)
+
+// Enum value maps for ErrorCode.
+var (
+	ErrorCode_name = map[int32]string{
+		0:  "ERROR_CODE_UNSPECIFIED",
+		1:  "ERROR_CODE_SCHEMA_INVALID",
+		2:  "ERROR_CODE_MODULE_VERSION_NOT_FOUND",
+		3:  "ERROR_CODE_UNAUTHENTICATED",
+		4:  "ERROR_CODE_PERMISSION_DENIED",
+		5:  "ERROR_CODE_REQUEST_NOT_FOUND",
+		6:  "ERROR_CODE_CATALOG_ITEM_NOT_FOUND",
+		7:  "ERROR_CODE_ARTIFACT_NOT_FOUND",
+		8:  "ERROR_CODE_STATE_CONFLICT",
+		9:  "ERROR_CODE_ILLEGAL_STATE_TRANSITION",
+		10: "ERROR_CODE_IDEMPOTENCY_REPLAY",
+		11: "ERROR_CODE_RATE_LIMITED",
+		12: "ERROR_CODE_BUDGET_EXCEEDED",
+		13: "ERROR_CODE_POLICY_VIOLATION",
+		14: "ERROR_CODE_TAG_MISSING",
+		15: "ERROR_CODE_MANUAL_INTERVENTION_REQUIRED",
+		16: "ERROR_CODE_PLATFORM_UNAVAILABLE",
+		17: "ERROR_CODE_CLOUD_PROVIDER_ERROR",
+		18: "ERROR_CODE_GIT_OPERATION_FAILED",
+		19: "ERROR_CODE_TERRAMATE_EXECUTION_FAILED",
+		20: "ERROR_CODE_INTERNAL_ERROR",
+	}
+	ErrorCode_value = map[string]int32{
+		"ERROR_CODE_UNSPECIFIED":                  0,
+		"ERROR_CODE_SCHEMA_INVALID":               1,
+		"ERROR_CODE_MODULE_VERSION_NOT_FOUND":     2,
+		"ERROR_CODE_UNAUTHENTICATED":              3,
+		"ERROR_CODE_PERMISSION_DENIED":            4,
+		"ERROR_CODE_REQUEST_NOT_FOUND":            5,
+		"ERROR_CODE_CATALOG_ITEM_NOT_FOUND":       6,
+		"ERROR_CODE_ARTIFACT_NOT_FOUND":           7,
+		"ERROR_CODE_STATE_CONFLICT":               8,
+		"ERROR_CODE_ILLEGAL_STATE_TRANSITION":     9,
+		"ERROR_CODE_IDEMPOTENCY_REPLAY":           10,
+		"ERROR_CODE_RATE_LIMITED":                 11,
+		"ERROR_CODE_BUDGET_EXCEEDED":              12,
+		"ERROR_CODE_POLICY_VIOLATION":             13,
+		"ERROR_CODE_TAG_MISSING":                  14,
+		"ERROR_CODE_MANUAL_INTERVENTION_REQUIRED": 15,
+		"ERROR_CODE_PLATFORM_UNAVAILABLE":         16,
+		"ERROR_CODE_CLOUD_PROVIDER_ERROR":         17,
+		"ERROR_CODE_GIT_OPERATION_FAILED":         18,
+		"ERROR_CODE_TERRAMATE_EXECUTION_FAILED":   19,
+		"ERROR_CODE_INTERNAL_ERROR":               20,
+	}
+)
+
+func (x ErrorCode) Enum() *ErrorCode {
+	p := new(ErrorCode)
+	*p = x
+	return p
+}
+
+func (x ErrorCode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ErrorCode) Descriptor() protoreflect.EnumDescriptor {
+	return file_platform_v1_common_enum_proto_enumTypes[15].Descriptor()
+}
+
+func (ErrorCode) Type() protoreflect.EnumType {
+	return &file_platform_v1_common_enum_proto_enumTypes[15]
+}
+
+func (x ErrorCode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ErrorCode.Descriptor instead.
+func (ErrorCode) EnumDescriptor() ([]byte, []int) {
+	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{15}
+}
+
 var File_platform_v1_common_enum_proto protoreflect.FileDescriptor
 
 const file_platform_v1_common_enum_proto_rawDesc = "" +
@@ -948,7 +1065,30 @@ const file_platform_v1_common_enum_proto_rawDesc = "" +
 	"\x1dAPPROVAL_NODE_STATUS_APPROVED\x10\x02\x12!\n" +
 	"\x1dAPPROVAL_NODE_STATUS_REJECTED\x10\x03\x12 \n" +
 	"\x1cAPPROVAL_NODE_STATUS_SKIPPED\x10\x04\x12 \n" +
-	"\x1cAPPROVAL_NODE_STATUS_TIMEOUT\x10\x05BZZXgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/common;commonv1b\x06proto3"
+	"\x1cAPPROVAL_NODE_STATUS_TIMEOUT\x10\x05*\xe8\x05\n" +
+	"\tErrorCode\x12\x1a\n" +
+	"\x16ERROR_CODE_UNSPECIFIED\x10\x00\x12\x1d\n" +
+	"\x19ERROR_CODE_SCHEMA_INVALID\x10\x01\x12'\n" +
+	"#ERROR_CODE_MODULE_VERSION_NOT_FOUND\x10\x02\x12\x1e\n" +
+	"\x1aERROR_CODE_UNAUTHENTICATED\x10\x03\x12 \n" +
+	"\x1cERROR_CODE_PERMISSION_DENIED\x10\x04\x12 \n" +
+	"\x1cERROR_CODE_REQUEST_NOT_FOUND\x10\x05\x12%\n" +
+	"!ERROR_CODE_CATALOG_ITEM_NOT_FOUND\x10\x06\x12!\n" +
+	"\x1dERROR_CODE_ARTIFACT_NOT_FOUND\x10\a\x12\x1d\n" +
+	"\x19ERROR_CODE_STATE_CONFLICT\x10\b\x12'\n" +
+	"#ERROR_CODE_ILLEGAL_STATE_TRANSITION\x10\t\x12!\n" +
+	"\x1dERROR_CODE_IDEMPOTENCY_REPLAY\x10\n" +
+	"\x12\x1b\n" +
+	"\x17ERROR_CODE_RATE_LIMITED\x10\v\x12\x1e\n" +
+	"\x1aERROR_CODE_BUDGET_EXCEEDED\x10\f\x12\x1f\n" +
+	"\x1bERROR_CODE_POLICY_VIOLATION\x10\r\x12\x1a\n" +
+	"\x16ERROR_CODE_TAG_MISSING\x10\x0e\x12+\n" +
+	"'ERROR_CODE_MANUAL_INTERVENTION_REQUIRED\x10\x0f\x12#\n" +
+	"\x1fERROR_CODE_PLATFORM_UNAVAILABLE\x10\x10\x12#\n" +
+	"\x1fERROR_CODE_CLOUD_PROVIDER_ERROR\x10\x11\x12#\n" +
+	"\x1fERROR_CODE_GIT_OPERATION_FAILED\x10\x12\x12)\n" +
+	"%ERROR_CODE_TERRAMATE_EXECUTION_FAILED\x10\x13\x12\x1d\n" +
+	"\x19ERROR_CODE_INTERNAL_ERROR\x10\x14BZZXgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/common;commonv1b\x06proto3"
 
 var (
 	file_platform_v1_common_enum_proto_rawDescOnce sync.Once
@@ -962,7 +1102,7 @@ func file_platform_v1_common_enum_proto_rawDescGZIP() []byte {
 	return file_platform_v1_common_enum_proto_rawDescData
 }
 
-var file_platform_v1_common_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 15)
+var file_platform_v1_common_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 16)
 var file_platform_v1_common_enum_proto_goTypes = []any{
 	(ActorType)(0),          // 0: aether.platform.v1.common.ActorType
 	(RequestStatus)(0),      // 1: aether.platform.v1.common.RequestStatus
@@ -979,6 +1119,7 @@ var file_platform_v1_common_enum_proto_goTypes = []any{
 	(ApprovalGate)(0),       // 12: aether.platform.v1.common.ApprovalGate
 	(ApprovalNodeMode)(0),   // 13: aether.platform.v1.common.ApprovalNodeMode
 	(ApprovalNodeStatus)(0), // 14: aether.platform.v1.common.ApprovalNodeStatus
+	(ErrorCode)(0),          // 15: aether.platform.v1.common.ErrorCode
 }
 var file_platform_v1_common_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -998,7 +1139,7 @@ func file_platform_v1_common_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_common_enum_proto_rawDesc), len(file_platform_v1_common_enum_proto_rawDesc)),
-			NumEnums:      15,
+			NumEnums:      16,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

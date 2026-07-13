@@ -9,6 +9,7 @@ import (
 	platformerrors "github.com/xuanwu-labs/selfservice-iac/server/internal/errors"
 	catalogv1 "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/catalog"
 	catalogv1connect "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/catalog/catalogv1connect"
+	commonv1 "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/common"
 )
 
 // CatalogHandler implements the CatalogService Connect RPC.
@@ -50,7 +51,7 @@ func (h *CatalogHandler) GetCatalogItem(ctx context.Context, req *connect.Reques
 			return connect.NewResponse(&catalogv1.GetCatalogItemResponse{Item: item}), nil
 		}
 	}
-	return nil, h.reg.New(platformerrors.CodeCatalogItemNotFound, "catalog item %q not found", req.Msg.GetCatalogItemId())
+	return nil, h.reg.New(commonv1.ErrorCode_ERROR_CODE_CATALOG_ITEM_NOT_FOUND, "catalog item %q not found", req.Msg.GetCatalogItemId())
 }
 
 // catalogItems is the Phase 1 static seed shared by ListItems/GetCatalogItem.

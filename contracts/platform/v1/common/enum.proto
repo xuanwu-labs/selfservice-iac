@@ -134,3 +134,41 @@ enum ApprovalNodeStatus {
   APPROVAL_NODE_STATUS_SKIPPED = 4;
   APPROVAL_NODE_STATUS_TIMEOUT = 5;
 }
+
+// ErrorCode enumerates every platform error code. The value name (minus the
+// ERROR_CODE_ prefix) is the key into contracts/error-codes.yaml, which holds
+// the behavior fields (http_status, grpc_code, retryable, manual_required,
+// remediation, owner) that a proto enum cannot express. proto is the source
+// for the code identity (this enum); YAML is the source for the code behavior.
+// Adding a code: add the enum value here AND the behavior row in error-codes.yaml.
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+  // Validation
+  ERROR_CODE_SCHEMA_INVALID = 1;
+  ERROR_CODE_MODULE_VERSION_NOT_FOUND = 2;
+  // Auth
+  ERROR_CODE_UNAUTHENTICATED = 3;
+  ERROR_CODE_PERMISSION_DENIED = 4;
+  // Not Found
+  ERROR_CODE_REQUEST_NOT_FOUND = 5;
+  ERROR_CODE_CATALOG_ITEM_NOT_FOUND = 6;
+  ERROR_CODE_ARTIFACT_NOT_FOUND = 7;
+  // State / Conflict
+  ERROR_CODE_STATE_CONFLICT = 8;
+  ERROR_CODE_ILLEGAL_STATE_TRANSITION = 9;
+  ERROR_CODE_IDEMPOTENCY_REPLAY = 10;
+  // Rate Limiting
+  ERROR_CODE_RATE_LIMITED = 11;
+  // Business Rules
+  ERROR_CODE_BUDGET_EXCEEDED = 12;
+  ERROR_CODE_POLICY_VIOLATION = 13;
+  ERROR_CODE_TAG_MISSING = 14;
+  // Manual Intervention
+  ERROR_CODE_MANUAL_INTERVENTION_REQUIRED = 15;
+  // Platform Errors
+  ERROR_CODE_PLATFORM_UNAVAILABLE = 16;
+  ERROR_CODE_CLOUD_PROVIDER_ERROR = 17;
+  ERROR_CODE_GIT_OPERATION_FAILED = 18;
+  ERROR_CODE_TERRAMATE_EXECUTION_FAILED = 19;
+  ERROR_CODE_INTERNAL_ERROR = 20;
+}

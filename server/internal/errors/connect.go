@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
+
+	commonv1 "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/common"
 )
 
 // WrapInterceptor returns a Connect interceptor that catches raw Go errors
@@ -45,7 +47,7 @@ func (i *wrapInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 		}
 		// Raw error — wrap as INTERNAL_ERROR so the client gets structured info
 		// (retryable=false, owner=platform, remediation) instead of a leak.
-		return resp, i.reg.NewFromError(CodeInternalError, err)
+		return resp, i.reg.NewFromError(commonv1.ErrorCode_ERROR_CODE_INTERNAL_ERROR, err)
 	}
 }
 
@@ -62,7 +64,7 @@ func (i *wrapInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc
 		if IsConnectError(err) {
 			return err
 		}
-		return i.reg.NewFromError(CodeInternalError, err)
+		return i.reg.NewFromError(commonv1.ErrorCode_ERROR_CODE_INTERNAL_ERROR, err)
 	}
 }
 

@@ -9,6 +9,8 @@ import (
 	"connectrpc.com/connect"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"gopkg.in/yaml.v3"
+
+	commonv1 "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/common"
 )
 
 // Entry is one registered error code's full behavior. Mirrors a row in
@@ -60,21 +62,36 @@ func Load(yamlContent string) (*Registry, error) {
 	return &Registry{entries: entries}, nil
 }
 
-// Lookup returns the Entry for a code. Returns an error if the code is not
-// registered — this is a programmer error (using an unregistered code), not
-// a runtime condition, so callers MUST use the typed constants from codes.go.
-func (r *Registry) Lookup(code string) (Entry, error) {
-	e, ok := r.entries[code]
+// enumToKey converts a proto ErrorCode enum value to its YAML registry key by
+// stripping the ERROR_CODE_ prefix. ErrorCode_ERROR_CODE_SCHEMA_INVALID →
+// "SCHEMA_INVALID". This is the convention binding the proto enum (code
+// identity, buf-generated) to the YAML registry (code behavior).
+func enumToKey(code commonv1.ErrorCode) string {
+	return strings.TrimPrefix(code.String(), "ERROR_CODE_")
+}
+
+// Lookup returns the Entry for a proto ErrorCode. Returns an error if the
+// code is not registered in error-codes.yaml — this is a programmer error
+// (enum value exists but no YAML behavior row), not a runtime condition.
+func (r *Registry) Lookup(code commonv1.ErrorCode) (Entry, error) {
+	e, ok := r.entries[enumToKey(code)]
 	if !ok {
-		return Entry{}, fmt.Errorf("error code %q not registered in error-codes.yaml", code)
+		return Entry{}, fmt.Errorf("error code %s not registered in error-codes.yaml", code.String())
 	}
 	return e, nil
 }
 
-// MustLookup is Lookup but panics on unknown code. Use only with the typed
-// constants from codes.go (which are guaranteed registered); never with
-// user/external input.
-func (r *Registry) MustLookup(code string) Entry {
+// lookupByKey is the string-key lookup used by helpers that inspect errors
+// already carrying a reason string (CodeOf/IsCode read path). The reason in
+// ErrorInfo is the YAML key (e.g. "STATE_CONFLICT"), not the enum value name.
+func (r *Registry) lookupByKey(key string) (Entry, bool) {
+	e, ok := r.entries[key]
+	return e, ok
+}
+
+// MustLookup is Lookup but panics on unknown code. Use only with proto enum
+// values (which are buf-generated and type-safe); never with user input.
+func (r *Registry) MustLookup(code commonv1.ErrorCode) Entry {
 	e, err := r.Lookup(code)
 	if err != nil {
 		panic(err)
@@ -82,19 +99,19 @@ func (r *Registry) MustLookup(code string) Entry {
 	return e
 }
 
-// New wraps an error code into a structured Connect error carrying an
+// New wraps a proto ErrorCode into a structured Connect error carrying an
 // ErrorInfo detail. Handlers call this instead of connect.NewError directly:
 //
-//	return nil, reg.New(errors.CodeStateConflict, "version mismatch: %d", got)
+//	return nil, reg.New(commonv1.ErrorCode_ERROR_CODE_STATE_CONFLICT, "version mismatch: %d", got)
 //
 // The returned *connect.Error has:
 //   - Code: mapped from Entry.GRPCCode (e.g. "ABORTED" → connect.CodeAborted)
 //   - underlying error: the formatted message
-//   - ErrorInfo detail: reason = code, metadata = retryable/manual_required/owner
+//   - ErrorInfo detail: reason = YAML key, metadata = retryable/manual_required/owner
 //
 // Clients (connect-es / connect-go) read ErrorInfo to decide retry behavior,
 // surface remediation, and route to the owning team.
-func (r *Registry) New(code string, format string, a ...any) error {
+func (r *Registry) New(code commonv1.ErrorCode, format string, a ...any) error {
 	e := r.MustLookup(code)
 	msg := fmt.Sprintf(format, a...)
 	connectErr := connect.NewError(toConnectCode(e.GRPCCode), fmt.Errorf("%s", msg))
@@ -123,13 +140,22 @@ func (r *Registry) New(code string, format string, a ...any) error {
 // underlying error (e.g. from data layer) needs to be surfaced as a typed
 // platform error:
 //
-//	return nil, reg.NewFromError(errors.CodeGitOperationFailed, err)
-func (r *Registry) NewFromError(code string, err error) error {
+//	return nil, reg.NewFromError(commonv1.ErrorCode_ERROR_CODE_GIT_OPERATION_FAILED, err)
+func (r *Registry) NewFromError(code commonv1.ErrorCode, err error) error {
 	if err == nil {
 		return nil
 	}
 	return r.New(code, "%s", err.Error())
 }
+
+// EntryByKey exposes a YAML-key lookup for the contract test that iterates
+// the registry. Not for handler use (handlers use the typed enum methods).
+func (r *Registry) EntryByKey(key string) (Entry, bool) {
+	return r.lookupByKey(key)
+}
+
+// NumEntries returns the count of registered error codes.
+func (r *Registry) NumEntries() int { return len(r.entries) }
 
 // toConnectCode maps a YAML grpc_code string (e.g. "ABORTED",
 // "INVALID_ARGUMENT") to connect.Code. Unknown strings map to CodeUnknown

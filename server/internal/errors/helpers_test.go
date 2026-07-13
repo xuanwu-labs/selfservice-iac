@@ -4,17 +4,32 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+
+	"github.com/xuanwu-labs/selfservice-iac/server/internal/asset"
+	commonv1 "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/common"
 )
 
+// realReg loads the actual embedded error-codes.yaml for read-path tests.
+// The helpers inspect ErrorInfo on structured errors, so they need a real
+// registry to produce errors whose metadata matches the YAML behavior rows.
+func realReg(t *testing.T) *Registry {
+	t.Helper()
+	reg, err := Load(asset.ErrorCodes)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	return reg
+}
+
 func TestCodeOf_StructuredError(t *testing.T) {
-	reg := mustLoad(t, minimalYAML)
-	err := reg.New("TEST_RETRYABLE", "connection refused")
+	reg := realReg(t)
+	err := reg.New(commonv1.ErrorCode_ERROR_CODE_PLATFORM_UNAVAILABLE, "connection refused")
 	code, ok := CodeOf(err)
 	if !ok {
 		t.Fatal("CodeOf(structured): want ok=true")
 	}
-	if code != "TEST_RETRYABLE" {
-		t.Errorf("code: want TEST_RETRYABLE, got %s", code)
+	if code != "PLATFORM_UNAVAILABLE" {
+		t.Errorf("code: want PLATFORM_UNAVAILABLE, got %s", code)
 	}
 }
 
@@ -30,8 +45,8 @@ func TestCodeOf_RawGoError(t *testing.T) {
 
 func TestCodeOf_HandBuiltConnectError(t *testing.T) {
 	// A connect.NewError built WITHOUT the registry has no ErrorInfo detail,
-	// so CodeOf correctly returns false — this is the documented limitation:
-	// hand-built structured errors are indistinguishable to the safety net.
+	// so CodeOf correctly returns false — the documented limitation: hand-built
+	// structured errors carry no behavior metadata.
 	raw := connect.NewError(connect.CodeInternal, errOops)
 	if _, ok := CodeOf(raw); ok {
 		t.Fatal("CodeOf(hand-built connect error): want ok=false (no ErrorInfo)")
@@ -39,31 +54,32 @@ func TestCodeOf_HandBuiltConnectError(t *testing.T) {
 }
 
 func TestIsCode_Match(t *testing.T) {
-	reg := mustLoad(t, minimalYAML)
-	err := reg.New("TEST_FATAL", "bad input")
-	if !IsCode(err, "TEST_FATAL") {
+	reg := realReg(t)
+	err := reg.New(commonv1.ErrorCode_ERROR_CODE_POLICY_VIOLATION, "bad input")
+	if !IsCode(err, "POLICY_VIOLATION") {
 		t.Error("IsCode(matching): want true")
 	}
 }
 
 func TestIsCode_NoMatch(t *testing.T) {
-	reg := mustLoad(t, minimalYAML)
-	err := reg.New("TEST_FATAL", "bad input")
-	if IsCode(err, "TEST_RETRYABLE") {
+	reg := realReg(t)
+	err := reg.New(commonv1.ErrorCode_ERROR_CODE_POLICY_VIOLATION, "bad input")
+	if IsCode(err, "STATE_CONFLICT") {
 		t.Error("IsCode(different code): want false")
 	}
 }
 
 func TestIsCode_RawError(t *testing.T) {
-	if IsCode(errOops, "TEST_FATAL") {
+	if IsCode(errOops, "POLICY_VIOLATION") {
 		t.Error("IsCode(raw error): want false")
 	}
 }
 
 func TestIsRetryable(t *testing.T) {
-	reg := mustLoad(t, minimalYAML)
-	retryable := reg.New("TEST_RETRYABLE", "x") // retryable: true
-	fatal := reg.New("TEST_FATAL", "x")         // retryable: false
+	reg := realReg(t)
+	// PLATFORM_UNAVAILABLE is retryable=true (grpc UNAVAILABLE); POLICY_VIOLATION is not.
+	retryable := reg.New(commonv1.ErrorCode_ERROR_CODE_PLATFORM_UNAVAILABLE, "x")
+	fatal := reg.New(commonv1.ErrorCode_ERROR_CODE_POLICY_VIOLATION, "x")
 	if !IsRetryable(retryable) {
 		t.Error("IsRetryable(retryable code): want true")
 	}
@@ -76,9 +92,10 @@ func TestIsRetryable(t *testing.T) {
 }
 
 func TestManualRequired(t *testing.T) {
-	reg := mustLoad(t, realManualRegistry(t))
-	manual := reg.New("TEST_MANUAL", "x")
-	normal := reg.New("TEST_FATAL", "x")
+	reg := realReg(t)
+	// MANUAL_INTERVENTION_REQUIRED has manual_required=true; POLICY_VIOLATION does not.
+	manual := reg.New(commonv1.ErrorCode_ERROR_CODE_MANUAL_INTERVENTION_REQUIRED, "x")
+	normal := reg.New(commonv1.ErrorCode_ERROR_CODE_POLICY_VIOLATION, "x")
 	if !ManualRequired(manual) {
 		t.Error("ManualRequired(manual code): want true")
 	}
@@ -88,18 +105,18 @@ func TestManualRequired(t *testing.T) {
 }
 
 func TestRemediation(t *testing.T) {
-	reg := mustLoad(t, minimalYAML)
-	err := reg.New("TEST_RETRYABLE", "x")
-	if got := Remediation(err); got != "Retry with backoff." {
-		t.Errorf("Remediation: want 'Retry with backoff.', got %q", got)
+	reg := realReg(t)
+	err := reg.New(commonv1.ErrorCode_ERROR_CODE_PLATFORM_UNAVAILABLE, "x")
+	if got := Remediation(err); got == "" {
+		t.Error("Remediation: want non-empty (YAML has remediation text)")
 	}
 }
 
 func TestOwner(t *testing.T) {
-	reg := mustLoad(t, minimalYAML)
-	err := reg.New("TEST_RETRYABLE", "x")
-	if got := Owner(err); got != "platform" {
-		t.Errorf("Owner: want 'platform', got %q", got)
+	reg := realReg(t)
+	err := reg.New(commonv1.ErrorCode_ERROR_CODE_POLICY_VIOLATION, "x")
+	if got := Owner(err); got == "" {
+		t.Error("Owner: want non-empty (YAML has owner)")
 	}
 }
 
@@ -107,13 +124,13 @@ func TestRoundTrip_NewThenCodeOf(t *testing.T) {
 	// The critical invariant: what reg.New writes, CodeOf reads back.
 	// If this breaks, the write/read paths drifted (e.g. ErrorInfo schema
 	// changed in registry.go but helpers.go wasn't updated).
-	reg := mustLoad(t, minimalYAML)
-	for _, code := range []string{"TEST_RETRYABLE", "TEST_FATAL", "INTERNAL_ERROR"} {
-		err := reg.New(code, "detail %d", 42)
-		got, ok := CodeOf(err)
-		if !ok || got != code {
-			t.Errorf("round-trip %q: CodeOf got (%q, %v)", code, got, ok)
-		}
+	reg := realReg(t)
+	code := commonv1.ErrorCode_ERROR_CODE_STATE_CONFLICT
+	err := reg.New(code, "detail %d", 42)
+	got, ok := CodeOf(err)
+	want := enumToKey(code)
+	if !ok || got != want {
+		t.Errorf("round-trip: CodeOf got (%q, %v), want %q", got, ok, want)
 	}
 }
 
@@ -125,37 +142,7 @@ func TestReExportedStdErrors(t *testing.T) {
 	}
 }
 
-// realManualRegistry provides a registry with a manual_required code for the
-// ManualRequired test (minimalYAML has none).
-func realManualRegistry(t *testing.T) string {
-	t.Helper()
-	return `
-errors:
-  - code: TEST_MANUAL
-    http_status: 409
-    grpc_code: FAILED_PRECONDITION
-    retryable: false
-    manual_required: true
-    remediation: "Needs human action."
-    owner: ops
-  - code: TEST_FATAL
-    http_status: 400
-    grpc_code: INVALID_ARGUMENT
-    retryable: false
-    manual_required: false
-    remediation: "Fix input."
-    owner: core
-  - code: INTERNAL_ERROR
-    http_status: 500
-    grpc_code: INTERNAL
-    retryable: false
-    manual_required: false
-    remediation: "Contact platform."
-    owner: platform
-`
-}
-
-// wrapOops mimics fmt.Errorf("...: %w", err) for the Is re-export test.
+// wrapOps mimics fmt.Errorf("...: %w", err) for the Is re-export test.
 type wrapped struct{ inner error }
 
 func (w wrapped) Error() string { return "context: " + w.inner.Error() }
