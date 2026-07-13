@@ -4,16 +4,21 @@
 
 ## 01-规范基线 + 雪花 ID 工具类
 
-- [x] 1.1 **[设计]** snowflake 工具类设计意图：`server/internal/utils/snowflake.go`（参考 ferret + bwmarrin/snowflake），`Init(machineID, datacenterID)` + `GenerateID() int64`。**实现属 apply 阶段**。
-- [x] 1.2 **[设计]** config 设计意图：`Snowflake{MachineID, DatacenterID}` 配置项 + config.yaml 默认 0/0 + wire 调 Init()。**实现属 apply 阶段**。
-- [x] 1.3 **[设计]** `000_utils.sql` 设计意图：`set_updated_at()` trigger 函数。**实现属 apply 阶段**。
-- [x] 1.4 **[设计]** teams 重写设计意图：雪花 BIGINT PK + kind/tags_json/policy_json/deleted_at + trigger + pk_/uq_ 前缀。**实现属 apply 阶段**。
-- [x] 1.5 **[已完成]** design.md §01 固化命名规范（雪花主键/外键/约束/枚举/审计/JSON）。
-- [x] 1.6 **[已完成]** design.md §1.6 数据类型规范（TEXT/TIMESTAMPTZ/BIGINT cents/JSONB + 禁用清单）。
-- [x] 1.7 **[已完成]** design.md §1.3 FK 索引硬规则。
-- [x] 1.8 **[已完成]** design.md §2.1 软删除 partial unique index。
-- [x] 1.9 **[已完成]** design.md §1.2 snowflake 偏离 skill 论证。
-- [x] 1.10 **[已完成]** design.md §1.7 索引规范（GIN/partial/复合列序/fillfactor）。
+### 1A-设计文档（已完成，design.md 已固化）
+
+- [x] 1.5 design.md §01 固化命名规范（雪花主键/外键/约束/枚举/审计/JSON）
+- [x] 1.6 design.md §1.6 数据类型规范（TEXT/TIMESTAMPTZ/BIGINT cents/JSONB + 禁用清单）
+- [x] 1.7 design.md §1.3 FK 索引硬规则
+- [x] 1.8 design.md §2.1 软删除 partial unique index + 保留 deleted_at 偏离 docs 论证
+- [x] 1.9 design.md §1.2 snowflake 偏离 skill IDENTITY 默认的论证
+- [x] 1.10 design.md §1.7 索引规范（GIN/partial/复合列序/fillfactor）
+
+### 1B-实现任务（apply 阶段执行，未开始）
+
+- [ ] 1.1 实现 `server/internal/utils/snowflake.go`：雪花 ID 生成器（参考 ferret internal/utils/snowflake.go + bwmarrin/snowflake 算法）。提供 `Init(machineID, datacenterID)` 启动初始化 + `GenerateID() int64` 生成 ID。含单测（唯一性/时间有序/并发安全/时钟回拨）。
+- [ ] 1.2 `server/internal/config/config.go` 加 `Snowflake{MachineID, DatacenterID}` 配置项；`server/config.yaml` 加默认值（0/0）；wire 启动时调 `utils.Init()`。
+- [ ] 1.3 创建 `server/cmd/migrate/migrations/000_utils.sql`：`set_updated_at()` trigger 函数（通用，所有业务表挂）。
+- [ ] 1.4 重写 `001_init.sql`：teams 表对齐新规范（`id BIGINT PK`——应用层雪花生成、补 `kind`/`status`/`tags_json`/`policy_json`/`deleted_at`、updated_at trigger、约束命名 `pk_/uq_` 前缀、slug partial unique index `WHERE deleted_at IS NULL`）。
 
 ## 02-组织归属表
 
