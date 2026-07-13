@@ -8,8 +8,10 @@ import "platform/v1/common/enum.proto";
 option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/cloud;cloudv1";
 
 // ============================================================
-// Cloud messages.
+// Cloud messages — domain objects + RPC request/response.
 // ============================================================
+
+// --- Domain Objects ---
 
 message CloudAccount {
   string id = 1;
@@ -17,4 +19,15 @@ message CloudAccount {
   string name = 3;
   aether.platform.v1.common.CloudAccountStatus status = 4;
   repeated string regions = 5;
+}
+
+// --- RPC: EntitlementService (Server) ---
+
+message ListRequestableCloudAccountsRequest {
+  aether.platform.v1.common.PageRequest pagination = 1;
+}
+
+message ListRequestableCloudAccountsResponse {
+  repeated CloudAccount accounts = 1;
+  aether.platform.v1.common.PageResponse pagination = 2;
 }

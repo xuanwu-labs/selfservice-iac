@@ -8,8 +8,10 @@ import "platform/v1/common/enum.proto";
 option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/catalog;catalogv1";
 
 // ============================================================
-// Catalog messages — catalog item, module, dependency, stack.
+// Catalog messages — domain objects + RPC request/response.
 // ============================================================
+
+// --- Domain Objects ---
 
 message CatalogItem {
   string id = 1;
@@ -71,4 +73,135 @@ message AvailableStack {
   string module_name = 6;
   map<string, string> outputs_summary = 7;
   string last_synced_at = 8;
+}
+
+// --- RPC: CatalogService (Server) ---
+
+message ListItemsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  aether.platform.v1.common.CatalogItemStatus status_filter = 3;
+}
+
+message ListItemsResponse {
+  repeated CatalogItem items = 1;
+  string next_page_token = 2;
+}
+
+message GetCatalogItemRequest {
+  string catalog_item_id = 1;
+}
+
+message GetCatalogItemResponse {
+  CatalogItem item = 1;
+}
+
+message ListModuleDependenciesRequest {
+  string module_id = 1;
+  string module_version = 2;
+  string env_id = 3;
+  string team_id = 4;
+}
+
+message ListModuleDependenciesResponse {
+  repeated ModuleDependencyInfo dependencies = 1;
+}
+
+message ListAvailableStacksRequest {
+  string layer = 1;
+  string module_name = 2;
+  string env_id = 3;
+  string team_id = 4;
+}
+
+message ListAvailableStacksResponse {
+  repeated AvailableStack stacks = 1;
+}
+
+// --- RPC: RegistryAdminService (Admin) ---
+
+message RegisterModuleRequest {
+  string git_source = 1;
+  string module_path = 2;
+  string version = 3;
+  string provider = 4;
+  string name = 5;
+  string description = 6;
+}
+
+message RegisterModuleResponse {
+  Module module = 1;
+}
+
+message ListModulesRequest {
+  aether.platform.v1.common.PageRequest pagination = 1;
+  string provider_filter = 2;
+  aether.platform.v1.common.ModuleStatus status_filter = 3;
+}
+
+message ListModulesResponse {
+  repeated Module modules = 1;
+  aether.platform.v1.common.PageResponse pagination = 2;
+}
+
+message GetModuleRequest {
+  string module_id = 1;
+}
+
+message GetModuleResponse {
+  Module module = 1;
+}
+
+message DeprecateModuleRequest {
+  string module_id = 1;
+  string version = 2;
+  string reason = 3;
+}
+
+message DeprecateModuleResponse {
+  Module module = 1;
+}
+
+// --- RPC: CatalogAdminService (Admin) ---
+
+message PublishCatalogItemRequest {
+  string module_id = 1;
+  string module_version = 2;
+  string name = 3;
+  string description = 4;
+  string category = 5;
+  aether.platform.v1.common.Cardinality cardinality = 6;
+  string instance_key = 7;
+  repeated string per_instance_fields = 8;
+  repeated string shared_fields = 9;
+  string form_schema_json = 10;
+  map<string, string> default_values = 11;
+  repeated string visible_to_teams = 12;
+  string layer_logical_id = 13;
+  map<string, string> default_tags = 14;
+}
+
+message PublishCatalogItemResponse {
+  CatalogItem item = 1;
+}
+
+message UpdateCatalogItemRequest {
+  string catalog_item_id = 1;
+  map<string, string> default_values = 2;
+  repeated string visible_to_teams = 3;
+  string form_schema_json = 4;
+  map<string, string> default_tags = 5;
+}
+
+message UpdateCatalogItemResponse {
+  CatalogItem item = 1;
+}
+
+message DeprecateCatalogItemRequest {
+  string catalog_item_id = 1;
+  string reason = 2;
+}
+
+message DeprecateCatalogItemResponse {
+  CatalogItem item = 1;
 }

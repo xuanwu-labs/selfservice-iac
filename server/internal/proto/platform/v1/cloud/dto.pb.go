@@ -98,6 +98,102 @@ func (x *CloudAccount) GetRegions() []string {
 	return nil
 }
 
+type ListRequestableCloudAccountsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pagination    *common.PageRequest    `protobuf:"bytes,1,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListRequestableCloudAccountsRequest) Reset() {
+	*x = ListRequestableCloudAccountsRequest{}
+	mi := &file_platform_v1_cloud_dto_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRequestableCloudAccountsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRequestableCloudAccountsRequest) ProtoMessage() {}
+
+func (x *ListRequestableCloudAccountsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_cloud_dto_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRequestableCloudAccountsRequest.ProtoReflect.Descriptor instead.
+func (*ListRequestableCloudAccountsRequest) Descriptor() ([]byte, []int) {
+	return file_platform_v1_cloud_dto_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ListRequestableCloudAccountsRequest) GetPagination() *common.PageRequest {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
+
+type ListRequestableCloudAccountsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Accounts      []*CloudAccount        `protobuf:"bytes,1,rep,name=accounts,proto3" json:"accounts,omitempty"`
+	Pagination    *common.PageResponse   `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListRequestableCloudAccountsResponse) Reset() {
+	*x = ListRequestableCloudAccountsResponse{}
+	mi := &file_platform_v1_cloud_dto_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRequestableCloudAccountsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRequestableCloudAccountsResponse) ProtoMessage() {}
+
+func (x *ListRequestableCloudAccountsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_cloud_dto_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRequestableCloudAccountsResponse.ProtoReflect.Descriptor instead.
+func (*ListRequestableCloudAccountsResponse) Descriptor() ([]byte, []int) {
+	return file_platform_v1_cloud_dto_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ListRequestableCloudAccountsResponse) GetAccounts() []*CloudAccount {
+	if x != nil {
+		return x.Accounts
+	}
+	return nil
+}
+
+func (x *ListRequestableCloudAccountsResponse) GetPagination() *common.PageResponse {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
+
 var File_platform_v1_cloud_dto_proto protoreflect.FileDescriptor
 
 const file_platform_v1_cloud_dto_proto_rawDesc = "" +
@@ -108,7 +204,16 @@ const file_platform_v1_cloud_dto_proto_rawDesc = "" +
 	"\bprovider\x18\x02 \x01(\x0e2(.aether.platform.v1.common.CloudProviderR\bprovider\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12E\n" +
 	"\x06status\x18\x04 \x01(\x0e2-.aether.platform.v1.common.CloudAccountStatusR\x06status\x12\x18\n" +
-	"\aregions\x18\x05 \x03(\tR\aregionsBXZVgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/cloud;cloudv1b\x06proto3"
+	"\aregions\x18\x05 \x03(\tR\aregions\"m\n" +
+	"#ListRequestableCloudAccountsRequest\x12F\n" +
+	"\n" +
+	"pagination\x18\x01 \x01(\v2&.aether.platform.v1.common.PageRequestR\n" +
+	"pagination\"\xb3\x01\n" +
+	"$ListRequestableCloudAccountsResponse\x12B\n" +
+	"\baccounts\x18\x01 \x03(\v2&.aether.platform.v1.cloud.CloudAccountR\baccounts\x12G\n" +
+	"\n" +
+	"pagination\x18\x02 \x01(\v2'.aether.platform.v1.common.PageResponseR\n" +
+	"paginationBXZVgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/cloud;cloudv1b\x06proto3"
 
 var (
 	file_platform_v1_cloud_dto_proto_rawDescOnce sync.Once
@@ -122,20 +227,27 @@ func file_platform_v1_cloud_dto_proto_rawDescGZIP() []byte {
 	return file_platform_v1_cloud_dto_proto_rawDescData
 }
 
-var file_platform_v1_cloud_dto_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_platform_v1_cloud_dto_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_platform_v1_cloud_dto_proto_goTypes = []any{
-	(*CloudAccount)(nil),           // 0: aether.platform.v1.cloud.CloudAccount
-	(common.CloudProvider)(0),      // 1: aether.platform.v1.common.CloudProvider
-	(common.CloudAccountStatus)(0), // 2: aether.platform.v1.common.CloudAccountStatus
+	(*CloudAccount)(nil),                         // 0: aether.platform.v1.cloud.CloudAccount
+	(*ListRequestableCloudAccountsRequest)(nil),  // 1: aether.platform.v1.cloud.ListRequestableCloudAccountsRequest
+	(*ListRequestableCloudAccountsResponse)(nil), // 2: aether.platform.v1.cloud.ListRequestableCloudAccountsResponse
+	(common.CloudProvider)(0),                    // 3: aether.platform.v1.common.CloudProvider
+	(common.CloudAccountStatus)(0),               // 4: aether.platform.v1.common.CloudAccountStatus
+	(*common.PageRequest)(nil),                   // 5: aether.platform.v1.common.PageRequest
+	(*common.PageResponse)(nil),                  // 6: aether.platform.v1.common.PageResponse
 }
 var file_platform_v1_cloud_dto_proto_depIdxs = []int32{
-	1, // 0: aether.platform.v1.cloud.CloudAccount.provider:type_name -> aether.platform.v1.common.CloudProvider
-	2, // 1: aether.platform.v1.cloud.CloudAccount.status:type_name -> aether.platform.v1.common.CloudAccountStatus
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	3, // 0: aether.platform.v1.cloud.CloudAccount.provider:type_name -> aether.platform.v1.common.CloudProvider
+	4, // 1: aether.platform.v1.cloud.CloudAccount.status:type_name -> aether.platform.v1.common.CloudAccountStatus
+	5, // 2: aether.platform.v1.cloud.ListRequestableCloudAccountsRequest.pagination:type_name -> aether.platform.v1.common.PageRequest
+	0, // 3: aether.platform.v1.cloud.ListRequestableCloudAccountsResponse.accounts:type_name -> aether.platform.v1.cloud.CloudAccount
+	6, // 4: aether.platform.v1.cloud.ListRequestableCloudAccountsResponse.pagination:type_name -> aether.platform.v1.common.PageResponse
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_platform_v1_cloud_dto_proto_init() }
@@ -149,7 +261,7 @@ func file_platform_v1_cloud_dto_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_cloud_dto_proto_rawDesc), len(file_platform_v1_cloud_dto_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
