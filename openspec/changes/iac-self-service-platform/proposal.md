@@ -76,8 +76,7 @@ Terramate 当前是一个强大的 IaC 编排 CLI，但它直接面向"会写 HC
 
 | Phase / 阶段 | 独立 change | 状态 | 覆盖 capability |
 |---|---|---|---|
-| Phase 0 契约冻结 | `platform-contract-freeze` | ✅ 已归档 | platform-api（契约首次冻结：4 域 / 21 RPC） |
-| Phase 0 契约修订 | `platform-contract-mvp-completeness` | 🔄 进行中 | platform-api（职责修正 + MVP 补全：5 域 / 24 RPC） |
+| Phase 0 契约冻结 | `platform-contract-freeze` | ✅ 已归档 | platform-api（契约冻结：5 域 / 6 service / 24 RPC） |
 | 脚手架 | `platform-tech-stack-and-scaffold` | ✅ 已归档 | server/ Go module 骨架 + 技术栈决策 D31-D45 |
 | Wave 1-8 | （待创建各 wave change） | ⏳ 未开始 | module-registry / service-catalog / code-generation / orchestration-engine / ... |
 
