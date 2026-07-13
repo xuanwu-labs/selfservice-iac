@@ -44,6 +44,20 @@ context: |
       └── scripts/         脚本产出，按面向功能分子目录
 
 rules:
+  # 生命周期动作发起权（最高优先级，凌驾所有 rules 之上）
+  # OpenSpec 生命周期的三个关键动作——propose（新建 change）、apply（开始实现）、
+  # archive（归档 change）——必须由项目维护者（人类）显式发起，agent 不得擅自执行。
+  # agent 可以：起草 change 内容、修改已有 change 的文档/代码、跑验证、解释生命周期状态。
+  # agent 不可以：未经维护者明确指令就新建 change、把 change 推进到 apply/archive、
+  #              重新定义 change 的验收范围来"凑"归档条件。
+  # sync（specs 并入主线）跟随 archive 一起做，同样需维护者发起。
+  # 理由：change 是项目里程碑的边界，新建/推进/归档改变仓库结构语义，
+  #       必须反映维护者的真实意图，不能由 agent 自行判断"做完了"。
+  lifecycle-ownership:
+    - propose（新建 change）必须由维护者发起；agent 不得擅自创建新 change 目录或用 /opsx:propose。
+    - apply（实现 tasks）、archive（归档 change）、sync（specs 并入主线）必须由维护者发起。
+    - agent 不得通过重新定义验收范围、拆分/合并 change、或自行判断"已完成"来推进生命周期。
+    - 若 agent 认为某 change 应推进，需向维护者说明依据并等待明确指令，而非直接执行。
   proposal:
     - 明确指出影响的层级：CLI | LSP | HCL | config | stack | generate | cloud | 平台层（新增）。
     - 必须包含「兼容性」说明：是否破坏已有 Terramate 配置或 CLI 用法？

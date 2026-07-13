@@ -54,6 +54,20 @@ selfservice-iac/
 - ❌ 不要修改 `../terramate/` 仓库(那是上游开源引擎,独立项目)。
 - ❌ 不要让 `server/**` import `github.com/terramate-io/terramate/<任何子包>`(D1 边界,由 depguard 强制)。
 - ❌ 不要覆盖 `openspec/config.yaml` 的定制 context/rules。
-- ✅ 新增 change 用 `/opsx:propose`,不要手建 `changes/<name>/` 目录。
+- ❌ **不要擅自执行 OpenSpec 生命周期动作**:新建 change(`/opsx:propose`)、apply、archive、sync **必须由维护者显式发起**。agent 不得自行判断"做完了"就归档,不得擅自新建第二个 change,不得通过重新定义验收范围来凑归档条件。详见下方"协作边界"与 `openspec/config.yaml` rules.lifecycle-ownership。
 - ✅ 实现任务前先 `/opsx:explore` 或读 design.md,确保理解决策 D1–D45。
 - ✅ `docs/` 是用户文档,`openspec/` 是设计文档,两者职责不同,勿混淆。
+- ✅ 若 agent 认为 change 应推进到 apply/archive,需说明依据并等待维护者指令,而非直接执行。
+
+## 协作边界:OpenSpec 生命周期动作的发起权
+
+OpenSpec 流程 `propose → apply → sync → archive` 中,**改变 change 状态的动作必须由维护者(人类)发起**,agent 只能在维护者指令下执行具体工作。
+
+| 动作 | 谁发起 | agent 能做什么 |
+|---|---|---|
+| **propose**(新建 change) | 🔒 维护者 | 起草 proposal/design/tasks **内容**;新建 change 目录/分支由维护者指令触发 |
+| **apply**(实现 tasks) | 🔒 维护者 | 写代码、跑测试、改文档(在维护者明确指令"开始实现 X"之后) |
+| **archive**(归档 change) | 🔒 维护者 | 验证 task 完成度、报告状态;归档操作由维护者指令触发 |
+| **sync**(specs 并入主线) | 🔒 维护者 | 跟随 archive 一起做 |
+
+**红线**:agent 不得擅自新建 change、不得擅自归档、不得擅自把 change 标记完成或重新定义验收范围。这三类动作改变仓库结构语义,必须反映维护者真实意图。若 agent 判断某 change 应推进,需说明依据并等待指令。

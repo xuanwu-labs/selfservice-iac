@@ -75,7 +75,7 @@ make test-db
 4. **同步**:`/opsx:sync [name]` — delta specs 并入主线
 5. **归档**:`/opsx:archive [name]` — change 完成
 
-详见 [`AGENTS.md`](AGENTS.md) 与 [`openspec/config.yaml`](openspec/config.yaml)。
+> **协作边界(重要)**:步骤 2(propose)、3(apply)、4(sync)、5(archive)这四个**改变 change 状态的动作,必须由项目维护者显式发起**。AI agent 协作时,不得擅自新建 change、不得擅自归档、不得擅自把 change 标记完成或重新定义验收范围。agent 可以起草内容、写代码、跑验证、报告状态,但推进生命周期需维护者指令。详见 [`AGENTS.md`](AGENTS.md) "协作边界"段与 [`openspec/config.yaml`](openspec/config.yaml) rules.lifecycle-ownership。
 
 ## 目录约定(必读)
 
