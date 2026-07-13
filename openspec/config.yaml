@@ -63,6 +63,11 @@ rules:
     - 实现任务旁必须给出对应测试任务（`go test ./<pkg>/...` 和/或新增 e2etests/ 场景）。
     - 涉及脚本的 task，产出脚本写入 change 目录下 scripts/ 对应功能子目录。
     - 最后一个 task 运行 `make build` 与 `make test` 做整体验证。
+    # change 拆分原则
+    - 每个 Phase / Wave / 里程碑阶段独立为一个 change，不混在巨型 change 里。
+    - 例如：Phase 0 契约冻结 = `platform-contract-freeze`；Wave 1 模块实现 = `wave1-xxx`。
+    - 大 change（如 iac-self-service-platform）保留为设计总纲，各阶段从它拆分出去。
+    - 拆分时在原 change 的 tasks.md 对应章节标注「已拆分到独立 change」。
   git:
     # 分支策略（一个 OpenSpec change 一个分支）
     - 一个 OpenSpec change 对应一个 feature 分支：`feat/<change-name>`。

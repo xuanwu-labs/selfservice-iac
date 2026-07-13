@@ -49,9 +49,12 @@
 
 **Phase 1 feature flag 约束**：PR-first、Run Hooks、Scheduled Runs、Environment Promotion、AI/MCP、半自动 StateMover、FinOps 优化建议、孤儿自动释放默认 `off`。Phase 1 只允许保留接口占位、schema 预留和观测字段，不能进入主链路阻塞条件；任何 Phase 2+ 能力若要提前试点，必须满足“不改变主链路状态机、不新增强同步依赖、不影响 golden path SLA”。
 
-## 00c-Phase 0 Contract Freeze（进入编码前的硬门槛）
+## 00c-Phase 0 Contract Freeze（已拆分到独立 change）
 
-> 对应 `docs/00-工程契约.md`、`docs/00a-contract-artifacts-plan.md`、`docs/12a-状态机测试矩阵.md`、`docs/06a-云账号Bootstrap手册.md`、`specs/19-API与Schema契约.md`。Phase 0 不新增业务功能，只冻结可测试契约。
+> **已拆分**：Phase 0 契约冻结独立为 `openspec/changes/platform-contract-freeze/` change。
+> 本节保留作为索引，实际 task 0.1-0.12 在独立 change 中执行。
+> 分支：`feat/phase0-contracts`。
+> 原始设计参考：`docs/00-工程契约.md`、`docs/00a-contract-artifacts-plan.md`、`docs/12a-状态机测试矩阵.md`、`specs/19-API与Schema契约.md`。
 
 - [ ] 0.1 产出 `contracts/openapi.yaml`：覆盖 request、planning、approval、apply、catalog、artifact、events、webhook 最小 HTTP API
 - [ ] 0.2 产出 `contracts/proto/platform/v1/*.proto`：覆盖与 HTTP 等价的 gRPC service、message、enum、error metadata

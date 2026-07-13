@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package aether.platform.v1;
+
+option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1";
+
+// ============================================================
+// 共享类型（跨 service 复用）
+// ============================================================
+
+// Pagination request fields, embedded in list RPC requests.
+message PageRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+// Pagination response fields, embedded in list RPC responses.
+message PageResponse {
+  string next_page_token = 1;
+}
+
+// Unified actor model (D10/D10.1).
+message Actor {
+  enum ActorType {
+    ACTOR_TYPE_UNSPECIFIED = 0;
+    ACTOR_TYPE_HUMAN = 1;
+    ACTOR_TYPE_AI = 2;
+    ACTOR_TYPE_SYSTEM = 3;
+  }
+  ActorType type = 1;
+  string user_id = 2;
+  string team_id = 3;
+}
