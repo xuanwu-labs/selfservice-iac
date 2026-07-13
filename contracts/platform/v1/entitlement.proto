@@ -1,9 +1,6 @@
 syntax = "proto3";
 
 package aether.platform.v1;
-
-import "google/api/annotations.proto";
-
 option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1";
 
 // ============================================================
@@ -12,9 +9,6 @@ option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/prot
 // ============================================================
 service EntitlementService {
   rpc ListRequestableCloudAccounts(ListRequestableCloudAccountsRequest) returns (ListRequestableCloudAccountsResponse) {
-    option (google.api.http) = {
-      get: "/v1/requestable-cloud-accounts"
-    };
   }
 }
 

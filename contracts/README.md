@@ -1,64 +1,55 @@
 # contracts/
 
-Aether 平台的 **API 契约唯一真相源**(proto-first,前后端共享)。
+Aether 平台的 **API 契约唯一真相源**（proto-first, Connect-native）。
 
-> **Status**: 规划中,`.proto` 尚未填充。
+## Connect-native 原则
 
-## ★ 单一真相源原则
-
-本目录是 `.proto` / OpenAPI 定义的**唯一来源**。**禁止**在后端 `server/` 或前端 `web/` 内手写或修改契约——所有契约变更必须在此发起。
-
-## 数据流(生成方向,单向不可逆)
+proto 文件是唯一契约源。不维护 openapi.yaml / schemas/*.json / protocol-mapping.md。
+Connect-RPC 天然支持 gRPC / gRPC-Web / Connect-JSON 三种协议，一个 handler 全覆盖。
 
 ```
-contracts/                        ← 唯一 .proto 源(人编辑这里)
-  └─ platform/v1/*.proto
-        │
-        │  buf generate(buf.yaml + buf.gen.yaml 驱动)
-        ▼
-  ┌─────────────────────────────────────────────┐
-  │                                             │
-  ▼                  ▼                          ▼
-server/internal/proto/   server/api/connect/    web/(TS 客户端)
-  *.pb.go(messages)      Connect 服务接口       *.ts(由 connect-es 生成)
+contracts/platform/v1/*.proto    ← 唯一真相源（人只维护这个）
+       │
+       │  buf generate（2 个插件）
+       ▼
+  server/internal/proto/*.pb.go          ← Go message 类型
+  server/internal/proto/.../*.connect.go ← Connect service 接口（handler + client）
+       │
+       │  前端（未来）
+       ▼
+  web/src/gen/*.ts                       ← connect-es TypeScript client
 ```
-
-| 产物 | 位置 | 内容 | 谁消费 |
-|---|---|---|---|
-| Go messages | `server/internal/proto/*.pb.go` | protobuf message 定义 | server 内部 |
-| Go Connect 接口 | `server/api/connect/` | Connect service handler 接口 | server 的 Connect handler |
-| TS 客户端 | `web/`(未来) | connect-es 客户端 | 前端 |
-
-**为什么 `server/api/proto/` 不存在**:proto 源只此一处(contracts/)。后端不再保留 proto 源副本,避免双源漂移。
 
 ## 目录结构
 
 ```
 contracts/
-├── buf.yaml                 # ⏳ buf 模块配置(待 task 15 建立)
-├── buf.gen.yaml             # ⏳ 生成插件配置(connect-go + connect-es,待 task 15)
-├── platform/
-│   └── v1/
-│       └── *.proto          # ⏳ 首批服务定义(待 task 15.2)
-└── README.md
+├── platform/v1/          proto service 定义（唯一契约源）
+│   ├── request.proto     RequestService（创建/查询工单/事件）
+│   ├── planning.proto    PlanningService + ArtifactService（plan 生成/artifact 查询）
+│   ├── approval.proto    ApprovalService + ApplyService（审批/apply 执行）
+│   ├── catalog.proto     CatalogService（服务目录查询）
+│   └── entitlement.proto EntitlementService（云账号查询）
+├── error-codes.yaml      错误码注册表（proto 表达不了 remediation/owner）
+├── fixtures/             测试数据（状态机/适配器/骨架 seed）
+├── buf.yaml              buf 模块配置
+├── buf.gen.yaml          buf 代码生成配置
+└── README.md             本文件
 ```
 
-## 版本演进
+## 为什么没有 openapi.yaml？
 
-按 `platform/v1`、`platform/v2` ... 目录做 API 版本演进。新版本不破坏旧版本,buf 的 breaking-change 检测(BREAKING lint)在 CI 强制。
+Connect-RPC 原生支持 curl / Postman（Connect/JSON 协议），不需要 REST 文档。
+接口文档 = proto 文件本身（最精确的接口定义）。
 
-## 工具链(待 task 15 落地)
+如果未来需要 REST 文档给非 Connect 客户端，可以启用 buf.gen.yaml 里的
+protoc-gen-openapi 插件从 proto 自动生成——但不手写。
+
+## 工具链
 
 ```bash
-# 在仓库根目录
-buf lint contracts/                    # 检查 proto 规范
-buf breaking contracts/ --against=.git  # 检查向后兼容
-buf generate                           # 生成 Go + TS 代码到 server/ 与 web/
+cd contracts
+buf lint                # 检查 proto 规范
+buf generate            # 生成 Go 代码到 server/internal/proto/
+# 未来：buf generate 也生成 TS client 到 web/src/gen/
 ```
-
-`server/Makefile` 的 `proto-gen` 目标调用 `buf generate`。
-
-## 相关文档
-
-- Connect-RPC 决策:`openspec/changes/platform-tech-stack-and-scaffold/`(D45)
-- 脚手架 task 15:`.../tasks.md`(proto 源 + Connect handler + 拦截器链)

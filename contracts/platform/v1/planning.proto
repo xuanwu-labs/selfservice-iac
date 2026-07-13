@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package aether.platform.v1;
 
-import "google/api/annotations.proto";
 import "platform/v1/request.proto";
 
 option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1";
@@ -13,9 +12,6 @@ option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/prot
 // ============================================================
 service PlanningService {
   rpc StartPlan(StartPlanRequest) returns (StartPlanResponse) {
-    option (google.api.http) = {
-      post: "/v1/requests/{request_id}/plan"
-    };
   }
 }
 
@@ -25,9 +21,6 @@ service PlanningService {
 // ============================================================
 service ArtifactService {
   rpc GetArtifact(GetArtifactRequest) returns (GetArtifactResponse) {
-    option (google.api.http) = {
-      get: "/v1/artifacts/{artifact_id}"
-    };
   }
 }
 

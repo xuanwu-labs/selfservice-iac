@@ -7,7 +7,6 @@
 package platformv1
 
 import (
-	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -438,7 +437,7 @@ var File_platform_v1_planning_proto protoreflect.FileDescriptor
 
 const file_platform_v1_planning_proto_rawDesc = "" +
 	"\n" +
-	"\x1aplatform/v1/planning.proto\x12\x12aether.platform.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x19platform/v1/request.proto\"\xf7\x03\n" +
+	"\x1aplatform/v1/planning.proto\x12\x12aether.platform.v1\x1a\x19platform/v1/request.proto\"\xf7\x03\n" +
 	"\fPlanArtifact\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -473,11 +472,11 @@ const file_platform_v1_planning_proto_rawDesc = "" +
 	"artifactId\"z\n" +
 	"\x13GetArtifactResponse\x12<\n" +
 	"\bartifact\x18\x01 \x01(\v2 .aether.platform.v1.PlanArtifactR\bartifact\x12%\n" +
-	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId2\x94\x01\n" +
-	"\x0fPlanningService\x12\x80\x01\n" +
-	"\tStartPlan\x12$.aether.platform.v1.StartPlanRequest\x1a%.aether.platform.v1.StartPlanResponse\"&\x82\xd3\xe4\x93\x02 \"\x1e/v1/requests/{request_id}/plan2\x97\x01\n" +
-	"\x0fArtifactService\x12\x83\x01\n" +
-	"\vGetArtifact\x12&.aether.platform.v1.GetArtifactRequest\x1a'.aether.platform.v1.GetArtifactResponse\"#\x82\xd3\xe4\x93\x02\x1d\x12\x1b/v1/artifacts/{artifact_id}BUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
+	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId2m\n" +
+	"\x0fPlanningService\x12Z\n" +
+	"\tStartPlan\x12$.aether.platform.v1.StartPlanRequest\x1a%.aether.platform.v1.StartPlanResponse\"\x002s\n" +
+	"\x0fArtifactService\x12`\n" +
+	"\vGetArtifact\x12&.aether.platform.v1.GetArtifactRequest\x1a'.aether.platform.v1.GetArtifactResponse\"\x00BUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
 
 var (
 	file_platform_v1_planning_proto_rawDescOnce sync.Once

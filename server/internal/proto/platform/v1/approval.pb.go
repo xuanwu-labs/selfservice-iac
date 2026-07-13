@@ -7,7 +7,6 @@
 package platformv1
 
 import (
-	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -362,7 +361,7 @@ var File_platform_v1_approval_proto protoreflect.FileDescriptor
 
 const file_platform_v1_approval_proto_rawDesc = "" +
 	"\n" +
-	"\x1aplatform/v1/approval.proto\x12\x12aether.platform.v1\x1a\x1cgoogle/api/annotations.proto\"\x9e\x02\n" +
+	"\x1aplatform/v1/approval.proto\x12\x12aether.platform.v1\"\x9e\x02\n" +
 	"\x15DecideApprovalRequest\x12\x15\n" +
 	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12N\n" +
 	"\bdecision\x18\x02 \x01(\x0e22.aether.platform.v1.DecideApprovalRequest.DecisionR\bdecision\x12\x18\n" +
@@ -390,12 +389,12 @@ const file_platform_v1_approval_proto_rawDesc = "" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\";\n" +
 	"\x12StartApplyResponse\x12%\n" +
-	"\x0ecorrelation_id\x18\x01 \x01(\tR\rcorrelationId2\xa5\x01\n" +
-	"\x0fApprovalService\x12\x91\x01\n" +
-	"\x0eDecideApproval\x12).aether.platform.v1.DecideApprovalRequest\x1a*.aether.platform.v1.DecideApprovalResponse\"(\x82\xd3\xe4\x93\x02\":\x01*\"\x1d/v1/approvals/{run_id}/decide2\x95\x01\n" +
-	"\fApplyService\x12\x84\x01\n" +
+	"\x0ecorrelation_id\x18\x01 \x01(\tR\rcorrelationId2|\n" +
+	"\x0fApprovalService\x12i\n" +
+	"\x0eDecideApproval\x12).aether.platform.v1.DecideApprovalRequest\x1a*.aether.platform.v1.DecideApprovalResponse\"\x002m\n" +
+	"\fApplyService\x12]\n" +
 	"\n" +
-	"StartApply\x12%.aether.platform.v1.StartApplyRequest\x1a&.aether.platform.v1.StartApplyResponse\"'\x82\xd3\xe4\x93\x02!\"\x1f/v1/requests/{request_id}/applyBUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
+	"StartApply\x12%.aether.platform.v1.StartApplyRequest\x1a&.aether.platform.v1.StartApplyResponse\"\x00BUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
 
 var (
 	file_platform_v1_approval_proto_rawDescOnce sync.Once

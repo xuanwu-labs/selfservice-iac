@@ -7,7 +7,6 @@
 package platformv1
 
 import (
-	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -919,7 +918,7 @@ var File_platform_v1_request_proto protoreflect.FileDescriptor
 
 const file_platform_v1_request_proto_rawDesc = "" +
 	"\n" +
-	"\x19platform/v1/request.proto\x12\x12aether.platform.v1\x1a\x1cgoogle/api/annotations.proto\"\xee\x05\n" +
+	"\x19platform/v1/request.proto\x12\x12aether.platform.v1\"\xee\x05\n" +
 	"\aRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x129\n" +
 	"\x06status\x18\x02 \x01(\x0e2!.aether.platform.v1.RequestStatusR\x06status\x12&\n" +
@@ -1025,12 +1024,12 @@ const file_platform_v1_request_proto_rawDesc = "" +
 	"\x12REQUEST_SOURCE_CLI\x10\x02\x12\x17\n" +
 	"\x13REQUEST_SOURCE_CICD\x10\x03\x12\x15\n" +
 	"\x11REQUEST_SOURCE_AI\x10\x04\x12\x1a\n" +
-	"\x16REQUEST_SOURCE_GATEWAY\x10\x052\xac\x03\n" +
-	"\x0eRequestService\x12}\n" +
-	"\rCreateRequest\x12(.aether.platform.v1.CreateRequestRequest\x1a).aether.platform.v1.CreateRequestResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/requests\x12~\n" +
+	"\x16REQUEST_SOURCE_GATEWAY\x10\x052\xcb\x02\n" +
+	"\x0eRequestService\x12f\n" +
+	"\rCreateRequest\x12(.aether.platform.v1.CreateRequestRequest\x1a).aether.platform.v1.CreateRequestResponse\"\x00\x12]\n" +
 	"\n" +
-	"GetRequest\x12%.aether.platform.v1.GetRequestRequest\x1a&.aether.platform.v1.GetRequestResponse\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/v1/requests/{request_id}\x12\x9a\x01\n" +
-	"\x11ListRequestEvents\x12,.aether.platform.v1.ListRequestEventsRequest\x1a-.aether.platform.v1.ListRequestEventsResponse\"(\x82\xd3\xe4\x93\x02\"\x12 /v1/requests/{request_id}/eventsBUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
+	"GetRequest\x12%.aether.platform.v1.GetRequestRequest\x1a&.aether.platform.v1.GetRequestResponse\"\x00\x12r\n" +
+	"\x11ListRequestEvents\x12,.aether.platform.v1.ListRequestEventsRequest\x1a-.aether.platform.v1.ListRequestEventsResponse\"\x00BUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
 
 var (
 	file_platform_v1_request_proto_rawDescOnce sync.Once
