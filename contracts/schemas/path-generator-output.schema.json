@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aether.platform/contracts/schemas/path-generator-output.schema.json",
+  "title": "PathGeneratorOutput",
+  "description": "Repo path, state key, and Terramate tags — single source (D24/D26/D29)",
+  "type": "object",
+  "required": ["repo_path", "state_key", "stack_id"],
+  "properties": {
+    "repo_path": {
+      "type": "string",
+      "description": "Layer-first path in infra repo (D29). e.g. application/platform-default/team-a/orders/ecs-prod"
+    },
+    "state_key": {
+      "type": "string",
+      "description": "Terraform state key. e.g. application/platform-default/team-a/orders/ecs-prod"
+    },
+    "stack_id": {
+      "type": "string",
+      "pattern": "^stk_[a-z0-9-]+$"
+    },
+    "terramate_tags": {
+      "type": "object",
+      "properties": {
+        "layer": { "type": "string" },
+        "env": { "type": "string" },
+        "tenant": { "type": "string" },
+        "team": { "type": "string" },
+        "bundle": { "type": "string" }
+      },
+      "description": "Tags injected into stack.tm.hcl for Terramate orchestration"
+    },
+    "layer_root": {
+      "type": "string",
+      "enum": ["global", "middleware", "application", "network", "security"],
+      "description": "Layer root directory (D24/D26)"
+    }
+  }
+}

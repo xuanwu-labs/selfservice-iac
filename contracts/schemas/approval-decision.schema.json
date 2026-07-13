@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aether.platform/contracts/schemas/approval-decision.schema.json",
+  "title": "ApprovalDecision",
+  "description": "Approval decision with optimistic lock (D21)",
+  "type": "object",
+  "required": ["decision", "comment"],
+  "properties": {
+    "decision": { "type": "string", "enum": ["approved", "rejected"] },
+    "comment": { "type": "string", "maxLength": 2000 },
+    "expected_run_version": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Optimistic lock on the approval run"
+    }
+  },
+  "additionalProperties": false
+}
