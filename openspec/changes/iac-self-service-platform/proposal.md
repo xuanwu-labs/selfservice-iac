@@ -69,3 +69,23 @@ Terramate 当前是一个强大的 IaC 编排 CLI，但它直接面向"会写 HC
 **复用 Terramate 的方式**：默认通过 `exec` 调用 Terramate CLI（可插拔）；`generate` 用于生成 stack 骨架与静态配置，运行期多实例交给 Terraform 原生 `for_each`（取舍见 design）。
 
 **关键风险**：开源 Terramate 无漂移检测引擎，需平台自研 `plan` 对比 + 事件机制；多团队分层的状态隔离与依赖编排是落地难点。
+
+## Phase 拆分索引（每阶段独立 change）
+
+> 本 change 是设计总纲（D1-D30 + 17 capability），**不直接实现**。各阶段按 OpenSpec config `tasks` 规则独立为 change，propose → apply → archive 各自走完整生命周期。拆分时在本节登记。
+
+| Phase / 阶段 | 独立 change | 状态 | 覆盖 capability |
+|---|---|---|---|
+| Phase 0 契约冻结 | `platform-contract-freeze` | ✅ 已归档 | platform-api（契约首次冻结：4 域 / 21 RPC） |
+| Phase 0 契约修订 | `platform-contract-mvp-completeness` | 🔄 进行中 | platform-api（职责修正 + MVP 补全：5 域 / 24 RPC） |
+| 脚手架 | `platform-tech-stack-and-scaffold` | ✅ 已归档 | server/ Go module 骨架 + 技术栈决策 D31-D45 |
+| Wave 1-8 | （待创建各 wave change） | ⏳ 未开始 | module-registry / service-catalog / code-generation / orchestration-engine / ... |
+
+**契约层 MVP 范围**（Phase 0 冻结的 5 域 / 24 RPC）：
+- `registry/`（RegistryAdminService）← module-registry（specs/01）
+- `catalog/`（CatalogService + CatalogAdminService）← service-catalog（specs/02）
+- `lifecycle/`（LifecycleService）← orchestration-engine（specs/06）+ approval-engine（specs/10）
+- `cloud/`（EntitlementService）← cloud-credentials 的用户侧授权查询（specs/16）
+- `common/`（共享 enum + dto）
+
+Phase 2+ 能力（tenancy / stack-layout / state-drift / cicd / cmdb-finops / tag-layering 等）的 RPC 推迟到对应 Wave 再冻结，Phase 0 不预留 proto（避免过度设计）。

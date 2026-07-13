@@ -32,6 +32,16 @@ determines authentication, authorization, and network exposure.
 | **Admin** (operator) | Platform admins | OIDC JWT + **admin role** | Exposed via Connect (`/api/`) | `RegistryAdminService`, `CatalogAdminService` |
 | **Internal** (in-process) | Platform internal logic (codegen, executor, CMDB, drift) | **No RPC** — direct function call | Not exposed | N/A (no proto) |
 
+> **Capability alignment.** Domains map 1:1 to the capability split in
+> the parent proposal (`iac-self-service-platform`): `registry/` =
+> module-registry (specs/01), `catalog/` = service-catalog (specs/02),
+> `lifecycle/` = the request lifecycle spanned by orchestration-engine +
+> approval-engine (specs/06, 10), `cloud/` = cloud-credentials entitlement
+> surface (specs/16). Keeping registry and catalog as separate domains
+> prevents the module registry (raw module ingestion/versioning) from
+> blurring into the service catalog (user-facing items published from
+> module versions).
+
 ### Why no InternalService proto?
 
 Internal operations (codegen, executor, CMDB ingest, drift scan) are
@@ -80,12 +90,14 @@ interface list and lets dto/enum evolve without touching service signatures.
 | Domain | Services | Layer |
 |---|---|---|
 | `common/` | (none — shared `dto.proto` + `enum.proto`) | — |
-| `lifecycle/` | `LifecycleService` (9 RPC: request CRUD, plan, artifact, gate, approval, apply) | Server |
-| `catalog/` | `CatalogService` (Server, 4 RPC) + `RegistryAdminService` (Admin, 4 RPC) + `CatalogAdminService` (Admin, 3 RPC) | Server + Admin |
+| `lifecycle/` | `LifecycleService` (12 RPC: request CRUD + list, plan, artifact, gate, approval list/detail/decide, apply) | Server |
+| `catalog/` | `CatalogService` (Server, 4 RPC) + `CatalogAdminService` (Admin, 3 RPC) | Server + Admin |
+| `registry/` | `RegistryAdminService` (Admin, 4 RPC: register/list/get/deprecate module) | Admin |
 | `cloud/` | `EntitlementService` (Server, 1 RPC) | Server |
 
-**Total: 6 services / 21 RPC** covering the full MVP main chain
-(admin register → publish → user request → plan → gate → approval → apply).
+**Total: 6 services / 24 RPC** covering the full MVP main chain with no
+dead ends (admin register → publish → user request → plan → gate →
+approval queue/detail/decide → apply → succeeded).
 
 ## Directory structure
 
@@ -93,14 +105,18 @@ interface list and lets dto/enum evolve without touching service signatures.
 contracts/
 ├── platform/v1/                 proto service definitions (single contract source)
 │   ├── common/
-│   │   ├── enum.proto           shared enums (RequestStatus, ActorType, CloudProvider, ...)
+│   │   ├── enum.proto           shared enums (RequestStatus, ApprovalGate, CloudProvider, ...)
 │   │   └── dto.proto            shared messages (PageRequest, PageResponse, Actor)
 │   ├── lifecycle/
 │   │   ├── srv.proto            LifecycleService (Server)
-│   │   └── dto.proto            LifecycleRequest, PlanArtifact, GateResult, ApprovalRun, ...
+│   │   └── dto.proto            LifecycleRequest, PlanArtifact, GateResult, ApprovalRun,
+│   │                            ApprovalNodeRun, ApprovalDecisionRecord, ...
 │   ├── catalog/
-│   │   ├── srv.proto            CatalogService (Server) + RegistryAdmin/CatalogAdmin (Admin)
-│   │   └── dto.proto            CatalogItem, ModuleVersion, Module, AvailableStack, ...
+│   │   ├── srv.proto            CatalogService (Server) + CatalogAdminService (Admin)
+│   │   └── dto.proto            CatalogItem, ModuleDependencyInfo, AvailableStack, ...
+│   ├── registry/
+│   │   ├── srv.proto            RegistryAdminService (Admin)
+│   │   └── dto.proto            Module, ModuleVersion, ModuleDependency, ...
 │   └── cloud/
 │       ├── srv.proto            EntitlementService (Server)
 │       └── dto.proto            CloudAccount, ...
