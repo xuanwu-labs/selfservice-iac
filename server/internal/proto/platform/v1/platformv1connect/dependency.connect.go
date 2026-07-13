@@ -43,10 +43,13 @@ const (
 
 // DependencyServiceClient is a client for the aether.platform.v1.DependencyService service.
 type DependencyServiceClient interface {
-	// 查询某个模块版本的依赖列表（前端据此渲染"选 VPC"等选择器）。
+	// List dependencies declared by a module version.
+	// Frontend uses this to render dependency selectors (e.g. "Select VPC").
 	ListModuleDependencies(context.Context, *connect.Request[v1.ListModuleDependenciesRequest]) (*connect.Response[v1.ListModuleDependenciesResponse], error)
-	// 查询某个依赖可用的上游 stack（如选了 VPC 模块，返回已有的 VPC stack 列表）。
-	// 这些 stack 的 outputs 通过 terraform_remote_state 注入到 codegen。
+	// List available upstream stacks for a dependency.
+	// e.g. if the dependency is on the VPC module in layer "global",
+	// returns all existing VPC stacks the user's team can reference.
+	// These stacks' outputs are injected via terraform_remote_state in codegen.
 	ListAvailableStacks(context.Context, *connect.Request[v1.ListAvailableStacksRequest]) (*connect.Response[v1.ListAvailableStacksResponse], error)
 }
 
@@ -95,10 +98,13 @@ func (c *dependencyServiceClient) ListAvailableStacks(ctx context.Context, req *
 // DependencyServiceHandler is an implementation of the aether.platform.v1.DependencyService
 // service.
 type DependencyServiceHandler interface {
-	// 查询某个模块版本的依赖列表（前端据此渲染"选 VPC"等选择器）。
+	// List dependencies declared by a module version.
+	// Frontend uses this to render dependency selectors (e.g. "Select VPC").
 	ListModuleDependencies(context.Context, *connect.Request[v1.ListModuleDependenciesRequest]) (*connect.Response[v1.ListModuleDependenciesResponse], error)
-	// 查询某个依赖可用的上游 stack（如选了 VPC 模块，返回已有的 VPC stack 列表）。
-	// 这些 stack 的 outputs 通过 terraform_remote_state 注入到 codegen。
+	// List available upstream stacks for a dependency.
+	// e.g. if the dependency is on the VPC module in layer "global",
+	// returns all existing VPC stacks the user's team can reference.
+	// These stacks' outputs are injected via terraform_remote_state in codegen.
 	ListAvailableStacks(context.Context, *connect.Request[v1.ListAvailableStacksRequest]) (*connect.Response[v1.ListAvailableStacksResponse], error)
 }
 

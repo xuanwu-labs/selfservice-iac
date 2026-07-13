@@ -80,7 +80,7 @@ type PublishCatalogItemRequest_Cardinality int32
 
 const (
 	PublishCatalogItemRequest_CARDINALITY_UNSPECIFIED PublishCatalogItemRequest_Cardinality = 0
-	PublishCatalogItemRequest_CARDINALITY_SINGLE      PublishCatalogItemRequest_Cardinality = 1 // 单实例
+	PublishCatalogItemRequest_CARDINALITY_SINGLE      PublishCatalogItemRequest_Cardinality = 1 // single instance
 	PublishCatalogItemRequest_CARDINALITY_LIST        PublishCatalogItemRequest_Cardinality = 2 // count = N
 	PublishCatalogItemRequest_CARDINALITY_MAP         PublishCatalogItemRequest_Cardinality = 3 // for_each = tomap({...})
 )
@@ -136,7 +136,7 @@ type Module struct {
 	GitSource     string                 `protobuf:"bytes,4,opt,name=git_source,json=gitSource,proto3" json:"git_source,omitempty"` // e.g. github.com/org/modules/ecs
 	Provider      string                 `protobuf:"bytes,5,opt,name=provider,proto3" json:"provider,omitempty"`                    // aws / alicloud / azure / gcp
 	Status        Module_ModuleStatus    `protobuf:"varint,6,opt,name=status,proto3,enum=aether.platform.v1.Module_ModuleStatus" json:"status,omitempty"`
-	Versions      []*ModuleVersion       `protobuf:"bytes,7,rep,name=versions,proto3" json:"versions,omitempty"`                    // 所有已注册版本
+	Versions      []*ModuleVersion       `protobuf:"bytes,7,rep,name=versions,proto3" json:"versions,omitempty"`                    // all registered versions
 	CreatedAt     string                 `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"` // RFC 3339 UTC
 	UpdatedAt     string                 `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -236,15 +236,16 @@ func (x *Module) GetUpdatedAt() string {
 	return ""
 }
 
-// 模块依赖声明（从 variables.tf 的 validation/description 提取）
+// ModuleDependency declares a cross-module dependency (parsed from variables.tf).
+// Example: ECS module depends on VPC module's vswitch_id output.
 type ModuleDependency struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	VariableName    string                 `protobuf:"bytes,1,opt,name=variable_name,json=variableName,proto3" json:"variable_name,omitempty"`            // e.g. "vswitch_id"
-	Description     string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`                                  // e.g. "ECS 所在交换机 ID（来自网络层）"
-	DependsOnLayer  string                 `protobuf:"bytes,3,opt,name=depends_on_layer,json=dependsOnLayer,proto3" json:"depends_on_layer,omitempty"`    // e.g. "global"（依赖哪一层）
-	DependsOnModule string                 `protobuf:"bytes,4,opt,name=depends_on_module,json=dependsOnModule,proto3" json:"depends_on_module,omitempty"` // e.g. "vpc"（依赖哪个模块）
-	OutputKey       string                 `protobuf:"bytes,5,opt,name=output_key,json=outputKey,proto3" json:"output_key,omitempty"`                     // e.g. "vswitch_id"（从上游 outputs 取哪个值）
-	Required        bool                   `protobuf:"varint,6,opt,name=required,proto3" json:"required,omitempty"`                                       // 是否必填
+	Description     string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`                                  // e.g. "VSwitch ID for the ECS instance"
+	DependsOnLayer  string                 `protobuf:"bytes,3,opt,name=depends_on_layer,json=dependsOnLayer,proto3" json:"depends_on_layer,omitempty"`    // e.g. "global"
+	DependsOnModule string                 `protobuf:"bytes,4,opt,name=depends_on_module,json=dependsOnModule,proto3" json:"depends_on_module,omitempty"` // e.g. "vpc"
+	OutputKey       string                 `protobuf:"bytes,5,opt,name=output_key,json=outputKey,proto3" json:"output_key,omitempty"`                     // e.g. "vswitch_id"
+	Required        bool                   `protobuf:"varint,6,opt,name=required,proto3" json:"required,omitempty"`                                       // whether this dependency is mandatory
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -323,11 +324,11 @@ func (x *ModuleDependency) GetRequired() bool {
 
 type RegisterModuleRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	GitSource     string                 `protobuf:"bytes,1,opt,name=git_source,json=gitSource,proto3" json:"git_source,omitempty"`    // Git 仓库地址
-	ModulePath    string                 `protobuf:"bytes,2,opt,name=module_path,json=modulePath,proto3" json:"module_path,omitempty"` // 模块在仓库内的路径（e.g. atomic/ecs）
-	Version       string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`                         // 要注册的版本（tag 或 commit）
-	Provider      string                 `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`                       // 云提供商
-	Name          string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`                               // 模块显示名
+	GitSource     string                 `protobuf:"bytes,1,opt,name=git_source,json=gitSource,proto3" json:"git_source,omitempty"`    // Git repository URL
+	ModulePath    string                 `protobuf:"bytes,2,opt,name=module_path,json=modulePath,proto3" json:"module_path,omitempty"` // path within repo (e.g. atomic/ecs)
+	Version       string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`                         // tag or commit to register
+	Provider      string                 `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`                       // cloud provider
+	Name          string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`                               // display name
 	Description   string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -652,7 +653,7 @@ func (x *GetModuleResponse) GetModule() *Module {
 type DeprecateModuleRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ModuleId      string                 `protobuf:"bytes,1,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"`
-	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"` // 要废弃的具体版本
+	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"` // specific version to deprecate
 	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -755,20 +756,20 @@ func (x *DeprecateModuleResponse) GetModule() *Module {
 
 type PublishCatalogItemRequest struct {
 	state             protoimpl.MessageState                `protogen:"open.v1"`
-	ModuleId          string                                `protobuf:"bytes,1,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"`                // 从哪个模块发布
-	ModuleVersion     string                                `protobuf:"bytes,2,opt,name=module_version,json=moduleVersion,proto3" json:"module_version,omitempty"` // 模块的哪个版本
-	Name              string                                `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`                                        // 目录项显示名
+	ModuleId          string                                `protobuf:"bytes,1,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"`                // source module
+	ModuleVersion     string                                `protobuf:"bytes,2,opt,name=module_version,json=moduleVersion,proto3" json:"module_version,omitempty"` // which version to publish
+	Name              string                                `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`                                        // catalog item display name
 	Description       string                                `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	Category          string                                `protobuf:"bytes,5,opt,name=category,proto3" json:"category,omitempty"` // e.g. "compute" / "database" / "network"
 	Cardinality       PublishCatalogItemRequest_Cardinality `protobuf:"varint,6,opt,name=cardinality,proto3,enum=aether.platform.v1.PublishCatalogItemRequest_Cardinality" json:"cardinality,omitempty"`
-	InstanceKey       string                                `protobuf:"bytes,7,opt,name=instance_key,json=instanceKey,proto3" json:"instance_key,omitempty"`                                                                                  // for_each 的 key 变量名
-	PerInstanceFields []string                              `protobuf:"bytes,8,rep,name=per_instance_fields,json=perInstanceFields,proto3" json:"per_instance_fields,omitempty"`                                                              // 每实例不同的变量
-	SharedFields      []string                              `protobuf:"bytes,9,rep,name=shared_fields,json=sharedFields,proto3" json:"shared_fields,omitempty"`                                                                               // 所有实例共享的变量
-	FormSchemaJson    string                                `protobuf:"bytes,10,opt,name=form_schema_json,json=formSchemaJson,proto3" json:"form_schema_json,omitempty"`                                                                      // 从 variables contract 裁剪的表单 schema
-	DefaultValues     map[string]string                     `protobuf:"bytes,11,rep,name=default_values,json=defaultValues,proto3" json:"default_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // 最佳实践默认值
-	VisibleToTeams    []string                              `protobuf:"bytes,12,rep,name=visible_to_teams,json=visibleToTeams,proto3" json:"visible_to_teams,omitempty"`                                                                      // 可见性控制（空=全部可见）
-	LayerLogicalId    string                                `protobuf:"bytes,13,opt,name=layer_logical_id,json=layerLogicalId,proto3" json:"layer_logical_id,omitempty"`                                                                      // 该目录项属于哪一层（global/middleware/application）
-	DefaultTags       map[string]string                     `protobuf:"bytes,14,rep,name=default_tags,json=defaultTags,proto3" json:"default_tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`       // 平台强制 tag（D18）
+	InstanceKey       string                                `protobuf:"bytes,7,opt,name=instance_key,json=instanceKey,proto3" json:"instance_key,omitempty"`                                                                                  // for_each key variable name
+	PerInstanceFields []string                              `protobuf:"bytes,8,rep,name=per_instance_fields,json=perInstanceFields,proto3" json:"per_instance_fields,omitempty"`                                                              // fields that differ per instance
+	SharedFields      []string                              `protobuf:"bytes,9,rep,name=shared_fields,json=sharedFields,proto3" json:"shared_fields,omitempty"`                                                                               // fields shared across instances
+	FormSchemaJson    string                                `protobuf:"bytes,10,opt,name=form_schema_json,json=formSchemaJson,proto3" json:"form_schema_json,omitempty"`                                                                      // trimmed form schema (from variables contract)
+	DefaultValues     map[string]string                     `protobuf:"bytes,11,rep,name=default_values,json=defaultValues,proto3" json:"default_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // best-practice defaults
+	VisibleToTeams    []string                              `protobuf:"bytes,12,rep,name=visible_to_teams,json=visibleToTeams,proto3" json:"visible_to_teams,omitempty"`                                                                      // visibility control (empty = all)
+	LayerLogicalId    string                                `protobuf:"bytes,13,opt,name=layer_logical_id,json=layerLogicalId,proto3" json:"layer_logical_id,omitempty"`                                                                      // which layer (global/middleware/application)
+	DefaultTags       map[string]string                     `protobuf:"bytes,14,rep,name=default_tags,json=defaultTags,proto3" json:"default_tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`       // platform-mandated tags (D18)
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -950,7 +951,7 @@ type UpdateCatalogItemRequest struct {
 	CatalogItemId  string                 `protobuf:"bytes,1,opt,name=catalog_item_id,json=catalogItemId,proto3" json:"catalog_item_id,omitempty"` // cat_<alphanum>
 	DefaultValues  map[string]string      `protobuf:"bytes,2,rep,name=default_values,json=defaultValues,proto3" json:"default_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	VisibleToTeams []string               `protobuf:"bytes,3,rep,name=visible_to_teams,json=visibleToTeams,proto3" json:"visible_to_teams,omitempty"`
-	FormSchemaJson string                 `protobuf:"bytes,4,opt,name=form_schema_json,json=formSchemaJson,proto3" json:"form_schema_json,omitempty"` // 可更新表单 schema
+	FormSchemaJson string                 `protobuf:"bytes,4,opt,name=form_schema_json,json=formSchemaJson,proto3" json:"form_schema_json,omitempty"` // updated form schema
 	DefaultTags    map[string]string      `protobuf:"bytes,5,rep,name=default_tags,json=defaultTags,proto3" json:"default_tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache

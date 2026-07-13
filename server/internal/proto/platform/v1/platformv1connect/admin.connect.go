@@ -60,13 +60,13 @@ const (
 
 // ModuleRegistryServiceClient is a client for the aether.platform.v1.ModuleRegistryService service.
 type ModuleRegistryServiceClient interface {
-	// 注册一个新模块或新版本。
+	// Register a new module or a new version.
 	RegisterModule(context.Context, *connect.Request[v1.RegisterModuleRequest]) (*connect.Response[v1.RegisterModuleResponse], error)
-	// 列出已注册的模块（支持按 provider/status 过滤）。
+	// List registered modules (filter by provider/status).
 	ListModules(context.Context, *connect.Request[v1.ListModulesRequest]) (*connect.Response[v1.ListModulesResponse], error)
-	// 查询单个模块的详情（含 variables contract）。
+	// Get module details (includes variables contract).
 	GetModule(context.Context, *connect.Request[v1.GetModuleRequest]) (*connect.Response[v1.GetModuleResponse], error)
-	// 废弃一个模块版本。
+	// Deprecate a module version.
 	DeprecateModule(context.Context, *connect.Request[v1.DeprecateModuleRequest]) (*connect.Response[v1.DeprecateModuleResponse], error)
 }
 
@@ -139,13 +139,13 @@ func (c *moduleRegistryServiceClient) DeprecateModule(ctx context.Context, req *
 // ModuleRegistryServiceHandler is an implementation of the aether.platform.v1.ModuleRegistryService
 // service.
 type ModuleRegistryServiceHandler interface {
-	// 注册一个新模块或新版本。
+	// Register a new module or a new version.
 	RegisterModule(context.Context, *connect.Request[v1.RegisterModuleRequest]) (*connect.Response[v1.RegisterModuleResponse], error)
-	// 列出已注册的模块（支持按 provider/status 过滤）。
+	// List registered modules (filter by provider/status).
 	ListModules(context.Context, *connect.Request[v1.ListModulesRequest]) (*connect.Response[v1.ListModulesResponse], error)
-	// 查询单个模块的详情（含 variables contract）。
+	// Get module details (includes variables contract).
 	GetModule(context.Context, *connect.Request[v1.GetModuleRequest]) (*connect.Response[v1.GetModuleResponse], error)
-	// 废弃一个模块版本。
+	// Deprecate a module version.
 	DeprecateModule(context.Context, *connect.Request[v1.DeprecateModuleRequest]) (*connect.Response[v1.DeprecateModuleResponse], error)
 }
 
@@ -217,11 +217,11 @@ func (UnimplementedModuleRegistryServiceHandler) DeprecateModule(context.Context
 
 // CatalogAdminServiceClient is a client for the aether.platform.v1.CatalogAdminService service.
 type CatalogAdminServiceClient interface {
-	// 从模块版本发布一个目录项。
+	// Publish a catalog item from a module version.
 	PublishCatalogItem(context.Context, *connect.Request[v1.PublishCatalogItemRequest]) (*connect.Response[v1.PublishCatalogItemResponse], error)
-	// 更新目录项（默认值/可见性/cardinality）。
+	// Update a catalog item (defaults/visibility/cardinality).
 	UpdateCatalogItem(context.Context, *connect.Request[v1.UpdateCatalogItemRequest]) (*connect.Response[v1.UpdateCatalogItemResponse], error)
-	// 废弃一个目录项（用户不可见，已有申请继续走）。
+	// Deprecate a catalog item (hidden from users; existing requests continue).
 	DeprecateCatalogItem(context.Context, *connect.Request[v1.DeprecateCatalogItemRequest]) (*connect.Response[v1.DeprecateCatalogItemResponse], error)
 }
 
@@ -282,11 +282,11 @@ func (c *catalogAdminServiceClient) DeprecateCatalogItem(ctx context.Context, re
 // CatalogAdminServiceHandler is an implementation of the aether.platform.v1.CatalogAdminService
 // service.
 type CatalogAdminServiceHandler interface {
-	// 从模块版本发布一个目录项。
+	// Publish a catalog item from a module version.
 	PublishCatalogItem(context.Context, *connect.Request[v1.PublishCatalogItemRequest]) (*connect.Response[v1.PublishCatalogItemResponse], error)
-	// 更新目录项（默认值/可见性/cardinality）。
+	// Update a catalog item (defaults/visibility/cardinality).
 	UpdateCatalogItem(context.Context, *connect.Request[v1.UpdateCatalogItemRequest]) (*connect.Response[v1.UpdateCatalogItemResponse], error)
-	// 废弃一个目录项（用户不可见，已有申请继续走）。
+	// Deprecate a catalog item (hidden from users; existing requests continue).
 	DeprecateCatalogItem(context.Context, *connect.Request[v1.DeprecateCatalogItemRequest]) (*connect.Response[v1.DeprecateCatalogItemResponse], error)
 }
 
