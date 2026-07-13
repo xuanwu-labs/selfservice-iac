@@ -10,30 +10,23 @@ import (
 
 // WrapInterceptor returns a Connect interceptor that catches raw Go errors
 // (not already a *connect.Error) and wraps them as a structured INTERNAL_ERROR.
-// This is the safety net: if a handler forgets to use reg.New and returns a
+// This is the safety net: if a handler forgets to use errors.New and returns a
 // bare error, clients never see an unstructured 500 with a leaked internal
-// message — they get a registered INTERNAL_ERROR carrying the standard
-// remediation/owner metadata.
+// message — they get a typed INTERNAL_ERROR.
 //
-// Known limitation (Phase 1): the check is IsConnectError, which is true for
-// ANY *connect.Error — including ones a handler built directly via
-// connect.NewError without going through the registry. Such errors pass
-// through without retryable/remediation/owner metadata. Enforcing "every
-// connect.NewError must go through the registry" requires either a lint rule
-// or a custom error type distinguishable from plain *connect.Error; both are
-// deferred. The spec (specs/03 "错误码不得硬编码") calls this out as a
-// MUST NOT, enforced by review until the tooling exists.
+// Errors already structured via errors.New (IsConnectError == true) pass
+// through unchanged so their original code/details are preserved.
 //
-// Place this AFTER business interceptors in the chain so it sees the final
-// handler error. It only wraps on the response path; it never short-circuits
-// the request.
-func WrapInterceptor(reg *Registry) connect.Interceptor {
-	return &wrapInterceptor{reg: reg}
+// Known limitation: the check is IsConnectError, which is true for ANY
+// *connect.Error — including ones a handler built directly via connect.NewError
+// without going through this package. Such errors pass through. Enforcing
+// "every structured error must come from errors.New" requires a lint rule or a
+// custom error type; deferred. Place this AFTER business interceptors.
+func WrapInterceptor() connect.Interceptor {
+	return &wrapInterceptor{}
 }
 
-type wrapInterceptor struct {
-	reg *Registry
-}
+type wrapInterceptor struct{}
 
 func (i *wrapInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
@@ -42,12 +35,12 @@ func (i *wrapInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 			return resp, nil
 		}
 		if IsConnectError(err) {
-			// Already a structured *connect.Error from the registry — preserve it.
+			// Already a structured *connect.Error — preserve it.
 			return resp, err
 		}
-		// Raw error — wrap as INTERNAL_ERROR so the client gets structured info
-		// (retryable=false, owner=platform, remediation) instead of a leak.
-		return resp, i.reg.NewFromError(commonv1.ErrorCode_ERROR_CODE_INTERNAL_ERROR, err)
+		// Raw error — wrap as INTERNAL_ERROR so the client gets a structured
+		// error instead of a leaked internal message.
+		return resp, NewFromError(commonv1.ErrorCode_ERROR_CODE_INTERNAL_ERROR, connect.CodeInternal, err)
 	}
 }
 
@@ -64,7 +57,7 @@ func (i *wrapInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc
 		if IsConnectError(err) {
 			return err
 		}
-		return i.reg.NewFromError(commonv1.ErrorCode_ERROR_CODE_INTERNAL_ERROR, err)
+		return NewFromError(commonv1.ErrorCode_ERROR_CODE_INTERNAL_ERROR, connect.CodeInternal, err)
 	}
 }
 

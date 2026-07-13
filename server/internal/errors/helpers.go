@@ -7,24 +7,22 @@ import (
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 )
 
-// This file provides package-level helpers that mirror ferret's internal/errors
-// convenience API (Is / As / Reason). Unlike Registry methods (New/Lookup),
-// these do NOT need a *Registry instance — they inspect errors that were
-// already structured. This lets core/ domain code reason about error codes
-// without depending on the Registry (which lives at the wire/handler layer):
+// This file provides package-level read-path helpers that mirror ferret's
+// internal/errors convenience API (Is / As / Reason). They inspect errors that
+// were already structured via New — no Registry/enum needed on the read path,
+// so core/ domain code can reason about error codes without the write-path
+// dependencies:
 //
 //	if errors.IsCode(err, "STATE_CONFLICT") { ... retry ... }
 //
-// The handler structured the error via reg.New (using a proto ErrorCode enum);
-// the domain layer inspects it via these free functions by the YAML key string
-// (the ErrorInfo reason). No Registry needed on the read path.
+// The handler structured the error via New (enum + connect.Code); the domain
+// layer inspects it via these free functions by the ErrorInfo reason string.
 
-// CodeOf extracts the registered error code (the ErrorInfo reason) from a
-// structured *connect.Error. Returns ("", false) if the error is not a
-// registry-structured error (e.g. a raw Go error or a hand-built
-// connect.NewError without ErrorInfo).
+// CodeOf extracts the ErrorCode key (the ErrorInfo reason) from a structured
+// *connect.Error. Returns ("", false) if the error is not structured via New
+// (e.g. a raw Go error or a hand-built connect.NewError without ErrorInfo).
 //
-// Mirrors ferret's errors.Reason.
+// Mirrors ferret's errors.Reason / kratos's errors.Reason.
 func CodeOf(err error) (string, bool) {
 	ce := new(connect.Error)
 	if !stderrors.As(err, &ce) {
@@ -42,85 +40,33 @@ func CodeOf(err error) (string, bool) {
 	return "", false
 }
 
-// IsCode reports whether err is a structured error whose registered code
-// matches the YAML key. Domain logic branches on semantic code, not on gRPC
-// Code or message:
+// IsCode reports whether err is a structured error whose ErrorCode key matches
+// the supplied key. Domain logic branches on semantic code, not on gRPC Code:
 //
 //	if errors.IsCode(err, "STATE_CONFLICT") {
 //	    return retryWithFreshVersion()
 //	}
 //
-// Returns false for non-structured errors (raw Go errors, hand-built
-// connect.NewError) so they never accidentally match a code check.
-func IsCode(err error, code string) bool {
+// Returns false for non-structured errors so they never accidentally match.
+func IsCode(err error, key string) bool {
 	got, ok := CodeOf(err)
-	return ok && got == code
+	return ok && got == key
 }
 
-// IsRetryable reports whether err carries retryable=true in its ErrorInfo
-// metadata. Non-structured errors return false (treat as non-retryable by
-// default — safer than retrying an unknown error).
-func IsRetryable(err error) bool {
-	return boolMeta(err, "retryable")
-}
-
-// ManualRequired reports whether err carries manual_required=true. Domain
-// logic / orchestrator uses this to decide whether to create a
-// manual_intervention_task rather than silently failing.
-func ManualRequired(err error) bool {
-	return boolMeta(err, "manual_required")
-}
-
-// Remediation extracts the remediation hint from a structured error, if any.
-// Returns "" for non-structured errors.
-func Remediation(err error) string {
-	meta := errorMeta(err)
-	return meta["remediation"]
-}
-
-// Owner extracts the owning team from a structured error, if any.
-// Returns "" for non-structured errors.
-func Owner(err error) string {
-	meta := errorMeta(err)
-	return meta["owner"]
-}
-
-// --- internal helpers ---
-
-// errorMeta pulls the ErrorInfo metadata map out of a structured error.
-func errorMeta(err error) map[string]string {
+// GRPCCodeOf extracts the connect.Code from a structured *connect.Error. Useful
+// when domain logic needs the transport semantic (e.g. to decide retry via
+// IsRetryable). Returns (0, false) for non-structured errors.
+func GRPCCodeOf(err error) (connect.Code, bool) {
 	ce := new(connect.Error)
 	if !stderrors.As(err, &ce) {
-		return nil
+		return 0, false
 	}
-	for _, d := range ce.Details() {
-		msg, derr := d.Value()
-		if derr != nil {
-			continue
-		}
-		if ei, ok := msg.(*errdetails.ErrorInfo); ok {
-			return ei.GetMetadata()
-		}
-	}
-	return nil
-}
-
-// boolMeta reads a boolean metadata key; false if absent or non-structured.
-func boolMeta(err error, key string) bool {
-	meta := errorMeta(err)
-	if meta == nil {
-		return false
-	}
-	return meta[key] == "true"
+	return ce.Code(), true
 }
 
 // Is / As / Unwrap are re-exported from the standard errors package so callers
-// can import a single "errors" package (this one) for both platform error
-// codes and standard error chaining. This matches ferret's convenience
-// re-export pattern (its internal/errors exposes Is/As too).
-//
-// For STRUCTURED platform errors use reg.New (Registry method) on the write
-// path; these re-exports are for the read/inspect path and plain error needs.
+// can import a single "errors" package (this one) for both platform error codes
+// and standard error chaining. This matches ferret's convenience re-export.
 var (
 	Is     = stderrors.Is
 	As     = stderrors.As

@@ -120,7 +120,6 @@ contracts/
 │   └── cloud/
 │       ├── srv.proto            EntitlementService (Server)
 │       └── dto.proto            CloudAccount, ...
-├── error-codes.yaml             error code registry (proto can't express remediation/owner)
 ├── fixtures/                    test data (state machine / adapter / skeleton seed)
 ├── buf.yaml                     buf module config
 ├── buf.gen.yaml                 buf code generation config
