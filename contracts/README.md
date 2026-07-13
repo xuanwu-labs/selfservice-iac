@@ -106,6 +106,7 @@ contracts/
 ├── platform/v1/                 proto service definitions (single contract source)
 │   ├── common/
 │   │   ├── enum.proto           shared enums (RequestStatus, ApprovalGate, CloudProvider, ...)
+│   │   ├── error_code.proto     ErrorCode enum (error-code identity, single source)
 │   │   └── dto.proto            shared messages (PageRequest, PageResponse, Actor)
 │   ├── lifecycle/
 │   │   ├── srv.proto            LifecycleService (Server)
