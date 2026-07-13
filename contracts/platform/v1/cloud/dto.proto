@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package aether.platform.v1.cloud;
+
+import "platform/v1/common/enum.proto";
+
+option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/cloud;cloudv1";
+
+// ============================================================
+// Cloud DTOs — cloud account.
+// ============================================================
+
+message CloudAccount {
+  string id = 1;
+  aether.platform.v1.common.CloudProvider provider = 2;
+  string name = 3;
+  aether.platform.v1.common.CloudAccountStatus status = 4;
+  repeated string regions = 5;
+}

@@ -1,0 +1,125 @@
+syntax = "proto3";
+
+package aether.platform.v1.lifecycle;
+
+import "platform/v1/common/enum.proto";
+import "platform/v1/lifecycle/dto.proto";
+
+option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/lifecycle;lifecyclev1";
+
+// ============================================================
+// LifecycleService — Server: IaC change request lifecycle.
+// Create -> (auto codegen) -> Plan -> Gate -> Approval -> Apply -> Reconcile
+// ============================================================
+service LifecycleService {
+  rpc CreateRequest(CreateRequestRequest) returns (CreateRequestResponse) {}
+  rpc GetRequest(GetRequestRequest) returns (GetRequestResponse) {}
+  rpc ListRequestEvents(ListRequestEventsRequest) returns (ListRequestEventsResponse) {}
+  rpc CancelRequest(CancelRequestRequest) returns (CancelRequestResponse) {}
+  rpc StartPlan(StartPlanRequest) returns (StartPlanResponse) {}
+  rpc GetArtifact(GetArtifactRequest) returns (GetArtifactResponse) {}
+  rpc EvaluateGate(EvaluateGateRequest) returns (EvaluateGateResponse) {}
+  rpc DecideApproval(DecideApprovalRequest) returns (DecideApprovalResponse) {}
+  rpc StartApply(StartApplyRequest) returns (StartApplyResponse) {}
+}
+
+// ============================================================
+// RPC Messages
+// ============================================================
+
+message CreateRequestRequest {
+  string catalog_item_id = 1;
+  string env_id = 2;
+  string team_id = 3;
+  string tenant_id = 4;
+  string bundle_id = 5;
+  map<string, string> form_values = 6;
+  aether.platform.v1.common.RequestSource source = 7;
+  map<string, string> source_context = 8;
+}
+
+message CreateRequestResponse {
+  LifecycleRequest request = 1;
+  string correlation_id = 2;
+}
+
+message GetRequestRequest {
+  string request_id = 1;
+}
+
+message GetRequestResponse {
+  LifecycleRequest request = 1;
+  string correlation_id = 2;
+}
+
+message ListRequestEventsRequest {
+  string request_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListRequestEventsResponse {
+  repeated LifecycleEvent events = 1;
+  string next_page_token = 2;
+  string correlation_id = 3;
+}
+
+message CancelRequestRequest {
+  string request_id = 1;
+  int32 expected_version = 2;
+  string reason = 3;
+}
+
+message CancelRequestResponse {
+  LifecycleRequest request = 1;
+  string correlation_id = 2;
+}
+
+message StartPlanRequest {
+  string request_id = 1;
+}
+
+message StartPlanResponse {
+  LifecycleRequest request = 1;
+  string correlation_id = 2;
+}
+
+message GetArtifactRequest {
+  string artifact_id = 1;
+}
+
+message GetArtifactResponse {
+  PlanArtifact artifact = 1;
+  string correlation_id = 2;
+}
+
+message EvaluateGateRequest {
+  string request_id = 1;
+}
+
+message EvaluateGateResponse {
+  string request_id = 1;
+  bool passed = 2;
+  repeated GateResult gates = 3;
+  string correlation_id = 4;
+}
+
+message DecideApprovalRequest {
+  string run_id = 1;
+  aether.platform.v1.common.ApprovalDecision decision = 2;
+  string comment = 3;
+  int32 expected_run_version = 4;
+}
+
+message DecideApprovalResponse {
+  ApprovalRun run = 1;
+  string correlation_id = 2;
+}
+
+message StartApplyRequest {
+  string request_id = 1;
+}
+
+message StartApplyResponse {
+  string correlation_id = 1;
+}

@@ -1,19 +1,18 @@
 syntax = "proto3";
 
-package aether.platform.v1;
+package aether.platform.v1.catalog;
 
-import "platform/v1/common.proto";
-import "platform/v1/catalog.proto";
+import "platform/v1/common/dto.proto";
+import "platform/v1/common/enum.proto";
+import "platform/v1/catalog/dto.proto";
 
-option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1";
+option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/catalog;catalogv1";
 
 // ============================================================
-// ModuleRegistryService — Admin: register atomic modules (D7).
-// Admins pull Terraform modules from Git, parse variables.tf to
-// generate variables_contract_json, validate, and register to the
-// platform module registry. Requires admin role.
+// RegistryAdminService — Admin: register and manage modules (D7).
+// Requires admin role.
 // ============================================================
-service ModuleRegistryService {
+service RegistryAdminService {
   rpc RegisterModule(RegisterModuleRequest) returns (RegisterModuleResponse) {}
   rpc ListModules(ListModulesRequest) returns (ListModulesResponse) {}
   rpc GetModule(GetModuleRequest) returns (GetModuleResponse) {}
@@ -22,7 +21,6 @@ service ModuleRegistryService {
 
 // ============================================================
 // CatalogAdminService — Admin: publish and manage catalog items (D25).
-// Create user-facing catalog items from registered module versions.
 // Requires admin role.
 // ============================================================
 service CatalogAdminService {
@@ -32,38 +30,13 @@ service CatalogAdminService {
 }
 
 // ============================================================
-// Module Messages
-// ============================================================
-
-message Module {
-  string id = 1;                            // mod_<alphanum>
-  string name = 2;
-  string description = 3;
-  string git_source = 4;                    // e.g. github.com/org/modules/ecs
-  string provider = 5;                      // aws / alicloud / azure / gcp
-
-  enum ModuleStatus {
-    MODULE_STATUS_UNSPECIFIED = 0;
-    MODULE_STATUS_PENDING_VALIDATION = 1;
-    MODULE_STATUS_VALIDATED = 2;
-    MODULE_STATUS_VALIDATION_FAILED = 3;
-    MODULE_STATUS_DEPRECATED = 4;
-  }
-  ModuleStatus status = 6;
-
-  repeated ModuleVersion versions = 7;      // from common.proto
-  string created_at = 8;                    // RFC 3339 UTC
-  string updated_at = 9;
-}
-
-// ============================================================
-// ModuleRegistry RPC Messages
+// RegistryAdmin RPC Messages
 // ============================================================
 
 message RegisterModuleRequest {
   string git_source = 1;
-  string module_path = 2;                   // path within repo (e.g. atomic/ecs)
-  string version = 3;                       // tag or commit to register
+  string module_path = 2;
+  string version = 3;
   string provider = 4;
   string name = 5;
   string description = 6;
@@ -74,18 +47,18 @@ message RegisterModuleResponse {
 }
 
 message ListModulesRequest {
-  PageRequest pagination = 1;
+  aether.platform.v1.common.PageRequest pagination = 1;
   string provider_filter = 2;
-  Module.ModuleStatus status_filter = 3;
+  aether.platform.v1.common.ModuleStatus status_filter = 3;
 }
 
 message ListModulesResponse {
   repeated Module modules = 1;
-  PageResponse pagination = 2;
+  aether.platform.v1.common.PageResponse pagination = 2;
 }
 
 message GetModuleRequest {
-  string module_id = 1;                     // mod_<alphanum>
+  string module_id = 1;
 }
 
 message GetModuleResponse {
@@ -112,18 +85,10 @@ message PublishCatalogItemRequest {
   string name = 3;
   string description = 4;
   string category = 5;
-
-  enum Cardinality {
-    CARDINALITY_UNSPECIFIED = 0;
-    CARDINALITY_SINGLE = 1;
-    CARDINALITY_LIST = 2;
-    CARDINALITY_MAP = 3;
-  }
-  Cardinality cardinality = 6;
+  aether.platform.v1.common.Cardinality cardinality = 6;
   string instance_key = 7;
   repeated string per_instance_fields = 8;
   repeated string shared_fields = 9;
-
   string form_schema_json = 10;
   map<string, string> default_values = 11;
   repeated string visible_to_teams = 12;

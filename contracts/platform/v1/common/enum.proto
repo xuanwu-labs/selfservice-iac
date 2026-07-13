@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package aether.platform.v1.common;
+
+option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/common;commonv1";
+
+// ============================================================
+// Shared enums across all business domains.
+// ============================================================
+
+// ActorType identifies who initiated an action.
+enum ActorType {
+  ACTOR_TYPE_UNSPECIFIED = 0;
+  ACTOR_TYPE_HUMAN = 1;
+  ACTOR_TYPE_AI = 2;
+  ACTOR_TYPE_SYSTEM = 3;
+}
+
+// RequestStatus is the lifecycle state of an IaC change request (D21).
+enum RequestStatus {
+  REQUEST_STATUS_UNSPECIFIED = 0;
+  REQUEST_STATUS_SUBMITTED = 1;
+  REQUEST_STATUS_GENERATING = 2;
+  REQUEST_STATUS_PENDING_ADMISSION = 3;
+  REQUEST_STATUS_PLANNING = 4;
+  REQUEST_STATUS_PLAN_READY = 5;
+  REQUEST_STATUS_PENDING_APPROVAL = 6;
+  REQUEST_STATUS_APPLYING = 7;
+  REQUEST_STATUS_RECONCILING = 8;
+  REQUEST_STATUS_SUCCEEDED = 9;
+  REQUEST_STATUS_REJECTED = 10;
+  REQUEST_STATUS_CANCELLED = 11;
+  REQUEST_STATUS_EXPIRED = 12;
+  REQUEST_STATUS_FAILED_RETRYABLE = 13;
+  REQUEST_STATUS_FAILED_TERMINAL = 14;
+  REQUEST_STATUS_WAITING_MANUAL = 15;
+  REQUEST_STATUS_RECONCILE_PENDING = 16;
+}
+
+// RequestSource identifies where a request originated.
+enum RequestSource {
+  REQUEST_SOURCE_UNSPECIFIED = 0;
+  REQUEST_SOURCE_WEB = 1;
+  REQUEST_SOURCE_CLI = 2;
+  REQUEST_SOURCE_CICD = 3;
+  REQUEST_SOURCE_AI = 4;
+  REQUEST_SOURCE_GATEWAY = 5;
+}
+
+// ApprovalDecision is the outcome of an approval step.
+enum ApprovalDecision {
+  APPROVAL_DECISION_UNSPECIFIED = 0;
+  APPROVAL_DECISION_APPROVED = 1;
+  APPROVAL_DECISION_REJECTED = 2;
+}
+
+// ApprovalRunStatus is the state of an approval run.
+enum ApprovalRunStatus {
+  APPROVAL_RUN_STATUS_UNSPECIFIED = 0;
+  APPROVAL_RUN_STATUS_PENDING = 1;
+  APPROVAL_RUN_STATUS_APPROVED = 2;
+  APPROVAL_RUN_STATUS_REJECTED = 3;
+  APPROVAL_RUN_STATUS_EXPIRED = 4;
+}
+
+// ArtifactStatus is the state of a plan artifact.
+enum ArtifactStatus {
+  ARTIFACT_STATUS_UNSPECIFIED = 0;
+  ARTIFACT_STATUS_READY = 1;
+  ARTIFACT_STATUS_EXPIRED = 2;
+  ARTIFACT_STATUS_CONSUMED = 3;
+}
+
+// GateSeverity indicates the severity of a gate violation.
+enum GateSeverity {
+  GATE_SEVERITY_UNSPECIFIED = 0;
+  GATE_SEVERITY_ERROR = 1;
+  GATE_SEVERITY_WARNING = 2;
+}
+
+// ModuleStatus is the lifecycle state of a registered module.
+enum ModuleStatus {
+  MODULE_STATUS_UNSPECIFIED = 0;
+  MODULE_STATUS_PENDING_VALIDATION = 1;
+  MODULE_STATUS_VALIDATED = 2;
+  MODULE_STATUS_VALIDATION_FAILED = 3;
+  MODULE_STATUS_DEPRECATED = 4;
+}
+
+// CatalogItemStatus is the visibility state of a catalog item.
+enum CatalogItemStatus {
+  CATALOG_ITEM_STATUS_UNSPECIFIED = 0;
+  CATALOG_ITEM_STATUS_ACTIVE = 1;
+  CATALOG_ITEM_STATUS_DEPRECATED = 2;
+}
+
+// Cardinality controls multi-instance generation (D25).
+enum Cardinality {
+  CARDINALITY_UNSPECIFIED = 0;
+  CARDINALITY_SINGLE = 1;
+  CARDINALITY_LIST = 2;
+  CARDINALITY_MAP = 3;
+}
+
+// CloudProvider identifies a cloud vendor.
+enum CloudProvider {
+  CLOUD_PROVIDER_UNSPECIFIED = 0;
+  CLOUD_PROVIDER_AWS = 1;
+  CLOUD_PROVIDER_ALIYUN = 2;
+  CLOUD_PROVIDER_AZURE = 3;
+  CLOUD_PROVIDER_GCP = 4;
+}
+
+// CloudAccountStatus is the state of a cloud account.
+enum CloudAccountStatus {
+  CLOUD_ACCOUNT_STATUS_UNSPECIFIED = 0;
+  CLOUD_ACCOUNT_STATUS_ACTIVE = 1;
+  CLOUD_ACCOUNT_STATUS_SUSPENDED = 2;
+}
