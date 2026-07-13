@@ -24,61 +24,76 @@ var File_platform_v1_lifecycle_srv_proto protoreflect.FileDescriptor
 
 const file_platform_v1_lifecycle_srv_proto_rawDesc = "" +
 	"\n" +
-	"\x1fplatform/v1/lifecycle/srv.proto\x12\x1caether.platform.v1.lifecycle\x1a\x1fplatform/v1/lifecycle/dto.proto2\xd7\b\n" +
+	"\x1fplatform/v1/lifecycle/srv.proto\x12\x1caether.platform.v1.lifecycle\x1a\x1fplatform/v1/lifecycle/dto.proto2\xe1\v\n" +
 	"\x10LifecycleService\x12z\n" +
 	"\rCreateRequest\x122.aether.platform.v1.lifecycle.CreateRequestRequest\x1a3.aether.platform.v1.lifecycle.CreateRequestResponse\"\x00\x12q\n" +
 	"\n" +
-	"GetRequest\x12/.aether.platform.v1.lifecycle.GetRequestRequest\x1a0.aether.platform.v1.lifecycle.GetRequestResponse\"\x00\x12\x86\x01\n" +
+	"GetRequest\x12/.aether.platform.v1.lifecycle.GetRequestRequest\x1a0.aether.platform.v1.lifecycle.GetRequestResponse\"\x00\x12w\n" +
+	"\fListRequests\x121.aether.platform.v1.lifecycle.ListRequestsRequest\x1a2.aether.platform.v1.lifecycle.ListRequestsResponse\"\x00\x12\x86\x01\n" +
 	"\x11ListRequestEvents\x126.aether.platform.v1.lifecycle.ListRequestEventsRequest\x1a7.aether.platform.v1.lifecycle.ListRequestEventsResponse\"\x00\x12z\n" +
 	"\rCancelRequest\x122.aether.platform.v1.lifecycle.CancelRequestRequest\x1a3.aether.platform.v1.lifecycle.CancelRequestResponse\"\x00\x12n\n" +
 	"\tStartPlan\x12..aether.platform.v1.lifecycle.StartPlanRequest\x1a/.aether.platform.v1.lifecycle.StartPlanResponse\"\x00\x12t\n" +
 	"\vGetArtifact\x120.aether.platform.v1.lifecycle.GetArtifactRequest\x1a1.aether.platform.v1.lifecycle.GetArtifactResponse\"\x00\x12w\n" +
-	"\fEvaluateGate\x121.aether.platform.v1.lifecycle.EvaluateGateRequest\x1a2.aether.platform.v1.lifecycle.EvaluateGateResponse\"\x00\x12}\n" +
+	"\fEvaluateGate\x121.aether.platform.v1.lifecycle.EvaluateGateRequest\x1a2.aether.platform.v1.lifecycle.EvaluateGateResponse\"\x00\x12\x8f\x01\n" +
+	"\x14ListPendingApprovals\x129.aether.platform.v1.lifecycle.ListPendingApprovalsRequest\x1a:.aether.platform.v1.lifecycle.ListPendingApprovalsResponse\"\x00\x12}\n" +
+	"\x0eGetApprovalRun\x123.aether.platform.v1.lifecycle.GetApprovalRunRequest\x1a4.aether.platform.v1.lifecycle.GetApprovalRunResponse\"\x00\x12}\n" +
 	"\x0eDecideApproval\x123.aether.platform.v1.lifecycle.DecideApprovalRequest\x1a4.aether.platform.v1.lifecycle.DecideApprovalResponse\"\x00\x12q\n" +
 	"\n" +
 	"StartApply\x12/.aether.platform.v1.lifecycle.StartApplyRequest\x1a0.aether.platform.v1.lifecycle.StartApplyResponse\"\x00B`Z^github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/lifecycle;lifecyclev1b\x06proto3"
 
 var file_platform_v1_lifecycle_srv_proto_goTypes = []any{
-	(*CreateRequestRequest)(nil),      // 0: aether.platform.v1.lifecycle.CreateRequestRequest
-	(*GetRequestRequest)(nil),         // 1: aether.platform.v1.lifecycle.GetRequestRequest
-	(*ListRequestEventsRequest)(nil),  // 2: aether.platform.v1.lifecycle.ListRequestEventsRequest
-	(*CancelRequestRequest)(nil),      // 3: aether.platform.v1.lifecycle.CancelRequestRequest
-	(*StartPlanRequest)(nil),          // 4: aether.platform.v1.lifecycle.StartPlanRequest
-	(*GetArtifactRequest)(nil),        // 5: aether.platform.v1.lifecycle.GetArtifactRequest
-	(*EvaluateGateRequest)(nil),       // 6: aether.platform.v1.lifecycle.EvaluateGateRequest
-	(*DecideApprovalRequest)(nil),     // 7: aether.platform.v1.lifecycle.DecideApprovalRequest
-	(*StartApplyRequest)(nil),         // 8: aether.platform.v1.lifecycle.StartApplyRequest
-	(*CreateRequestResponse)(nil),     // 9: aether.platform.v1.lifecycle.CreateRequestResponse
-	(*GetRequestResponse)(nil),        // 10: aether.platform.v1.lifecycle.GetRequestResponse
-	(*ListRequestEventsResponse)(nil), // 11: aether.platform.v1.lifecycle.ListRequestEventsResponse
-	(*CancelRequestResponse)(nil),     // 12: aether.platform.v1.lifecycle.CancelRequestResponse
-	(*StartPlanResponse)(nil),         // 13: aether.platform.v1.lifecycle.StartPlanResponse
-	(*GetArtifactResponse)(nil),       // 14: aether.platform.v1.lifecycle.GetArtifactResponse
-	(*EvaluateGateResponse)(nil),      // 15: aether.platform.v1.lifecycle.EvaluateGateResponse
-	(*DecideApprovalResponse)(nil),    // 16: aether.platform.v1.lifecycle.DecideApprovalResponse
-	(*StartApplyResponse)(nil),        // 17: aether.platform.v1.lifecycle.StartApplyResponse
+	(*CreateRequestRequest)(nil),         // 0: aether.platform.v1.lifecycle.CreateRequestRequest
+	(*GetRequestRequest)(nil),            // 1: aether.platform.v1.lifecycle.GetRequestRequest
+	(*ListRequestsRequest)(nil),          // 2: aether.platform.v1.lifecycle.ListRequestsRequest
+	(*ListRequestEventsRequest)(nil),     // 3: aether.platform.v1.lifecycle.ListRequestEventsRequest
+	(*CancelRequestRequest)(nil),         // 4: aether.platform.v1.lifecycle.CancelRequestRequest
+	(*StartPlanRequest)(nil),             // 5: aether.platform.v1.lifecycle.StartPlanRequest
+	(*GetArtifactRequest)(nil),           // 6: aether.platform.v1.lifecycle.GetArtifactRequest
+	(*EvaluateGateRequest)(nil),          // 7: aether.platform.v1.lifecycle.EvaluateGateRequest
+	(*ListPendingApprovalsRequest)(nil),  // 8: aether.platform.v1.lifecycle.ListPendingApprovalsRequest
+	(*GetApprovalRunRequest)(nil),        // 9: aether.platform.v1.lifecycle.GetApprovalRunRequest
+	(*DecideApprovalRequest)(nil),        // 10: aether.platform.v1.lifecycle.DecideApprovalRequest
+	(*StartApplyRequest)(nil),            // 11: aether.platform.v1.lifecycle.StartApplyRequest
+	(*CreateRequestResponse)(nil),        // 12: aether.platform.v1.lifecycle.CreateRequestResponse
+	(*GetRequestResponse)(nil),           // 13: aether.platform.v1.lifecycle.GetRequestResponse
+	(*ListRequestsResponse)(nil),         // 14: aether.platform.v1.lifecycle.ListRequestsResponse
+	(*ListRequestEventsResponse)(nil),    // 15: aether.platform.v1.lifecycle.ListRequestEventsResponse
+	(*CancelRequestResponse)(nil),        // 16: aether.platform.v1.lifecycle.CancelRequestResponse
+	(*StartPlanResponse)(nil),            // 17: aether.platform.v1.lifecycle.StartPlanResponse
+	(*GetArtifactResponse)(nil),          // 18: aether.platform.v1.lifecycle.GetArtifactResponse
+	(*EvaluateGateResponse)(nil),         // 19: aether.platform.v1.lifecycle.EvaluateGateResponse
+	(*ListPendingApprovalsResponse)(nil), // 20: aether.platform.v1.lifecycle.ListPendingApprovalsResponse
+	(*GetApprovalRunResponse)(nil),       // 21: aether.platform.v1.lifecycle.GetApprovalRunResponse
+	(*DecideApprovalResponse)(nil),       // 22: aether.platform.v1.lifecycle.DecideApprovalResponse
+	(*StartApplyResponse)(nil),           // 23: aether.platform.v1.lifecycle.StartApplyResponse
 }
 var file_platform_v1_lifecycle_srv_proto_depIdxs = []int32{
 	0,  // 0: aether.platform.v1.lifecycle.LifecycleService.CreateRequest:input_type -> aether.platform.v1.lifecycle.CreateRequestRequest
 	1,  // 1: aether.platform.v1.lifecycle.LifecycleService.GetRequest:input_type -> aether.platform.v1.lifecycle.GetRequestRequest
-	2,  // 2: aether.platform.v1.lifecycle.LifecycleService.ListRequestEvents:input_type -> aether.platform.v1.lifecycle.ListRequestEventsRequest
-	3,  // 3: aether.platform.v1.lifecycle.LifecycleService.CancelRequest:input_type -> aether.platform.v1.lifecycle.CancelRequestRequest
-	4,  // 4: aether.platform.v1.lifecycle.LifecycleService.StartPlan:input_type -> aether.platform.v1.lifecycle.StartPlanRequest
-	5,  // 5: aether.platform.v1.lifecycle.LifecycleService.GetArtifact:input_type -> aether.platform.v1.lifecycle.GetArtifactRequest
-	6,  // 6: aether.platform.v1.lifecycle.LifecycleService.EvaluateGate:input_type -> aether.platform.v1.lifecycle.EvaluateGateRequest
-	7,  // 7: aether.platform.v1.lifecycle.LifecycleService.DecideApproval:input_type -> aether.platform.v1.lifecycle.DecideApprovalRequest
-	8,  // 8: aether.platform.v1.lifecycle.LifecycleService.StartApply:input_type -> aether.platform.v1.lifecycle.StartApplyRequest
-	9,  // 9: aether.platform.v1.lifecycle.LifecycleService.CreateRequest:output_type -> aether.platform.v1.lifecycle.CreateRequestResponse
-	10, // 10: aether.platform.v1.lifecycle.LifecycleService.GetRequest:output_type -> aether.platform.v1.lifecycle.GetRequestResponse
-	11, // 11: aether.platform.v1.lifecycle.LifecycleService.ListRequestEvents:output_type -> aether.platform.v1.lifecycle.ListRequestEventsResponse
-	12, // 12: aether.platform.v1.lifecycle.LifecycleService.CancelRequest:output_type -> aether.platform.v1.lifecycle.CancelRequestResponse
-	13, // 13: aether.platform.v1.lifecycle.LifecycleService.StartPlan:output_type -> aether.platform.v1.lifecycle.StartPlanResponse
-	14, // 14: aether.platform.v1.lifecycle.LifecycleService.GetArtifact:output_type -> aether.platform.v1.lifecycle.GetArtifactResponse
-	15, // 15: aether.platform.v1.lifecycle.LifecycleService.EvaluateGate:output_type -> aether.platform.v1.lifecycle.EvaluateGateResponse
-	16, // 16: aether.platform.v1.lifecycle.LifecycleService.DecideApproval:output_type -> aether.platform.v1.lifecycle.DecideApprovalResponse
-	17, // 17: aether.platform.v1.lifecycle.LifecycleService.StartApply:output_type -> aether.platform.v1.lifecycle.StartApplyResponse
-	9,  // [9:18] is the sub-list for method output_type
-	0,  // [0:9] is the sub-list for method input_type
+	2,  // 2: aether.platform.v1.lifecycle.LifecycleService.ListRequests:input_type -> aether.platform.v1.lifecycle.ListRequestsRequest
+	3,  // 3: aether.platform.v1.lifecycle.LifecycleService.ListRequestEvents:input_type -> aether.platform.v1.lifecycle.ListRequestEventsRequest
+	4,  // 4: aether.platform.v1.lifecycle.LifecycleService.CancelRequest:input_type -> aether.platform.v1.lifecycle.CancelRequestRequest
+	5,  // 5: aether.platform.v1.lifecycle.LifecycleService.StartPlan:input_type -> aether.platform.v1.lifecycle.StartPlanRequest
+	6,  // 6: aether.platform.v1.lifecycle.LifecycleService.GetArtifact:input_type -> aether.platform.v1.lifecycle.GetArtifactRequest
+	7,  // 7: aether.platform.v1.lifecycle.LifecycleService.EvaluateGate:input_type -> aether.platform.v1.lifecycle.EvaluateGateRequest
+	8,  // 8: aether.platform.v1.lifecycle.LifecycleService.ListPendingApprovals:input_type -> aether.platform.v1.lifecycle.ListPendingApprovalsRequest
+	9,  // 9: aether.platform.v1.lifecycle.LifecycleService.GetApprovalRun:input_type -> aether.platform.v1.lifecycle.GetApprovalRunRequest
+	10, // 10: aether.platform.v1.lifecycle.LifecycleService.DecideApproval:input_type -> aether.platform.v1.lifecycle.DecideApprovalRequest
+	11, // 11: aether.platform.v1.lifecycle.LifecycleService.StartApply:input_type -> aether.platform.v1.lifecycle.StartApplyRequest
+	12, // 12: aether.platform.v1.lifecycle.LifecycleService.CreateRequest:output_type -> aether.platform.v1.lifecycle.CreateRequestResponse
+	13, // 13: aether.platform.v1.lifecycle.LifecycleService.GetRequest:output_type -> aether.platform.v1.lifecycle.GetRequestResponse
+	14, // 14: aether.platform.v1.lifecycle.LifecycleService.ListRequests:output_type -> aether.platform.v1.lifecycle.ListRequestsResponse
+	15, // 15: aether.platform.v1.lifecycle.LifecycleService.ListRequestEvents:output_type -> aether.platform.v1.lifecycle.ListRequestEventsResponse
+	16, // 16: aether.platform.v1.lifecycle.LifecycleService.CancelRequest:output_type -> aether.platform.v1.lifecycle.CancelRequestResponse
+	17, // 17: aether.platform.v1.lifecycle.LifecycleService.StartPlan:output_type -> aether.platform.v1.lifecycle.StartPlanResponse
+	18, // 18: aether.platform.v1.lifecycle.LifecycleService.GetArtifact:output_type -> aether.platform.v1.lifecycle.GetArtifactResponse
+	19, // 19: aether.platform.v1.lifecycle.LifecycleService.EvaluateGate:output_type -> aether.platform.v1.lifecycle.EvaluateGateResponse
+	20, // 20: aether.platform.v1.lifecycle.LifecycleService.ListPendingApprovals:output_type -> aether.platform.v1.lifecycle.ListPendingApprovalsResponse
+	21, // 21: aether.platform.v1.lifecycle.LifecycleService.GetApprovalRun:output_type -> aether.platform.v1.lifecycle.GetApprovalRunResponse
+	22, // 22: aether.platform.v1.lifecycle.LifecycleService.DecideApproval:output_type -> aether.platform.v1.lifecycle.DecideApprovalResponse
+	23, // 23: aether.platform.v1.lifecycle.LifecycleService.StartApply:output_type -> aether.platform.v1.lifecycle.StartApplyResponse
+	12, // [12:24] is the sub-list for method output_type
+	0,  // [0:12] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

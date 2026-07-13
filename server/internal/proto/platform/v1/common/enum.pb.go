@@ -687,6 +687,172 @@ func (CloudAccountStatus) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{11}
 }
 
+// ApprovalGate distinguishes the two mandatory review gates in the
+// request lifecycle (D21): admission (pre-plan) and execution
+// confirmation (pre-apply). See docs/12 §3.1.
+type ApprovalGate int32
+
+const (
+	ApprovalGate_APPROVAL_GATE_UNSPECIFIED ApprovalGate = 0
+	ApprovalGate_APPROVAL_GATE_PRE_PLAN    ApprovalGate = 1
+	ApprovalGate_APPROVAL_GATE_PRE_APPLY   ApprovalGate = 2
+)
+
+// Enum value maps for ApprovalGate.
+var (
+	ApprovalGate_name = map[int32]string{
+		0: "APPROVAL_GATE_UNSPECIFIED",
+		1: "APPROVAL_GATE_PRE_PLAN",
+		2: "APPROVAL_GATE_PRE_APPLY",
+	}
+	ApprovalGate_value = map[string]int32{
+		"APPROVAL_GATE_UNSPECIFIED": 0,
+		"APPROVAL_GATE_PRE_PLAN":    1,
+		"APPROVAL_GATE_PRE_APPLY":   2,
+	}
+)
+
+func (x ApprovalGate) Enum() *ApprovalGate {
+	p := new(ApprovalGate)
+	*p = x
+	return p
+}
+
+func (x ApprovalGate) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ApprovalGate) Descriptor() protoreflect.EnumDescriptor {
+	return file_platform_v1_common_enum_proto_enumTypes[12].Descriptor()
+}
+
+func (ApprovalGate) Type() protoreflect.EnumType {
+	return &file_platform_v1_common_enum_proto_enumTypes[12]
+}
+
+func (x ApprovalGate) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ApprovalGate.Descriptor instead.
+func (ApprovalGate) EnumDescriptor() ([]byte, []int) {
+	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{12}
+}
+
+// ApprovalNodeMode is the countersign mode of an approval node, as
+// declared in the approval flow DSL (docs/12 §2.3).
+type ApprovalNodeMode int32
+
+const (
+	ApprovalNodeMode_APPROVAL_NODE_MODE_UNSPECIFIED ApprovalNodeMode = 0
+	ApprovalNodeMode_APPROVAL_NODE_MODE_SINGLE      ApprovalNodeMode = 1
+	ApprovalNodeMode_APPROVAL_NODE_MODE_COUNTERSIGN ApprovalNodeMode = 2
+	ApprovalNodeMode_APPROVAL_NODE_MODE_CONDITIONAL ApprovalNodeMode = 3
+)
+
+// Enum value maps for ApprovalNodeMode.
+var (
+	ApprovalNodeMode_name = map[int32]string{
+		0: "APPROVAL_NODE_MODE_UNSPECIFIED",
+		1: "APPROVAL_NODE_MODE_SINGLE",
+		2: "APPROVAL_NODE_MODE_COUNTERSIGN",
+		3: "APPROVAL_NODE_MODE_CONDITIONAL",
+	}
+	ApprovalNodeMode_value = map[string]int32{
+		"APPROVAL_NODE_MODE_UNSPECIFIED": 0,
+		"APPROVAL_NODE_MODE_SINGLE":      1,
+		"APPROVAL_NODE_MODE_COUNTERSIGN": 2,
+		"APPROVAL_NODE_MODE_CONDITIONAL": 3,
+	}
+)
+
+func (x ApprovalNodeMode) Enum() *ApprovalNodeMode {
+	p := new(ApprovalNodeMode)
+	*p = x
+	return p
+}
+
+func (x ApprovalNodeMode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ApprovalNodeMode) Descriptor() protoreflect.EnumDescriptor {
+	return file_platform_v1_common_enum_proto_enumTypes[13].Descriptor()
+}
+
+func (ApprovalNodeMode) Type() protoreflect.EnumType {
+	return &file_platform_v1_common_enum_proto_enumTypes[13]
+}
+
+func (x ApprovalNodeMode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ApprovalNodeMode.Descriptor instead.
+func (ApprovalNodeMode) EnumDescriptor() ([]byte, []int) {
+	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{13}
+}
+
+// ApprovalNodeStatus is the runtime status of a single approval node
+// within a run (docs/04 §2.10 approval_node_runs.status).
+type ApprovalNodeStatus int32
+
+const (
+	ApprovalNodeStatus_APPROVAL_NODE_STATUS_UNSPECIFIED ApprovalNodeStatus = 0
+	ApprovalNodeStatus_APPROVAL_NODE_STATUS_PENDING     ApprovalNodeStatus = 1
+	ApprovalNodeStatus_APPROVAL_NODE_STATUS_APPROVED    ApprovalNodeStatus = 2
+	ApprovalNodeStatus_APPROVAL_NODE_STATUS_REJECTED    ApprovalNodeStatus = 3
+	ApprovalNodeStatus_APPROVAL_NODE_STATUS_SKIPPED     ApprovalNodeStatus = 4
+	ApprovalNodeStatus_APPROVAL_NODE_STATUS_TIMEOUT     ApprovalNodeStatus = 5
+)
+
+// Enum value maps for ApprovalNodeStatus.
+var (
+	ApprovalNodeStatus_name = map[int32]string{
+		0: "APPROVAL_NODE_STATUS_UNSPECIFIED",
+		1: "APPROVAL_NODE_STATUS_PENDING",
+		2: "APPROVAL_NODE_STATUS_APPROVED",
+		3: "APPROVAL_NODE_STATUS_REJECTED",
+		4: "APPROVAL_NODE_STATUS_SKIPPED",
+		5: "APPROVAL_NODE_STATUS_TIMEOUT",
+	}
+	ApprovalNodeStatus_value = map[string]int32{
+		"APPROVAL_NODE_STATUS_UNSPECIFIED": 0,
+		"APPROVAL_NODE_STATUS_PENDING":     1,
+		"APPROVAL_NODE_STATUS_APPROVED":    2,
+		"APPROVAL_NODE_STATUS_REJECTED":    3,
+		"APPROVAL_NODE_STATUS_SKIPPED":     4,
+		"APPROVAL_NODE_STATUS_TIMEOUT":     5,
+	}
+)
+
+func (x ApprovalNodeStatus) Enum() *ApprovalNodeStatus {
+	p := new(ApprovalNodeStatus)
+	*p = x
+	return p
+}
+
+func (x ApprovalNodeStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ApprovalNodeStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_platform_v1_common_enum_proto_enumTypes[14].Descriptor()
+}
+
+func (ApprovalNodeStatus) Type() protoreflect.EnumType {
+	return &file_platform_v1_common_enum_proto_enumTypes[14]
+}
+
+func (x ApprovalNodeStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ApprovalNodeStatus.Descriptor instead.
+func (ApprovalNodeStatus) EnumDescriptor() ([]byte, []int) {
+	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{14}
+}
+
 var File_platform_v1_common_enum_proto protoreflect.FileDescriptor
 
 const file_platform_v1_common_enum_proto_rawDesc = "" +
@@ -766,7 +932,23 @@ const file_platform_v1_common_enum_proto_rawDesc = "" +
 	"\x12CloudAccountStatus\x12$\n" +
 	" CLOUD_ACCOUNT_STATUS_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bCLOUD_ACCOUNT_STATUS_ACTIVE\x10\x01\x12\"\n" +
-	"\x1eCLOUD_ACCOUNT_STATUS_SUSPENDED\x10\x02BZZXgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/common;commonv1b\x06proto3"
+	"\x1eCLOUD_ACCOUNT_STATUS_SUSPENDED\x10\x02*f\n" +
+	"\fApprovalGate\x12\x1d\n" +
+	"\x19APPROVAL_GATE_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16APPROVAL_GATE_PRE_PLAN\x10\x01\x12\x1b\n" +
+	"\x17APPROVAL_GATE_PRE_APPLY\x10\x02*\x9d\x01\n" +
+	"\x10ApprovalNodeMode\x12\"\n" +
+	"\x1eAPPROVAL_NODE_MODE_UNSPECIFIED\x10\x00\x12\x1d\n" +
+	"\x19APPROVAL_NODE_MODE_SINGLE\x10\x01\x12\"\n" +
+	"\x1eAPPROVAL_NODE_MODE_COUNTERSIGN\x10\x02\x12\"\n" +
+	"\x1eAPPROVAL_NODE_MODE_CONDITIONAL\x10\x03*\xe6\x01\n" +
+	"\x12ApprovalNodeStatus\x12$\n" +
+	" APPROVAL_NODE_STATUS_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cAPPROVAL_NODE_STATUS_PENDING\x10\x01\x12!\n" +
+	"\x1dAPPROVAL_NODE_STATUS_APPROVED\x10\x02\x12!\n" +
+	"\x1dAPPROVAL_NODE_STATUS_REJECTED\x10\x03\x12 \n" +
+	"\x1cAPPROVAL_NODE_STATUS_SKIPPED\x10\x04\x12 \n" +
+	"\x1cAPPROVAL_NODE_STATUS_TIMEOUT\x10\x05BZZXgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/common;commonv1b\x06proto3"
 
 var (
 	file_platform_v1_common_enum_proto_rawDescOnce sync.Once
@@ -780,7 +962,7 @@ func file_platform_v1_common_enum_proto_rawDescGZIP() []byte {
 	return file_platform_v1_common_enum_proto_rawDescData
 }
 
-var file_platform_v1_common_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 12)
+var file_platform_v1_common_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 15)
 var file_platform_v1_common_enum_proto_goTypes = []any{
 	(ActorType)(0),          // 0: aether.platform.v1.common.ActorType
 	(RequestStatus)(0),      // 1: aether.platform.v1.common.RequestStatus
@@ -794,6 +976,9 @@ var file_platform_v1_common_enum_proto_goTypes = []any{
 	(Cardinality)(0),        // 9: aether.platform.v1.common.Cardinality
 	(CloudProvider)(0),      // 10: aether.platform.v1.common.CloudProvider
 	(CloudAccountStatus)(0), // 11: aether.platform.v1.common.CloudAccountStatus
+	(ApprovalGate)(0),       // 12: aether.platform.v1.common.ApprovalGate
+	(ApprovalNodeMode)(0),   // 13: aether.platform.v1.common.ApprovalNodeMode
+	(ApprovalNodeStatus)(0), // 14: aether.platform.v1.common.ApprovalNodeStatus
 }
 var file_platform_v1_common_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -813,7 +998,7 @@ func file_platform_v1_common_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_common_enum_proto_rawDesc), len(file_platform_v1_common_enum_proto_rawDesc)),
-			NumEnums:      12,
+			NumEnums:      15,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

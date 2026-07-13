@@ -23,8 +23,6 @@ const _ = connect.IsAtLeastVersion1_13_0
 const (
 	// CatalogServiceName is the fully-qualified name of the CatalogService service.
 	CatalogServiceName = "aether.platform.v1.catalog.CatalogService"
-	// RegistryAdminServiceName is the fully-qualified name of the RegistryAdminService service.
-	RegistryAdminServiceName = "aether.platform.v1.catalog.RegistryAdminService"
 	// CatalogAdminServiceName is the fully-qualified name of the CatalogAdminService service.
 	CatalogAdminServiceName = "aether.platform.v1.catalog.CatalogAdminService"
 )
@@ -49,18 +47,6 @@ const (
 	// CatalogServiceListAvailableStacksProcedure is the fully-qualified name of the CatalogService's
 	// ListAvailableStacks RPC.
 	CatalogServiceListAvailableStacksProcedure = "/aether.platform.v1.catalog.CatalogService/ListAvailableStacks"
-	// RegistryAdminServiceRegisterModuleProcedure is the fully-qualified name of the
-	// RegistryAdminService's RegisterModule RPC.
-	RegistryAdminServiceRegisterModuleProcedure = "/aether.platform.v1.catalog.RegistryAdminService/RegisterModule"
-	// RegistryAdminServiceListModulesProcedure is the fully-qualified name of the
-	// RegistryAdminService's ListModules RPC.
-	RegistryAdminServiceListModulesProcedure = "/aether.platform.v1.catalog.RegistryAdminService/ListModules"
-	// RegistryAdminServiceGetModuleProcedure is the fully-qualified name of the RegistryAdminService's
-	// GetModule RPC.
-	RegistryAdminServiceGetModuleProcedure = "/aether.platform.v1.catalog.RegistryAdminService/GetModule"
-	// RegistryAdminServiceDeprecateModuleProcedure is the fully-qualified name of the
-	// RegistryAdminService's DeprecateModule RPC.
-	RegistryAdminServiceDeprecateModuleProcedure = "/aether.platform.v1.catalog.RegistryAdminService/DeprecateModule"
 	// CatalogAdminServicePublishCatalogItemProcedure is the fully-qualified name of the
 	// CatalogAdminService's PublishCatalogItem RPC.
 	CatalogAdminServicePublishCatalogItemProcedure = "/aether.platform.v1.catalog.CatalogAdminService/PublishCatalogItem"
@@ -219,157 +205,6 @@ func (UnimplementedCatalogServiceHandler) ListModuleDependencies(context.Context
 
 func (UnimplementedCatalogServiceHandler) ListAvailableStacks(context.Context, *connect.Request[catalog.ListAvailableStacksRequest]) (*connect.Response[catalog.ListAvailableStacksResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.catalog.CatalogService.ListAvailableStacks is not implemented"))
-}
-
-// RegistryAdminServiceClient is a client for the aether.platform.v1.catalog.RegistryAdminService
-// service.
-type RegistryAdminServiceClient interface {
-	RegisterModule(context.Context, *connect.Request[catalog.RegisterModuleRequest]) (*connect.Response[catalog.RegisterModuleResponse], error)
-	ListModules(context.Context, *connect.Request[catalog.ListModulesRequest]) (*connect.Response[catalog.ListModulesResponse], error)
-	GetModule(context.Context, *connect.Request[catalog.GetModuleRequest]) (*connect.Response[catalog.GetModuleResponse], error)
-	DeprecateModule(context.Context, *connect.Request[catalog.DeprecateModuleRequest]) (*connect.Response[catalog.DeprecateModuleResponse], error)
-}
-
-// NewRegistryAdminServiceClient constructs a client for the
-// aether.platform.v1.catalog.RegistryAdminService service. By default, it uses the Connect protocol
-// with the binary Protobuf Codec, asks for gzipped responses, and sends uncompressed requests. To
-// use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or connect.WithGRPCWeb()
-// options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewRegistryAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) RegistryAdminServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	registryAdminServiceMethods := catalog.File_platform_v1_catalog_srv_proto.Services().ByName("RegistryAdminService").Methods()
-	return &registryAdminServiceClient{
-		registerModule: connect.NewClient[catalog.RegisterModuleRequest, catalog.RegisterModuleResponse](
-			httpClient,
-			baseURL+RegistryAdminServiceRegisterModuleProcedure,
-			connect.WithSchema(registryAdminServiceMethods.ByName("RegisterModule")),
-			connect.WithClientOptions(opts...),
-		),
-		listModules: connect.NewClient[catalog.ListModulesRequest, catalog.ListModulesResponse](
-			httpClient,
-			baseURL+RegistryAdminServiceListModulesProcedure,
-			connect.WithSchema(registryAdminServiceMethods.ByName("ListModules")),
-			connect.WithClientOptions(opts...),
-		),
-		getModule: connect.NewClient[catalog.GetModuleRequest, catalog.GetModuleResponse](
-			httpClient,
-			baseURL+RegistryAdminServiceGetModuleProcedure,
-			connect.WithSchema(registryAdminServiceMethods.ByName("GetModule")),
-			connect.WithClientOptions(opts...),
-		),
-		deprecateModule: connect.NewClient[catalog.DeprecateModuleRequest, catalog.DeprecateModuleResponse](
-			httpClient,
-			baseURL+RegistryAdminServiceDeprecateModuleProcedure,
-			connect.WithSchema(registryAdminServiceMethods.ByName("DeprecateModule")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// registryAdminServiceClient implements RegistryAdminServiceClient.
-type registryAdminServiceClient struct {
-	registerModule  *connect.Client[catalog.RegisterModuleRequest, catalog.RegisterModuleResponse]
-	listModules     *connect.Client[catalog.ListModulesRequest, catalog.ListModulesResponse]
-	getModule       *connect.Client[catalog.GetModuleRequest, catalog.GetModuleResponse]
-	deprecateModule *connect.Client[catalog.DeprecateModuleRequest, catalog.DeprecateModuleResponse]
-}
-
-// RegisterModule calls aether.platform.v1.catalog.RegistryAdminService.RegisterModule.
-func (c *registryAdminServiceClient) RegisterModule(ctx context.Context, req *connect.Request[catalog.RegisterModuleRequest]) (*connect.Response[catalog.RegisterModuleResponse], error) {
-	return c.registerModule.CallUnary(ctx, req)
-}
-
-// ListModules calls aether.platform.v1.catalog.RegistryAdminService.ListModules.
-func (c *registryAdminServiceClient) ListModules(ctx context.Context, req *connect.Request[catalog.ListModulesRequest]) (*connect.Response[catalog.ListModulesResponse], error) {
-	return c.listModules.CallUnary(ctx, req)
-}
-
-// GetModule calls aether.platform.v1.catalog.RegistryAdminService.GetModule.
-func (c *registryAdminServiceClient) GetModule(ctx context.Context, req *connect.Request[catalog.GetModuleRequest]) (*connect.Response[catalog.GetModuleResponse], error) {
-	return c.getModule.CallUnary(ctx, req)
-}
-
-// DeprecateModule calls aether.platform.v1.catalog.RegistryAdminService.DeprecateModule.
-func (c *registryAdminServiceClient) DeprecateModule(ctx context.Context, req *connect.Request[catalog.DeprecateModuleRequest]) (*connect.Response[catalog.DeprecateModuleResponse], error) {
-	return c.deprecateModule.CallUnary(ctx, req)
-}
-
-// RegistryAdminServiceHandler is an implementation of the
-// aether.platform.v1.catalog.RegistryAdminService service.
-type RegistryAdminServiceHandler interface {
-	RegisterModule(context.Context, *connect.Request[catalog.RegisterModuleRequest]) (*connect.Response[catalog.RegisterModuleResponse], error)
-	ListModules(context.Context, *connect.Request[catalog.ListModulesRequest]) (*connect.Response[catalog.ListModulesResponse], error)
-	GetModule(context.Context, *connect.Request[catalog.GetModuleRequest]) (*connect.Response[catalog.GetModuleResponse], error)
-	DeprecateModule(context.Context, *connect.Request[catalog.DeprecateModuleRequest]) (*connect.Response[catalog.DeprecateModuleResponse], error)
-}
-
-// NewRegistryAdminServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewRegistryAdminServiceHandler(svc RegistryAdminServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	registryAdminServiceMethods := catalog.File_platform_v1_catalog_srv_proto.Services().ByName("RegistryAdminService").Methods()
-	registryAdminServiceRegisterModuleHandler := connect.NewUnaryHandler(
-		RegistryAdminServiceRegisterModuleProcedure,
-		svc.RegisterModule,
-		connect.WithSchema(registryAdminServiceMethods.ByName("RegisterModule")),
-		connect.WithHandlerOptions(opts...),
-	)
-	registryAdminServiceListModulesHandler := connect.NewUnaryHandler(
-		RegistryAdminServiceListModulesProcedure,
-		svc.ListModules,
-		connect.WithSchema(registryAdminServiceMethods.ByName("ListModules")),
-		connect.WithHandlerOptions(opts...),
-	)
-	registryAdminServiceGetModuleHandler := connect.NewUnaryHandler(
-		RegistryAdminServiceGetModuleProcedure,
-		svc.GetModule,
-		connect.WithSchema(registryAdminServiceMethods.ByName("GetModule")),
-		connect.WithHandlerOptions(opts...),
-	)
-	registryAdminServiceDeprecateModuleHandler := connect.NewUnaryHandler(
-		RegistryAdminServiceDeprecateModuleProcedure,
-		svc.DeprecateModule,
-		connect.WithSchema(registryAdminServiceMethods.ByName("DeprecateModule")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/aether.platform.v1.catalog.RegistryAdminService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case RegistryAdminServiceRegisterModuleProcedure:
-			registryAdminServiceRegisterModuleHandler.ServeHTTP(w, r)
-		case RegistryAdminServiceListModulesProcedure:
-			registryAdminServiceListModulesHandler.ServeHTTP(w, r)
-		case RegistryAdminServiceGetModuleProcedure:
-			registryAdminServiceGetModuleHandler.ServeHTTP(w, r)
-		case RegistryAdminServiceDeprecateModuleProcedure:
-			registryAdminServiceDeprecateModuleHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
-}
-
-// UnimplementedRegistryAdminServiceHandler returns CodeUnimplemented from all methods.
-type UnimplementedRegistryAdminServiceHandler struct{}
-
-func (UnimplementedRegistryAdminServiceHandler) RegisterModule(context.Context, *connect.Request[catalog.RegisterModuleRequest]) (*connect.Response[catalog.RegisterModuleResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.catalog.RegistryAdminService.RegisterModule is not implemented"))
-}
-
-func (UnimplementedRegistryAdminServiceHandler) ListModules(context.Context, *connect.Request[catalog.ListModulesRequest]) (*connect.Response[catalog.ListModulesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.catalog.RegistryAdminService.ListModules is not implemented"))
-}
-
-func (UnimplementedRegistryAdminServiceHandler) GetModule(context.Context, *connect.Request[catalog.GetModuleRequest]) (*connect.Response[catalog.GetModuleResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.catalog.RegistryAdminService.GetModule is not implemented"))
-}
-
-func (UnimplementedRegistryAdminServiceHandler) DeprecateModule(context.Context, *connect.Request[catalog.DeprecateModuleRequest]) (*connect.Response[catalog.DeprecateModuleResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.catalog.RegistryAdminService.DeprecateModule is not implemented"))
 }
 
 // CatalogAdminServiceClient is a client for the aether.platform.v1.catalog.CatalogAdminService

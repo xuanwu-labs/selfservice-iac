@@ -29,12 +29,7 @@ const file_platform_v1_catalog_srv_proto_rawDesc = "" +
 	"\tListItems\x12,.aether.platform.v1.catalog.ListItemsRequest\x1a-.aether.platform.v1.catalog.ListItemsResponse\"\x00\x12y\n" +
 	"\x0eGetCatalogItem\x121.aether.platform.v1.catalog.GetCatalogItemRequest\x1a2.aether.platform.v1.catalog.GetCatalogItemResponse\"\x00\x12\x91\x01\n" +
 	"\x16ListModuleDependencies\x129.aether.platform.v1.catalog.ListModuleDependenciesRequest\x1a:.aether.platform.v1.catalog.ListModuleDependenciesResponse\"\x00\x12\x88\x01\n" +
-	"\x13ListAvailableStacks\x126.aether.platform.v1.catalog.ListAvailableStacksRequest\x1a7.aether.platform.v1.catalog.ListAvailableStacksResponse\"\x002\xed\x03\n" +
-	"\x14RegistryAdminService\x12y\n" +
-	"\x0eRegisterModule\x121.aether.platform.v1.catalog.RegisterModuleRequest\x1a2.aether.platform.v1.catalog.RegisterModuleResponse\"\x00\x12p\n" +
-	"\vListModules\x12..aether.platform.v1.catalog.ListModulesRequest\x1a/.aether.platform.v1.catalog.ListModulesResponse\"\x00\x12j\n" +
-	"\tGetModule\x12,.aether.platform.v1.catalog.GetModuleRequest\x1a-.aether.platform.v1.catalog.GetModuleResponse\"\x00\x12|\n" +
-	"\x0fDeprecateModule\x122.aether.platform.v1.catalog.DeprecateModuleRequest\x1a3.aether.platform.v1.catalog.DeprecateModuleResponse\"\x002\xb0\x03\n" +
+	"\x13ListAvailableStacks\x126.aether.platform.v1.catalog.ListAvailableStacksRequest\x1a7.aether.platform.v1.catalog.ListAvailableStacksResponse\"\x002\xb0\x03\n" +
 	"\x13CatalogAdminService\x12\x85\x01\n" +
 	"\x12PublishCatalogItem\x125.aether.platform.v1.catalog.PublishCatalogItemRequest\x1a6.aether.platform.v1.catalog.PublishCatalogItemResponse\"\x00\x12\x82\x01\n" +
 	"\x11UpdateCatalogItem\x124.aether.platform.v1.catalog.UpdateCatalogItemRequest\x1a5.aether.platform.v1.catalog.UpdateCatalogItemResponse\"\x00\x12\x8b\x01\n" +
@@ -45,50 +40,34 @@ var file_platform_v1_catalog_srv_proto_goTypes = []any{
 	(*GetCatalogItemRequest)(nil),          // 1: aether.platform.v1.catalog.GetCatalogItemRequest
 	(*ListModuleDependenciesRequest)(nil),  // 2: aether.platform.v1.catalog.ListModuleDependenciesRequest
 	(*ListAvailableStacksRequest)(nil),     // 3: aether.platform.v1.catalog.ListAvailableStacksRequest
-	(*RegisterModuleRequest)(nil),          // 4: aether.platform.v1.catalog.RegisterModuleRequest
-	(*ListModulesRequest)(nil),             // 5: aether.platform.v1.catalog.ListModulesRequest
-	(*GetModuleRequest)(nil),               // 6: aether.platform.v1.catalog.GetModuleRequest
-	(*DeprecateModuleRequest)(nil),         // 7: aether.platform.v1.catalog.DeprecateModuleRequest
-	(*PublishCatalogItemRequest)(nil),      // 8: aether.platform.v1.catalog.PublishCatalogItemRequest
-	(*UpdateCatalogItemRequest)(nil),       // 9: aether.platform.v1.catalog.UpdateCatalogItemRequest
-	(*DeprecateCatalogItemRequest)(nil),    // 10: aether.platform.v1.catalog.DeprecateCatalogItemRequest
-	(*ListItemsResponse)(nil),              // 11: aether.platform.v1.catalog.ListItemsResponse
-	(*GetCatalogItemResponse)(nil),         // 12: aether.platform.v1.catalog.GetCatalogItemResponse
-	(*ListModuleDependenciesResponse)(nil), // 13: aether.platform.v1.catalog.ListModuleDependenciesResponse
-	(*ListAvailableStacksResponse)(nil),    // 14: aether.platform.v1.catalog.ListAvailableStacksResponse
-	(*RegisterModuleResponse)(nil),         // 15: aether.platform.v1.catalog.RegisterModuleResponse
-	(*ListModulesResponse)(nil),            // 16: aether.platform.v1.catalog.ListModulesResponse
-	(*GetModuleResponse)(nil),              // 17: aether.platform.v1.catalog.GetModuleResponse
-	(*DeprecateModuleResponse)(nil),        // 18: aether.platform.v1.catalog.DeprecateModuleResponse
-	(*PublishCatalogItemResponse)(nil),     // 19: aether.platform.v1.catalog.PublishCatalogItemResponse
-	(*UpdateCatalogItemResponse)(nil),      // 20: aether.platform.v1.catalog.UpdateCatalogItemResponse
-	(*DeprecateCatalogItemResponse)(nil),   // 21: aether.platform.v1.catalog.DeprecateCatalogItemResponse
+	(*PublishCatalogItemRequest)(nil),      // 4: aether.platform.v1.catalog.PublishCatalogItemRequest
+	(*UpdateCatalogItemRequest)(nil),       // 5: aether.platform.v1.catalog.UpdateCatalogItemRequest
+	(*DeprecateCatalogItemRequest)(nil),    // 6: aether.platform.v1.catalog.DeprecateCatalogItemRequest
+	(*ListItemsResponse)(nil),              // 7: aether.platform.v1.catalog.ListItemsResponse
+	(*GetCatalogItemResponse)(nil),         // 8: aether.platform.v1.catalog.GetCatalogItemResponse
+	(*ListModuleDependenciesResponse)(nil), // 9: aether.platform.v1.catalog.ListModuleDependenciesResponse
+	(*ListAvailableStacksResponse)(nil),    // 10: aether.platform.v1.catalog.ListAvailableStacksResponse
+	(*PublishCatalogItemResponse)(nil),     // 11: aether.platform.v1.catalog.PublishCatalogItemResponse
+	(*UpdateCatalogItemResponse)(nil),      // 12: aether.platform.v1.catalog.UpdateCatalogItemResponse
+	(*DeprecateCatalogItemResponse)(nil),   // 13: aether.platform.v1.catalog.DeprecateCatalogItemResponse
 }
 var file_platform_v1_catalog_srv_proto_depIdxs = []int32{
 	0,  // 0: aether.platform.v1.catalog.CatalogService.ListItems:input_type -> aether.platform.v1.catalog.ListItemsRequest
 	1,  // 1: aether.platform.v1.catalog.CatalogService.GetCatalogItem:input_type -> aether.platform.v1.catalog.GetCatalogItemRequest
 	2,  // 2: aether.platform.v1.catalog.CatalogService.ListModuleDependencies:input_type -> aether.platform.v1.catalog.ListModuleDependenciesRequest
 	3,  // 3: aether.platform.v1.catalog.CatalogService.ListAvailableStacks:input_type -> aether.platform.v1.catalog.ListAvailableStacksRequest
-	4,  // 4: aether.platform.v1.catalog.RegistryAdminService.RegisterModule:input_type -> aether.platform.v1.catalog.RegisterModuleRequest
-	5,  // 5: aether.platform.v1.catalog.RegistryAdminService.ListModules:input_type -> aether.platform.v1.catalog.ListModulesRequest
-	6,  // 6: aether.platform.v1.catalog.RegistryAdminService.GetModule:input_type -> aether.platform.v1.catalog.GetModuleRequest
-	7,  // 7: aether.platform.v1.catalog.RegistryAdminService.DeprecateModule:input_type -> aether.platform.v1.catalog.DeprecateModuleRequest
-	8,  // 8: aether.platform.v1.catalog.CatalogAdminService.PublishCatalogItem:input_type -> aether.platform.v1.catalog.PublishCatalogItemRequest
-	9,  // 9: aether.platform.v1.catalog.CatalogAdminService.UpdateCatalogItem:input_type -> aether.platform.v1.catalog.UpdateCatalogItemRequest
-	10, // 10: aether.platform.v1.catalog.CatalogAdminService.DeprecateCatalogItem:input_type -> aether.platform.v1.catalog.DeprecateCatalogItemRequest
-	11, // 11: aether.platform.v1.catalog.CatalogService.ListItems:output_type -> aether.platform.v1.catalog.ListItemsResponse
-	12, // 12: aether.platform.v1.catalog.CatalogService.GetCatalogItem:output_type -> aether.platform.v1.catalog.GetCatalogItemResponse
-	13, // 13: aether.platform.v1.catalog.CatalogService.ListModuleDependencies:output_type -> aether.platform.v1.catalog.ListModuleDependenciesResponse
-	14, // 14: aether.platform.v1.catalog.CatalogService.ListAvailableStacks:output_type -> aether.platform.v1.catalog.ListAvailableStacksResponse
-	15, // 15: aether.platform.v1.catalog.RegistryAdminService.RegisterModule:output_type -> aether.platform.v1.catalog.RegisterModuleResponse
-	16, // 16: aether.platform.v1.catalog.RegistryAdminService.ListModules:output_type -> aether.platform.v1.catalog.ListModulesResponse
-	17, // 17: aether.platform.v1.catalog.RegistryAdminService.GetModule:output_type -> aether.platform.v1.catalog.GetModuleResponse
-	18, // 18: aether.platform.v1.catalog.RegistryAdminService.DeprecateModule:output_type -> aether.platform.v1.catalog.DeprecateModuleResponse
-	19, // 19: aether.platform.v1.catalog.CatalogAdminService.PublishCatalogItem:output_type -> aether.platform.v1.catalog.PublishCatalogItemResponse
-	20, // 20: aether.platform.v1.catalog.CatalogAdminService.UpdateCatalogItem:output_type -> aether.platform.v1.catalog.UpdateCatalogItemResponse
-	21, // 21: aether.platform.v1.catalog.CatalogAdminService.DeprecateCatalogItem:output_type -> aether.platform.v1.catalog.DeprecateCatalogItemResponse
-	11, // [11:22] is the sub-list for method output_type
-	0,  // [0:11] is the sub-list for method input_type
+	4,  // 4: aether.platform.v1.catalog.CatalogAdminService.PublishCatalogItem:input_type -> aether.platform.v1.catalog.PublishCatalogItemRequest
+	5,  // 5: aether.platform.v1.catalog.CatalogAdminService.UpdateCatalogItem:input_type -> aether.platform.v1.catalog.UpdateCatalogItemRequest
+	6,  // 6: aether.platform.v1.catalog.CatalogAdminService.DeprecateCatalogItem:input_type -> aether.platform.v1.catalog.DeprecateCatalogItemRequest
+	7,  // 7: aether.platform.v1.catalog.CatalogService.ListItems:output_type -> aether.platform.v1.catalog.ListItemsResponse
+	8,  // 8: aether.platform.v1.catalog.CatalogService.GetCatalogItem:output_type -> aether.platform.v1.catalog.GetCatalogItemResponse
+	9,  // 9: aether.platform.v1.catalog.CatalogService.ListModuleDependencies:output_type -> aether.platform.v1.catalog.ListModuleDependenciesResponse
+	10, // 10: aether.platform.v1.catalog.CatalogService.ListAvailableStacks:output_type -> aether.platform.v1.catalog.ListAvailableStacksResponse
+	11, // 11: aether.platform.v1.catalog.CatalogAdminService.PublishCatalogItem:output_type -> aether.platform.v1.catalog.PublishCatalogItemResponse
+	12, // 12: aether.platform.v1.catalog.CatalogAdminService.UpdateCatalogItem:output_type -> aether.platform.v1.catalog.UpdateCatalogItemResponse
+	13, // 13: aether.platform.v1.catalog.CatalogAdminService.DeprecateCatalogItem:output_type -> aether.platform.v1.catalog.DeprecateCatalogItemResponse
+	7,  // [7:14] is the sub-list for method output_type
+	0,  // [0:7] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name
@@ -108,7 +87,7 @@ func file_platform_v1_catalog_srv_proto_init() {
 			NumEnums:      0,
 			NumMessages:   0,
 			NumExtensions: 0,
-			NumServices:   3,
+			NumServices:   2,
 		},
 		GoTypes:           file_platform_v1_catalog_srv_proto_goTypes,
 		DependencyIndexes: file_platform_v1_catalog_srv_proto_depIdxs,

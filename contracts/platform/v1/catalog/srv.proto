@@ -18,14 +18,11 @@ service CatalogService {
 
 // ============================================================
 // Admin services — operator-facing (requires admin role).
+//
+// CatalogAdmin manages the service-catalog items published from
+// registered module versions. Module registration itself lives in
+// the registry domain (RegistryAdminService).
 // ============================================================
-service RegistryAdminService {
-  rpc RegisterModule(RegisterModuleRequest) returns (RegisterModuleResponse) {}
-  rpc ListModules(ListModulesRequest) returns (ListModulesResponse) {}
-  rpc GetModule(GetModuleRequest) returns (GetModuleResponse) {}
-  rpc DeprecateModule(DeprecateModuleRequest) returns (DeprecateModuleResponse) {}
-}
-
 service CatalogAdminService {
   rpc PublishCatalogItem(PublishCatalogItemRequest) returns (PublishCatalogItemResponse) {}
   rpc UpdateCatalogItem(UpdateCatalogItemRequest) returns (UpdateCatalogItemResponse) {}
