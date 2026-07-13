@@ -14,7 +14,9 @@ import (
 	"github.com/xuanwu-labs/selfservice-iac/server/api/connect"
 	"github.com/xuanwu-labs/selfservice-iac/server/core"
 	"github.com/xuanwu-labs/selfservice-iac/server/data"
+	"github.com/xuanwu-labs/selfservice-iac/server/internal/asset"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/config"
+	"github.com/xuanwu-labs/selfservice-iac/server/internal/errors"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/server"
 	"go.uber.org/zap"
 )
@@ -32,8 +34,13 @@ func InitializeApp(cfg *config.Config) (*App, func(), error) {
 	}
 	v := api.NewPingFunc(pool)
 	handler := server.ProvideMetricsHandler()
-	catalogHandler := connect.NewCatalogHandler()
-	serverConfig, err := server.ProvideServerConfig(catalogHandler, logger)
+	registry, err := provideRegistry()
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	catalogHandler := connect.NewCatalogHandler(registry)
+	serverConfig, err := server.ProvideServerConfig(catalogHandler, registry, logger)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
@@ -76,8 +83,18 @@ func provideLogger(cfg *config.Config) *otelzap.Logger {
 // providers (e.g. pgxpool construction).
 func provideAppContext() context.Context { return context.Background() }
 
+// provideRegistry loads the error-code registry from the embedded
+// error-codes.yaml (internal/asset) into an in-memory *errors.Registry.
+// This is the runtime source of truth for error behavior (retryable,
+// manual_required, remediation, owner); handlers and the fallback
+// interceptor consume it. See specs/03-平台契约.md "错误码注册表".
+func provideRegistry() (*errors.Registry, error) {
+	return errors.Load(asset.ErrorCodes)
+}
+
 // allProviders aggregates every layer's ProviderSet. Adding a new package
 // means adding its ProviderSet here — nothing else changes in wire.go.
 var allProviders = wire.NewSet(data.ProviderSet, core.ProviderSet, api.ProviderSet, connect.ProviderSet, server.ProviderSet, provideLogger,
-	provideAppContext, wire.Struct(new(App), "*"),
+	provideAppContext,
+	provideRegistry, wire.Struct(new(App), "*"),
 )

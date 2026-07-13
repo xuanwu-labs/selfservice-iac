@@ -38,6 +38,10 @@ wire-gen:
 
 proto-gen:
 	cd ../contracts && buf generate
+# Sync error-codes.yaml (contract source of truth) into the server binary via
+# //go:embed in internal/asset. The copy is DO NOT EDIT — re-run make proto-gen
+# after editing contracts/error-codes.yaml. See internal/asset/asset.go.
+	cp ../contracts/error-codes.yaml internal/asset/error-codes.yaml
 
 # Clean build artifacts
 clean:
