@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package aether.platform.v1.lifecycle;
+
+import "platform/v1/common/dto.proto";
+import "platform/v1/common/enum.proto";
+
+option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/lifecycle;lifecyclev1";
+
+// ============================================================
+// Lifecycle DTOs — request, event, plan artifact, gate result.
+// ============================================================
+
+message LifecycleRequest {
+  string id = 1;                    // req_<alphanum>
+  aether.platform.v1.common.RequestStatus status = 2;
+  string catalog_item_id = 3;       // cat_<alphanum>
+  string env_id = 4;
+  string team_id = 5;               // team_<alphanum>
+  string tenant_id = 6;
+  string bundle_id = 7;
+  map<string, string> form_values = 8;
+  string form_hash = 9;             // sha256:<hex>
+  aether.platform.v1.common.RequestSource source = 10;
+  string pinned_commit = 11;        // sha256:<hex>
+  string plan_artifact_id = 12;     // art_<alphanum>
+  int64 cost_estimate_cents = 13;
+  string cost_currency = 14;
+  string created_at = 15;
+  string updated_at = 16;
+  int32 version = 17;
+  string correlation_id = 18;
+}
+
+message LifecycleEvent {
+  string id = 1;                    // evt_<alphanum>
+  string request_id = 2;
+  string event_type = 3;
+  aether.platform.v1.common.Actor actor = 4;
+  string occurred_at = 5;
+  string correlation_id = 6;
+}
+
+message PlanArtifact {
+  string id = 1;                    // art_<alphanum>
+  string request_id = 2;
+  aether.platform.v1.common.ArtifactStatus status = 3;
+  string plan_hash = 4;             // sha256:<hex>
+  PlanSummary summary = 5;
+  int64 cost_estimate_cents = 6;
+  string storage_uri = 7;
+  string expires_at = 8;
+  string created_at = 9;
+}
+
+message PlanSummary {
+  int32 resources_to_add = 1;
+  int32 resources_to_change = 2;
+  int32 resources_to_destroy = 3;
+}
+
+message GateResult {
+  string gate_id = 1;
+  bool passed = 2;
+  string policy = 3;
+  string message = 4;
+  aether.platform.v1.common.GateSeverity severity = 5;
+}
+
+message ApprovalRun {
+  string run_id = 1;                // run_<alphanum>
+  aether.platform.v1.common.ApprovalRunStatus status = 2;
+  string decided_by = 3;
+  string decided_at = 4;
+}

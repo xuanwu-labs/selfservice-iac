@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package aether.platform.v1.cloud;
+
+import "platform/v1/common/dto.proto";
+import "platform/v1/cloud/dto.proto";
+
+option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/cloud;cloudv1";
+
+// ============================================================
+// EntitlementService — Server: query cloud accounts available to a team.
+// ============================================================
+service EntitlementService {
+  rpc ListRequestableCloudAccounts(ListRequestableCloudAccountsRequest) returns (ListRequestableCloudAccountsResponse) {}
+}
+
+message ListRequestableCloudAccountsRequest {
+  aether.platform.v1.common.PageRequest pagination = 1;
+}
+
+message ListRequestableCloudAccountsResponse {
+  repeated CloudAccount accounts = 1;
+  aether.platform.v1.common.PageResponse pagination = 2;
+}
