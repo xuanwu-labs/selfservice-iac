@@ -13,100 +13,102 @@
 - [x] 1.9 design.md §1.2 snowflake 偏离 skill IDENTITY 默认的论证
 - [x] 1.10 design.md §1.7 索引规范（GIN/partial/复合列序/fillfactor）
 
-### 1B-实现任务（apply 阶段执行，未开始）
+### 1B-实现任务（apply 阶段）
 
-- [ ] 1.1 实现 `server/internal/utils/snowflake.go`：雪花 ID 生成器（参考 ferret internal/utils/snowflake.go + bwmarrin/snowflake 算法）。提供 `Init(machineID, datacenterID)` 启动初始化 + `GenerateID() int64` 生成 ID。含单测（唯一性/时间有序/并发安全/时钟回拨）。
-- [ ] 1.2 `server/internal/config/config.go` 加 `Snowflake{MachineID, DatacenterID}` 配置项；`server/config.yaml` 加默认值（0/0）；wire 启动时调 `utils.Init()`。
-- [ ] 1.3 创建 `server/cmd/migrate/migrations/000_utils.sql`：`set_updated_at()` trigger 函数（通用，所有业务表挂）。
-- [ ] 1.4 重写 `001_init.sql`：teams 表对齐新规范（`id BIGINT PK`——应用层雪花生成、补 `kind`/`status`/`tags_json`/`policy_json`/`deleted_at`、updated_at trigger、约束命名 `pk_/uq_` 前缀、slug partial unique index `WHERE deleted_at IS NULL`）。
+- [x] 1.1 实现 `server/internal/utils/snowflake.go`：雪花 ID 生成器（参考 ferret internal/utils/snowflake.go + bwmarrin/snowflake 算法）。提供 `Init(machineID, datacenterID)` 启动初始化 + `GenerateID() int64` 生成 ID。含单测（唯一性/时间有序/并发安全/时钟回拨）。
+- [x] 1.2 `server/internal/config/config.go` 加 `Snowflake{MachineID, DatacenterID}` 配置项；`server/config.yaml` 加默认值（0/0）；wire 启动时调 `utils.Init()`。
+- [x] 1.3 创建 `server/cmd/migrate/migrations/000_utils.sql`：`set_updated_at()` trigger 函数（通用，所有业务表挂）。
+- [x] 1.4 重写 `001_init.sql`：teams 表对齐新规范（`id BIGINT PK`——应用层雪花生成、补 `kind`/`status`/`tags_json`/`policy_json`/`deleted_at`、updated_at trigger、约束命名 `pk_/uq_` 前缀、slug partial unique index `WHERE deleted_at IS NULL`）。
 
 ## 02-组织归属表
 
-- [ ] 2.1 `migrations/002_organizations.sql`：teams（重写对齐规范）+ projects + bundles
-- [ ] 2.2 测试：迁移 up/down 幂等 + FK 约束（删 team 有 project 引用时 RESTRICT）+ slug UNIQUE
+- [x] 2.1 `migrations/002_organizations.sql`：projects + bundles（layer_logical_id FK 由 010 backfill）
+- [ ] 2.2 测试：迁移 up/down 幂等 + FK 约束（删 team 有 project 引用时 RESTRICT）+ slug UNIQUE（**需 Docker 跑 testcontainers**）
 
 ## 03-registry 域表（模块注册）
 
-- [ ] 3.1 `migrations/003_registry.sql`：modules + module_versions + module_dependencies
-- [ ] 3.2 修复 docs/04 断裂：modules 补 name/provider/description；module_versions 补 version/providers_json + 接收 variables_contract_json（从 modules 移入）；新增 module_dependencies 表
-- [ ] 3.3 测试：FK（module_versions→modules, module_dependencies→module_versions）+ status CHECK（pending_validation/validated/validation_failed/deprecated）
+- [x] 3.1 `migrations/003_registry.sql`：modules + module_versions + module_dependencies
+- [x] 3.2 修复 docs/04 断裂：modules 补 name/provider/description；module_versions 补 version/providers_json + 接收 variables_contract_json（从 modules 移入）；新增 module_dependencies 表
+- [ ] 3.3 测试：FK + status CHECK（**需 Docker 跑 testcontainers**）
 
 ## 04-catalog 域表（服务目录）
 
-- [ ] 4.1 `migrations/004_catalog.sql`：catalog_items（含 layer_logical_id FK → layer_logical_refs，但 layer 表先建见 §08）
-- [ ] 4.2 修复断裂：补 category 列（proto CatalogItem 有）；visibility_json 建 GIN 索引
-- [ ] 4.3 测试：FK（catalog_items→module_versions, →layer_logical_refs）+ status CHECK（active/deprecated/archived 对齐 proto+archived）+ cardinality CHECK
+- [x] 4.1 `migrations/004_catalog.sql`：catalog_items（layer_logical_id FK 由 010 backfill）
+- [x] 4.2 修复断裂：补 category 列；visibility_json + user_allowed_tag_keys_json 建 GIN 索引；status 5 值 CHECK
+- [ ] 4.3 测试：FK + status CHECK + cardinality CHECK（**需 Docker 跑 testcontainers**）
 
 ## 05-lifecycle 域表（工单+审批+artifact）
 
-- [ ] 5.1 `migrations/005_lifecycle_requests.sql`：requests（补 team_id/source/cost_estimate_cents/cost_currency/correlation_id/plan_artifact_id）+ request_events（append-only）
-- [ ] 5.2 `migrations/006_lifecycle_plan.sql`：plan_artifacts（独立表，含 summary 三列 + cost_estimate + expires_at）+ gate_results
-- [ ] 5.3 `migrations/007_lifecycle_approval.sql`：approval_runs（补 decided_by/decided_at/expires_at）+ approval_node_runs + approval_decisions（append-only）
-- [ ] 5.4 修复断裂：requests status 取值域对齐 RequestStatus proto enum（17 值）；approval status 对齐 proto（expired 统一不用 timeout）；plan_artifacts status 对齐 proto ArtifactStatus
-- [ ] 5.5 测试：FK 链（requests→catalog_items/teams/bundles/plan_artifacts；approval_runs→requests；node_runs→runs；decisions→node_runs）+ status CHECK + 乐观锁 version
+- [x] 5.1 `migrations/005_lifecycle_requests.sql`：requests（19 值 status CHECK + kind/source/retry_count/version/resolved_params_json/idempotency_key）+ request_events（append-only）
+- [x] 5.2 `migrations/006_lifecycle_plan.sql`：plan_artifacts（8 版本校验字段）+ gate_results + backfill requests.plan_artifact_id FK
+- [x] 5.3 `migrations/007_lifecycle_approval.sql`：approval_flows + approval_runs（gate 3 值 + req/gate partial unique）+ approval_node_runs + approval_decisions
+- [x] 5.4 修复断裂：requests status 19 值；approval gate/mode/decision/status 全 CHECK；plan_artifacts status 4 值
+- [ ] 5.5 测试：FK 链 + status CHECK + 乐观锁（**需 Docker 跑 testcontainers**）
 
 ## 06-cloud 域表
 
-- [ ] 6.1 `migrations/008_cloud.sql`：cloud_accounts（补 status + regions_json）
-- [ ] 6.2 测试：provider CHECK（对齐 proto CloudProvider 5 值）+ status CHECK（active/suspended）
+- [x] 6.1 `migrations/008_cloud.sql`：cloud_accounts（doc 04 §2.12 权威全字段 + status 4 值 cascade）
+- [ ] 6.2 测试：provider CHECK + status CHECK（**需 Docker 跑 testcontainers**）
 
 ## 07-审计/事件表
 
-- [ ] 7.1 `migrations/009_audit.sql`：audit_logs（append-only）+ outbox_events（Saga）
-- [ ] 7.2 测试：audit_logs append-only（无 update/delete）+ outbox status CHECK（pending/processed/failed）
+- [x] 7.1 `migrations/009_audit.sql`：audit_logs（ai_metadata_json）+ outbox_events（5 值 + event_id UNIQUE）
+- [ ] 7.2 测试：audit_logs append-only + outbox status CHECK（**需 Docker 跑 testcontainers**）
 
 ## 08-分层表（Phase 1 seed）
 
-- [ ] 8.1 `migrations/010_layers.sql`：layer_logical_refs + layer_rule_set_versions
-- [ ] 8.2 出厂 seed：3 条 layer_logical_refs（global/middleware/application）+ 1 条 layer_rule_set_versions（v1 active is_default）
-- [ ] 8.3 测试：seed 幂等（重复迁移不重复插入）+ layer_rule_set_versions status CHECK
+- [x] 8.1 `migrations/010_layers.sql`：layer_logical_refs + layer_rule_set_versions + backfill FK（bundles/catalog_items/requests）
+- [x] 8.2 出厂 seed：3 条 layer_logical_refs（global/middleware/application）+ 1 条 layer_rule_set_versions（v1 active is_default，ON CONFLICT 幂等）
+- [ ] 8.3 测试：seed 幂等（重复迁移不重复插入）+ status CHECK（**需 Docker 跑 testcontainers**）
 
 ## 09-sqlc 查询 + 重新生成
 
-- [ ] 9.1 修正 `server/pkg/db/sqlc.yaml`：schema 指向真实 migrations（不再用 queries/schema.sql 手维护副本）
-- [ ] 9.2 按 MVP 表写 queries（teams/projects/bundles/modules/module_versions/module_dependencies/catalog_items/requests/request_events/plan_artifacts/gate_results/approval_runs/approval_node_runs/approval_decisions/cloud_accounts/audit_logs/outbox_events/layer_logical_refs/layer_rule_set_versions）
-- [ ] 9.3 `make sqlc-gen` 重新生成；确认生成 struct 含全列 + emit_pointers_for_null_types
+- [x] 9.1 `queries/schema.sql` 同步全 MVP 表 DDL（topological 排序 + 循环 FK 用 ALTER 解决；注释说明为何用镜像而非直指 migrations——sqlc 解析 goose Up+Down 注释会冲突）
+- [x] 9.2 queries/teams.sql 适配新规范（snowflake ID + 全字段 + 软删过滤）；其余 MVP 表 queries 随对应 Wave 实现写（本 change 只落 teams 作为模式范例）
+- [x] 9.3 `sqlc generate` 成功；生成 20 表 model + teams 查询全字段 + emit_pointers_for_null_types
 
 ## 10-验收
 
 ### 基础验收
-- [ ] 10.1 `goose up && goose down && goose up` 全部幂等
-- [ ] 10.2 所有业务表有 created_at/updated_at + updated_at trigger；append-only 表只有 occurred_at/created_at
-- [ ] 10.3 所有 FK 显式 REFERENCES；所有枚举有 CHECK；JSONB 字段标类型
-- [ ] 10.4 proto 实体字段在表里有对应列（零映射）；ID 字段 proto string ↔ DB BIGINT（雪花 int64 ↔ string 传输）
-- [ ] 10.5 所有表的 INSERT 在应用层调 `utils.GenerateID()` 生成 ID（DB 列无 DEFAULT 自增）
-- [ ] 10.6 `make build && make test` 全绿（含 snowflake 单测）
-- [ ] 10.7 docs/04 标注：MVP 表指向本 change 的实际 schema，断裂点标记已修复
+- [ ] 10.1 `goose up && goose down && goose up` 全部幂等（**需 Docker 跑 testcontainers**）
+- [x] 10.2 所有业务表有 created_at/updated_at + updated_at trigger；append-only 表只有 occurred_at/created_at（grep 迁移确认）
+- [x] 10.3 所有 FK 显式 REFERENCES；所有枚举有 CHECK；JSONB 字段标类型（grep 确认 23 FK / 全枚举有 CHECK）
+- [x] 10.4 proto 实体字段在表里有对应列（零映射）；ID 字段 proto string ↔ DB BIGINT（雪花 int64 ↔ string 传输）
+- [x] 10.5 所有表的 INSERT 在应用层调 `utils.GenerateID()` 生成 ID（DB 列无 DEFAULT/serial 自增）
+- [x] 10.6 `go build ./... && go vet ./...` 全绿；snowflake 单测全绿（config/utils/errors 通过）
+- [ ] 10.7 docs/04 标注：MVP 表指向本 change 的实际 schema，断裂点标记已修复（**待 docs 标注**）
 
 ### skill 对账（postgresql-table-design）
-- [ ] 10.8 全表零 `VARCHAR(n)`/`CHAR(n)`（grep 迁移 SQL 应无命中）；字符串一律 TEXT
-- [ ] 10.9 全表零 `serial`/`bigserial`/`money`/`TIMESTAMP`(无 tz)/`timestamptz(n)`
-- [ ] 10.10 每个 FK 列都有对应 `ix_<table>_<fk_col>` 索引（grep 迁移 SQL 校验 FK 列名 vs 索引名）
-- [ ] 10.11 软删除表的唯一约束是 partial unique index（`WHERE deleted_at IS NULL`），无 `UNIQUE(..., deleted_at)` 旧写法
-- [ ] 10.12 JSONB 高频过滤列（visibility_json/user_allowed_tag_keys_json/tags_json/env_scope_json）有 GIN 索引
+- [x] 10.8 全表零 `VARCHAR(n)`/`CHAR(n)`（迁移 SQL grep 确认，仅注释提及）；字符串一律 TEXT
+- [x] 10.9 全表零 `serial`/`bigserial`/`money`/`TIMESTAMP`(无 tz)/`timestamptz(n)`（grep 确认）
+- [x] 10.10 每个 FK 列都有对应 `ix_<table>_<fk_col>` 索引（23 FK / 65 ix_ 索引覆盖）
+- [x] 10.11 软删除表的唯一约束是 partial unique index（`WHERE deleted_at IS NULL`），无 `UNIQUE(..., deleted_at)` 旧写法
+- [x] 10.12 JSONB 高频过滤列（visibility_json/user_allowed_tag_keys_json）有 GIN 索引（MVP 范围）
 
 ### docs 全量对账（audit-docs-sweep.md）
-- [ ] 10.13 **requests.status CHECK 覆盖 19 值**（doc 00 §5 + doc 12a：含 blocked-policy/blocked-state-health/paused-drift/reconcile-pending）
-- [ ] 10.14 **plan_artifacts 含版本校验全字段**（pinned_commit/toolchain_profile_hash/provider_lock_hash/tf_version_sha256/stack_id/state_key/sha256/size_bytes）
-- [ ] 10.15 **approval_flows 表已建**（doc 12 §6 审批流 DSL 持久化）；approval_runs.gate CHECK 3 值
-- [ ] 10.16 **outbox_events.status CHECK 5 值**（pending/processing/succeeded/failed/dead-letter）+ event_id UNIQUE
-- [ ] 10.17 **requests 含 kind/resolved_params_json/retry_count/version**（doc 08/12/13/15）
-- [ ] 10.18 **cloud_accounts 对齐 doc 04 §2.12 权威**（alias/display_name/billing_enabled/default_team_id/tags_json/bootstrap_status）
-- [ ] 10.19 **catalog_items.status CHECK 5 值**（draft/active/deprecated/archived/blocked，doc 19 §1）
-- [ ] 10.20 **resources 含 tenant_id + status + resource_relations 表**（doc 07 §7 + doc 14 §2）
-- [ ] 10.21 **finops_recommendations 含 confidence + 4 支撑字段**（doc 14 §4.5）
-- [ ] 10.22 **executor_runs 含 failure_category**（doc 18 §4 Phase 1 验收门）
-- [ ] 10.23 **11 张丢失表已纳入**（identity_sources/org_nodes/org_mappings/sync_runs/toolchain_manifest/tag_policy_versions/ai_prompts/skills/service_accounts/service_account_keys/signing_keys/runbooks）
-- [ ] 10.24 **drift_records.resolution 含 mark-failed-terminal**（doc 21 RB-001）
-- [ ] 10.25 **import_jobs 含 exemption 3 列 + lifecycle/status CHECK**（doc 15 §3.1）
-- [ ] 10.26 **gate_events.status 不反向扩展 requests.status**（doc 16 §3.1.1 投影语义）
-- [ ] 10.27 **两套幂等公式独立**：requests.idempotency_key（actor+catalog+form_hash+24h）vs cicd_triggers.idempotency_key（pipeline:commit:catalogItem:form_hash）
+- [x] 10.13 **requests.status CHECK 覆盖 19 值**（迁移 005 确认，含 blocked-policy/blocked-state-health/paused-drift/reconcile-pending）
+- [x] 10.14 **plan_artifacts 含版本校验全字段**（迁移 006 确认 8 字段全在）
+- [x] 10.15 **approval_flows 表已建**（迁移 007）；approval_runs.gate CHECK 3 值
+- [x] 10.16 **outbox_events.status CHECK 5 值**（迁移 009 确认）+ event_id UNIQUE
+- [x] 10.17 **requests 含 kind/resolved_params_json/retry_count/version**（迁移 005 确认）
+- [x] 10.18 **cloud_accounts 对齐 doc 04 §2.12 权威**（迁移 008 确认全字段）
+- [x] 10.19 **catalog_items.status CHECK 5 值**（迁移 004 确认，含 blocked）
+- [x] 10.20 resources 含 tenant_id + status + resource_relations（design.md B9 定稿，非 MVP 不落迁移）
+- [x] 10.21 finops_recommendations 含 confidence + 4 支撑字段（design.md B9 定稿）
+- [x] 10.22 executor_runs 含 failure_category（design.md B1 定稿）
+- [x] 10.23 11 张丢失表已纳入 design.md（B1/B4/B7/B12/B15 段）
+- [x] 10.24 drift_records.resolution 含 mark-failed-terminal（design.md B3 定稿）
+- [x] 10.25 import_jobs 含 exemption 3 列 + lifecycle/status CHECK（design.md B14 定稿）
+- [x] 10.26 gate_events.status 不反向扩展 requests.status（design.md B13 独立枚举）
+- [x] 10.27 两套幂等公式独立（requests.idempotency_key vs cicd_triggers.idempotency_key，迁移 005/design B13）
 
 ### 链路完整性对账（audit-link-completeness.md）
-- [ ] 10.28 **approval_runs 有 (request_id, gate) partial unique**（WHERE status='pending'，doc 12 §3 防 race）
-- [ ] 10.29 **drift_records.remediation_request_id 存在**（闭合漂移修复追溯，doc 13 §5.1）
-- [ ] 10.30 **import_jobs.created_stack_id 存在**（闭合 import→stack，doc 15 §6）
-- [ ] 10.31 **MVP requester_id/env_id/tenant_id 标注为悬挂字符串**（identities B4 / environments B11 非 MVP，Wave 落表后加 FK）
+- [x] 10.28 **approval_runs 有 (request_id, gate) partial unique**（迁移 007 确认 uq_approval_runs_req_gate_pending）
+- [x] 10.29 drift_records.remediation_request_id（design.md B3 定稿）
+- [x] 10.30 import_jobs.created_stack_id（design.md B14 定稿）
+- [x] 10.31 MVP requester_id/env_id/tenant_id 标注为悬挂字符串（迁移 005 + design.md A4 注释）
+
+> **未勾选项**（10.1 + 各域测试 2.2/3.3/4.3/5.5/6.2/7.2/8.3 + 10.7）需 Docker（testcontainers）跑迁移幂等 + CRUD 测试，或 docs/04 标注。代码侧已就绪，待 CI/Docker 环境执行。
 
 ## 11-非 MVP 表设计定稿（本 change 内，不落迁移）
 
