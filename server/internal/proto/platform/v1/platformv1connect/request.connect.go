@@ -42,6 +42,9 @@ const (
 	// RequestServiceListRequestEventsProcedure is the fully-qualified name of the RequestService's
 	// ListRequestEvents RPC.
 	RequestServiceListRequestEventsProcedure = "/aether.platform.v1.RequestService/ListRequestEvents"
+	// RequestServiceCancelRequestProcedure is the fully-qualified name of the RequestService's
+	// CancelRequest RPC.
+	RequestServiceCancelRequestProcedure = "/aether.platform.v1.RequestService/CancelRequest"
 )
 
 // RequestServiceClient is a client for the aether.platform.v1.RequestService service.
@@ -49,6 +52,7 @@ type RequestServiceClient interface {
 	CreateRequest(context.Context, *connect.Request[v1.CreateRequestRequest]) (*connect.Response[v1.CreateRequestResponse], error)
 	GetRequest(context.Context, *connect.Request[v1.GetRequestRequest]) (*connect.Response[v1.GetRequestResponse], error)
 	ListRequestEvents(context.Context, *connect.Request[v1.ListRequestEventsRequest]) (*connect.Response[v1.ListRequestEventsResponse], error)
+	CancelRequest(context.Context, *connect.Request[v1.CancelRequestRequest]) (*connect.Response[v1.CancelRequestResponse], error)
 }
 
 // NewRequestServiceClient constructs a client for the aether.platform.v1.RequestService service. By
@@ -80,6 +84,12 @@ func NewRequestServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(requestServiceMethods.ByName("ListRequestEvents")),
 			connect.WithClientOptions(opts...),
 		),
+		cancelRequest: connect.NewClient[v1.CancelRequestRequest, v1.CancelRequestResponse](
+			httpClient,
+			baseURL+RequestServiceCancelRequestProcedure,
+			connect.WithSchema(requestServiceMethods.ByName("CancelRequest")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -88,6 +98,7 @@ type requestServiceClient struct {
 	createRequest     *connect.Client[v1.CreateRequestRequest, v1.CreateRequestResponse]
 	getRequest        *connect.Client[v1.GetRequestRequest, v1.GetRequestResponse]
 	listRequestEvents *connect.Client[v1.ListRequestEventsRequest, v1.ListRequestEventsResponse]
+	cancelRequest     *connect.Client[v1.CancelRequestRequest, v1.CancelRequestResponse]
 }
 
 // CreateRequest calls aether.platform.v1.RequestService.CreateRequest.
@@ -105,11 +116,17 @@ func (c *requestServiceClient) ListRequestEvents(ctx context.Context, req *conne
 	return c.listRequestEvents.CallUnary(ctx, req)
 }
 
+// CancelRequest calls aether.platform.v1.RequestService.CancelRequest.
+func (c *requestServiceClient) CancelRequest(ctx context.Context, req *connect.Request[v1.CancelRequestRequest]) (*connect.Response[v1.CancelRequestResponse], error) {
+	return c.cancelRequest.CallUnary(ctx, req)
+}
+
 // RequestServiceHandler is an implementation of the aether.platform.v1.RequestService service.
 type RequestServiceHandler interface {
 	CreateRequest(context.Context, *connect.Request[v1.CreateRequestRequest]) (*connect.Response[v1.CreateRequestResponse], error)
 	GetRequest(context.Context, *connect.Request[v1.GetRequestRequest]) (*connect.Response[v1.GetRequestResponse], error)
 	ListRequestEvents(context.Context, *connect.Request[v1.ListRequestEventsRequest]) (*connect.Response[v1.ListRequestEventsResponse], error)
+	CancelRequest(context.Context, *connect.Request[v1.CancelRequestRequest]) (*connect.Response[v1.CancelRequestResponse], error)
 }
 
 // NewRequestServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -137,6 +154,12 @@ func NewRequestServiceHandler(svc RequestServiceHandler, opts ...connect.Handler
 		connect.WithSchema(requestServiceMethods.ByName("ListRequestEvents")),
 		connect.WithHandlerOptions(opts...),
 	)
+	requestServiceCancelRequestHandler := connect.NewUnaryHandler(
+		RequestServiceCancelRequestProcedure,
+		svc.CancelRequest,
+		connect.WithSchema(requestServiceMethods.ByName("CancelRequest")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/aether.platform.v1.RequestService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case RequestServiceCreateRequestProcedure:
@@ -145,6 +168,8 @@ func NewRequestServiceHandler(svc RequestServiceHandler, opts ...connect.Handler
 			requestServiceGetRequestHandler.ServeHTTP(w, r)
 		case RequestServiceListRequestEventsProcedure:
 			requestServiceListRequestEventsHandler.ServeHTTP(w, r)
+		case RequestServiceCancelRequestProcedure:
+			requestServiceCancelRequestHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -164,4 +189,8 @@ func (UnimplementedRequestServiceHandler) GetRequest(context.Context, *connect.R
 
 func (UnimplementedRequestServiceHandler) ListRequestEvents(context.Context, *connect.Request[v1.ListRequestEventsRequest]) (*connect.Response[v1.ListRequestEventsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.RequestService.ListRequestEvents is not implemented"))
+}
+
+func (UnimplementedRequestServiceHandler) CancelRequest(context.Context, *connect.Request[v1.CancelRequestRequest]) (*connect.Response[v1.CancelRequestResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.RequestService.CancelRequest is not implemented"))
 }

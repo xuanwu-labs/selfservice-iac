@@ -36,12 +36,15 @@ const (
 	// CatalogServiceListItemsProcedure is the fully-qualified name of the CatalogService's ListItems
 	// RPC.
 	CatalogServiceListItemsProcedure = "/aether.platform.v1.CatalogService/ListItems"
+	// CatalogServiceGetCatalogItemProcedure is the fully-qualified name of the CatalogService's
+	// GetCatalogItem RPC.
+	CatalogServiceGetCatalogItemProcedure = "/aether.platform.v1.CatalogService/GetCatalogItem"
 )
 
 // CatalogServiceClient is a client for the aether.platform.v1.CatalogService service.
 type CatalogServiceClient interface {
-	// ListItems returns the available catalog items.
 	ListItems(context.Context, *connect.Request[v1.ListItemsRequest]) (*connect.Response[v1.ListItemsResponse], error)
+	GetCatalogItem(context.Context, *connect.Request[v1.GetCatalogItemRequest]) (*connect.Response[v1.GetCatalogItemResponse], error)
 }
 
 // NewCatalogServiceClient constructs a client for the aether.platform.v1.CatalogService service. By
@@ -61,12 +64,19 @@ func NewCatalogServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(catalogServiceMethods.ByName("ListItems")),
 			connect.WithClientOptions(opts...),
 		),
+		getCatalogItem: connect.NewClient[v1.GetCatalogItemRequest, v1.GetCatalogItemResponse](
+			httpClient,
+			baseURL+CatalogServiceGetCatalogItemProcedure,
+			connect.WithSchema(catalogServiceMethods.ByName("GetCatalogItem")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // catalogServiceClient implements CatalogServiceClient.
 type catalogServiceClient struct {
-	listItems *connect.Client[v1.ListItemsRequest, v1.ListItemsResponse]
+	listItems      *connect.Client[v1.ListItemsRequest, v1.ListItemsResponse]
+	getCatalogItem *connect.Client[v1.GetCatalogItemRequest, v1.GetCatalogItemResponse]
 }
 
 // ListItems calls aether.platform.v1.CatalogService.ListItems.
@@ -74,10 +84,15 @@ func (c *catalogServiceClient) ListItems(ctx context.Context, req *connect.Reque
 	return c.listItems.CallUnary(ctx, req)
 }
 
+// GetCatalogItem calls aether.platform.v1.CatalogService.GetCatalogItem.
+func (c *catalogServiceClient) GetCatalogItem(ctx context.Context, req *connect.Request[v1.GetCatalogItemRequest]) (*connect.Response[v1.GetCatalogItemResponse], error) {
+	return c.getCatalogItem.CallUnary(ctx, req)
+}
+
 // CatalogServiceHandler is an implementation of the aether.platform.v1.CatalogService service.
 type CatalogServiceHandler interface {
-	// ListItems returns the available catalog items.
 	ListItems(context.Context, *connect.Request[v1.ListItemsRequest]) (*connect.Response[v1.ListItemsResponse], error)
+	GetCatalogItem(context.Context, *connect.Request[v1.GetCatalogItemRequest]) (*connect.Response[v1.GetCatalogItemResponse], error)
 }
 
 // NewCatalogServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -93,10 +108,18 @@ func NewCatalogServiceHandler(svc CatalogServiceHandler, opts ...connect.Handler
 		connect.WithSchema(catalogServiceMethods.ByName("ListItems")),
 		connect.WithHandlerOptions(opts...),
 	)
+	catalogServiceGetCatalogItemHandler := connect.NewUnaryHandler(
+		CatalogServiceGetCatalogItemProcedure,
+		svc.GetCatalogItem,
+		connect.WithSchema(catalogServiceMethods.ByName("GetCatalogItem")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/aether.platform.v1.CatalogService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case CatalogServiceListItemsProcedure:
 			catalogServiceListItemsHandler.ServeHTTP(w, r)
+		case CatalogServiceGetCatalogItemProcedure:
+			catalogServiceGetCatalogItemHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -108,4 +131,8 @@ type UnimplementedCatalogServiceHandler struct{}
 
 func (UnimplementedCatalogServiceHandler) ListItems(context.Context, *connect.Request[v1.ListItemsRequest]) (*connect.Response[v1.ListItemsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.CatalogService.ListItems is not implemented"))
+}
+
+func (UnimplementedCatalogServiceHandler) GetCatalogItem(context.Context, *connect.Request[v1.GetCatalogItemRequest]) (*connect.Response[v1.GetCatalogItemResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.CatalogService.GetCatalogItem is not implemented"))
 }
