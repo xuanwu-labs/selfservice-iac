@@ -269,94 +269,6 @@ func (x *DecideApprovalResponse) GetCorrelationId() string {
 	return ""
 }
 
-type StartApplyRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RequestId     string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StartApplyRequest) Reset() {
-	*x = StartApplyRequest{}
-	mi := &file_platform_v1_approval_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StartApplyRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StartApplyRequest) ProtoMessage() {}
-
-func (x *StartApplyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_approval_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StartApplyRequest.ProtoReflect.Descriptor instead.
-func (*StartApplyRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_approval_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *StartApplyRequest) GetRequestId() string {
-	if x != nil {
-		return x.RequestId
-	}
-	return ""
-}
-
-type StartApplyResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CorrelationId string                 `protobuf:"bytes,1,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"` // The request is now in "applying" status — poll GET /requests/{id} for updates.
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StartApplyResponse) Reset() {
-	*x = StartApplyResponse{}
-	mi := &file_platform_v1_approval_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StartApplyResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StartApplyResponse) ProtoMessage() {}
-
-func (x *StartApplyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_approval_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StartApplyResponse.ProtoReflect.Descriptor instead.
-func (*StartApplyResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_approval_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *StartApplyResponse) GetCorrelationId() string {
-	if x != nil {
-		return x.CorrelationId
-	}
-	return ""
-}
-
 var File_platform_v1_approval_proto protoreflect.FileDescriptor
 
 const file_platform_v1_approval_proto_rawDesc = "" +
@@ -384,17 +296,9 @@ const file_platform_v1_approval_proto_rawDesc = "" +
 	"\x12RUN_STATUS_PENDING\x10\x01\x12\x17\n" +
 	"\x13RUN_STATUS_APPROVED\x10\x02\x12\x17\n" +
 	"\x13RUN_STATUS_REJECTED\x10\x03\x12\x16\n" +
-	"\x12RUN_STATUS_EXPIRED\x10\x04\"2\n" +
-	"\x11StartApplyRequest\x12\x1d\n" +
-	"\n" +
-	"request_id\x18\x01 \x01(\tR\trequestId\";\n" +
-	"\x12StartApplyResponse\x12%\n" +
-	"\x0ecorrelation_id\x18\x01 \x01(\tR\rcorrelationId2|\n" +
+	"\x12RUN_STATUS_EXPIRED\x10\x042|\n" +
 	"\x0fApprovalService\x12i\n" +
-	"\x0eDecideApproval\x12).aether.platform.v1.DecideApprovalRequest\x1a*.aether.platform.v1.DecideApprovalResponse\"\x002m\n" +
-	"\fApplyService\x12]\n" +
-	"\n" +
-	"StartApply\x12%.aether.platform.v1.StartApplyRequest\x1a&.aether.platform.v1.StartApplyResponse\"\x00BUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
+	"\x0eDecideApproval\x12).aether.platform.v1.DecideApprovalRequest\x1a*.aether.platform.v1.DecideApprovalResponse\"\x00BUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
 
 var (
 	file_platform_v1_approval_proto_rawDescOnce sync.Once
@@ -409,24 +313,20 @@ func file_platform_v1_approval_proto_rawDescGZIP() []byte {
 }
 
 var file_platform_v1_approval_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_platform_v1_approval_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_platform_v1_approval_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_platform_v1_approval_proto_goTypes = []any{
 	(DecideApprovalRequest_Decision)(0),   // 0: aether.platform.v1.DecideApprovalRequest.Decision
 	(DecideApprovalResponse_RunStatus)(0), // 1: aether.platform.v1.DecideApprovalResponse.RunStatus
 	(*DecideApprovalRequest)(nil),         // 2: aether.platform.v1.DecideApprovalRequest
 	(*DecideApprovalResponse)(nil),        // 3: aether.platform.v1.DecideApprovalResponse
-	(*StartApplyRequest)(nil),             // 4: aether.platform.v1.StartApplyRequest
-	(*StartApplyResponse)(nil),            // 5: aether.platform.v1.StartApplyResponse
 }
 var file_platform_v1_approval_proto_depIdxs = []int32{
 	0, // 0: aether.platform.v1.DecideApprovalRequest.decision:type_name -> aether.platform.v1.DecideApprovalRequest.Decision
 	1, // 1: aether.platform.v1.DecideApprovalResponse.status:type_name -> aether.platform.v1.DecideApprovalResponse.RunStatus
 	2, // 2: aether.platform.v1.ApprovalService.DecideApproval:input_type -> aether.platform.v1.DecideApprovalRequest
-	4, // 3: aether.platform.v1.ApplyService.StartApply:input_type -> aether.platform.v1.StartApplyRequest
-	3, // 4: aether.platform.v1.ApprovalService.DecideApproval:output_type -> aether.platform.v1.DecideApprovalResponse
-	5, // 5: aether.platform.v1.ApplyService.StartApply:output_type -> aether.platform.v1.StartApplyResponse
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
+	3, // 3: aether.platform.v1.ApprovalService.DecideApproval:output_type -> aether.platform.v1.DecideApprovalResponse
+	3, // [3:4] is the sub-list for method output_type
+	2, // [2:3] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name
@@ -443,9 +343,9 @@ func file_platform_v1_approval_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_approval_proto_rawDesc), len(file_platform_v1_approval_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   4,
+			NumMessages:   2,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   1,
 		},
 		GoTypes:           file_platform_v1_approval_proto_goTypes,
 		DependencyIndexes: file_platform_v1_approval_proto_depIdxs,

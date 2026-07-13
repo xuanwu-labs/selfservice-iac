@@ -23,10 +23,6 @@ const _ = connect.IsAtLeastVersion1_13_0
 const (
 	// PlanningServiceName is the fully-qualified name of the PlanningService service.
 	PlanningServiceName = "aether.platform.v1.PlanningService"
-	// ArtifactServiceName is the fully-qualified name of the ArtifactService service.
-	ArtifactServiceName = "aether.platform.v1.ArtifactService"
-	// GateServiceName is the fully-qualified name of the GateService service.
-	GateServiceName = "aether.platform.v1.GateService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -40,12 +36,6 @@ const (
 	// PlanningServiceStartPlanProcedure is the fully-qualified name of the PlanningService's StartPlan
 	// RPC.
 	PlanningServiceStartPlanProcedure = "/aether.platform.v1.PlanningService/StartPlan"
-	// ArtifactServiceGetArtifactProcedure is the fully-qualified name of the ArtifactService's
-	// GetArtifact RPC.
-	ArtifactServiceGetArtifactProcedure = "/aether.platform.v1.ArtifactService/GetArtifact"
-	// GateServiceEvaluateGateProcedure is the fully-qualified name of the GateService's EvaluateGate
-	// RPC.
-	GateServiceEvaluateGateProcedure = "/aether.platform.v1.GateService/EvaluateGate"
 )
 
 // PlanningServiceClient is a client for the aether.platform.v1.PlanningService service.
@@ -116,144 +106,4 @@ type UnimplementedPlanningServiceHandler struct{}
 
 func (UnimplementedPlanningServiceHandler) StartPlan(context.Context, *connect.Request[v1.StartPlanRequest]) (*connect.Response[v1.StartPlanResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.PlanningService.StartPlan is not implemented"))
-}
-
-// ArtifactServiceClient is a client for the aether.platform.v1.ArtifactService service.
-type ArtifactServiceClient interface {
-	GetArtifact(context.Context, *connect.Request[v1.GetArtifactRequest]) (*connect.Response[v1.GetArtifactResponse], error)
-}
-
-// NewArtifactServiceClient constructs a client for the aether.platform.v1.ArtifactService service.
-// By default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped
-// responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewArtifactServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ArtifactServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	artifactServiceMethods := v1.File_platform_v1_planning_proto.Services().ByName("ArtifactService").Methods()
-	return &artifactServiceClient{
-		getArtifact: connect.NewClient[v1.GetArtifactRequest, v1.GetArtifactResponse](
-			httpClient,
-			baseURL+ArtifactServiceGetArtifactProcedure,
-			connect.WithSchema(artifactServiceMethods.ByName("GetArtifact")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// artifactServiceClient implements ArtifactServiceClient.
-type artifactServiceClient struct {
-	getArtifact *connect.Client[v1.GetArtifactRequest, v1.GetArtifactResponse]
-}
-
-// GetArtifact calls aether.platform.v1.ArtifactService.GetArtifact.
-func (c *artifactServiceClient) GetArtifact(ctx context.Context, req *connect.Request[v1.GetArtifactRequest]) (*connect.Response[v1.GetArtifactResponse], error) {
-	return c.getArtifact.CallUnary(ctx, req)
-}
-
-// ArtifactServiceHandler is an implementation of the aether.platform.v1.ArtifactService service.
-type ArtifactServiceHandler interface {
-	GetArtifact(context.Context, *connect.Request[v1.GetArtifactRequest]) (*connect.Response[v1.GetArtifactResponse], error)
-}
-
-// NewArtifactServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewArtifactServiceHandler(svc ArtifactServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	artifactServiceMethods := v1.File_platform_v1_planning_proto.Services().ByName("ArtifactService").Methods()
-	artifactServiceGetArtifactHandler := connect.NewUnaryHandler(
-		ArtifactServiceGetArtifactProcedure,
-		svc.GetArtifact,
-		connect.WithSchema(artifactServiceMethods.ByName("GetArtifact")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/aether.platform.v1.ArtifactService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case ArtifactServiceGetArtifactProcedure:
-			artifactServiceGetArtifactHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
-}
-
-// UnimplementedArtifactServiceHandler returns CodeUnimplemented from all methods.
-type UnimplementedArtifactServiceHandler struct{}
-
-func (UnimplementedArtifactServiceHandler) GetArtifact(context.Context, *connect.Request[v1.GetArtifactRequest]) (*connect.Response[v1.GetArtifactResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.ArtifactService.GetArtifact is not implemented"))
-}
-
-// GateServiceClient is a client for the aether.platform.v1.GateService service.
-type GateServiceClient interface {
-	EvaluateGate(context.Context, *connect.Request[v1.EvaluateGateRequest]) (*connect.Response[v1.EvaluateGateResponse], error)
-}
-
-// NewGateServiceClient constructs a client for the aether.platform.v1.GateService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewGateServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) GateServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	gateServiceMethods := v1.File_platform_v1_planning_proto.Services().ByName("GateService").Methods()
-	return &gateServiceClient{
-		evaluateGate: connect.NewClient[v1.EvaluateGateRequest, v1.EvaluateGateResponse](
-			httpClient,
-			baseURL+GateServiceEvaluateGateProcedure,
-			connect.WithSchema(gateServiceMethods.ByName("EvaluateGate")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// gateServiceClient implements GateServiceClient.
-type gateServiceClient struct {
-	evaluateGate *connect.Client[v1.EvaluateGateRequest, v1.EvaluateGateResponse]
-}
-
-// EvaluateGate calls aether.platform.v1.GateService.EvaluateGate.
-func (c *gateServiceClient) EvaluateGate(ctx context.Context, req *connect.Request[v1.EvaluateGateRequest]) (*connect.Response[v1.EvaluateGateResponse], error) {
-	return c.evaluateGate.CallUnary(ctx, req)
-}
-
-// GateServiceHandler is an implementation of the aether.platform.v1.GateService service.
-type GateServiceHandler interface {
-	EvaluateGate(context.Context, *connect.Request[v1.EvaluateGateRequest]) (*connect.Response[v1.EvaluateGateResponse], error)
-}
-
-// NewGateServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewGateServiceHandler(svc GateServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	gateServiceMethods := v1.File_platform_v1_planning_proto.Services().ByName("GateService").Methods()
-	gateServiceEvaluateGateHandler := connect.NewUnaryHandler(
-		GateServiceEvaluateGateProcedure,
-		svc.EvaluateGate,
-		connect.WithSchema(gateServiceMethods.ByName("EvaluateGate")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/aether.platform.v1.GateService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case GateServiceEvaluateGateProcedure:
-			gateServiceEvaluateGateHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
-}
-
-// UnimplementedGateServiceHandler returns CodeUnimplemented from all methods.
-type UnimplementedGateServiceHandler struct{}
-
-func (UnimplementedGateServiceHandler) EvaluateGate(context.Context, *connect.Request[v1.EvaluateGateRequest]) (*connect.Response[v1.EvaluateGateResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.GateService.EvaluateGate is not implemented"))
 }

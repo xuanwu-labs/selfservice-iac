@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package aether.platform.v1;
 
+import "platform/v1/common.proto";
+
 option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1";
 
 // ============================================================
@@ -12,8 +14,6 @@ service CatalogService {
   rpc ListItems(ListItemsRequest) returns (ListItemsResponse) {}
   rpc GetCatalogItem(GetCatalogItemRequest) returns (GetCatalogItemResponse) {}
 }
-
-// --- Messages ---
 
 message CatalogItem {
   string id = 1;                        // cat_<alphanum>
@@ -28,19 +28,10 @@ message CatalogItem {
   }
   CatalogItemStatus status = 5;
 
-  ModuleVersion module_version = 6;
+  ModuleVersion module_version = 6;     // from common.proto
   string form_schema_json = 7;          // JSON Schema 2020-12 for request form (D40)
-  map<string, string> default_tags = 8; // Platform tags injected by codegen (D18)
+  map<string, string> default_tags = 8; // platform tags injected by codegen (D18)
 }
-
-message ModuleVersion {
-  string version = 1;                   // semver e.g. v1.2.0
-  string source = 2;                    // git registry source
-  string commit_sha = 3;               // sha256:<hex>
-  repeated string providers = 4;        // e.g. ["aws", "alicloud"]
-}
-
-// --- RPC Messages ---
 
 message ListItemsRequest {
   int32 page_size = 1;

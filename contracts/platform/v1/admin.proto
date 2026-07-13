@@ -14,28 +14,20 @@ option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/prot
 // platform module registry. Requires admin role.
 // ============================================================
 service ModuleRegistryService {
-  // Register a new module or a new version.
   rpc RegisterModule(RegisterModuleRequest) returns (RegisterModuleResponse) {}
-  // List registered modules (filter by provider/status).
   rpc ListModules(ListModulesRequest) returns (ListModulesResponse) {}
-  // Get module details (includes variables contract).
   rpc GetModule(GetModuleRequest) returns (GetModuleResponse) {}
-  // Deprecate a module version.
   rpc DeprecateModule(DeprecateModuleRequest) returns (DeprecateModuleResponse) {}
 }
 
 // ============================================================
 // CatalogAdminService — Admin: publish and manage catalog items (D25).
-// Create user-facing catalog items from registered module versions:
-// trim form_schema, set defaults, configure visibility and
-// cardinality (single/list/map). Requires admin role.
+// Create user-facing catalog items from registered module versions.
+// Requires admin role.
 // ============================================================
 service CatalogAdminService {
-  // Publish a catalog item from a module version.
   rpc PublishCatalogItem(PublishCatalogItemRequest) returns (PublishCatalogItemResponse) {}
-  // Update a catalog item (defaults/visibility/cardinality).
   rpc UpdateCatalogItem(UpdateCatalogItemRequest) returns (UpdateCatalogItemResponse) {}
-  // Deprecate a catalog item (hidden from users; existing requests continue).
   rpc DeprecateCatalogItem(DeprecateCatalogItemRequest) returns (DeprecateCatalogItemResponse) {}
 }
 
@@ -59,20 +51,9 @@ message Module {
   }
   ModuleStatus status = 6;
 
-  repeated ModuleVersion versions = 7;      // all registered versions
+  repeated ModuleVersion versions = 7;      // from common.proto
   string created_at = 8;                    // RFC 3339 UTC
   string updated_at = 9;
-}
-
-// ModuleDependency declares a cross-module dependency (parsed from variables.tf).
-// Example: ECS module depends on VPC module's vswitch_id output.
-message ModuleDependency {
-  string variable_name = 1;                 // e.g. "vswitch_id"
-  string description = 2;                   // e.g. "VSwitch ID for the ECS instance"
-  string depends_on_layer = 3;              // e.g. "global"
-  string depends_on_module = 4;             // e.g. "vpc"
-  string output_key = 5;                    // e.g. "vswitch_id"
-  bool required = 6;                        // whether this dependency is mandatory
 }
 
 // ============================================================
@@ -80,11 +61,11 @@ message ModuleDependency {
 // ============================================================
 
 message RegisterModuleRequest {
-  string git_source = 1;                    // Git repository URL
+  string git_source = 1;
   string module_path = 2;                   // path within repo (e.g. atomic/ecs)
   string version = 3;                       // tag or commit to register
-  string provider = 4;                      // cloud provider
-  string name = 5;                          // display name
+  string provider = 4;
+  string name = 5;
   string description = 6;
 }
 
@@ -113,7 +94,7 @@ message GetModuleResponse {
 
 message DeprecateModuleRequest {
   string module_id = 1;
-  string version = 2;                       // specific version to deprecate
+  string version = 2;
   string reason = 3;
 }
 
@@ -126,28 +107,28 @@ message DeprecateModuleResponse {
 // ============================================================
 
 message PublishCatalogItemRequest {
-  string module_id = 1;                     // source module
-  string module_version = 2;                // which version to publish
-  string name = 3;                          // catalog item display name
+  string module_id = 1;
+  string module_version = 2;
+  string name = 3;
   string description = 4;
-  string category = 5;                      // e.g. "compute" / "database" / "network"
+  string category = 5;
 
   enum Cardinality {
     CARDINALITY_UNSPECIFIED = 0;
-    CARDINALITY_SINGLE = 1;                 // single instance
-    CARDINALITY_LIST = 2;                   // count = N
-    CARDINALITY_MAP = 3;                    // for_each = tomap({...})
+    CARDINALITY_SINGLE = 1;
+    CARDINALITY_LIST = 2;
+    CARDINALITY_MAP = 3;
   }
   Cardinality cardinality = 6;
-  string instance_key = 7;                  // for_each key variable name
-  repeated string per_instance_fields = 8;  // fields that differ per instance
-  repeated string shared_fields = 9;        // fields shared across instances
+  string instance_key = 7;
+  repeated string per_instance_fields = 8;
+  repeated string shared_fields = 9;
 
-  string form_schema_json = 10;             // trimmed form schema (from variables contract)
-  map<string, string> default_values = 11;  // best-practice defaults
-  repeated string visible_to_teams = 12;    // visibility control (empty = all)
-  string layer_logical_id = 13;            // which layer (global/middleware/application)
-  map<string, string> default_tags = 14;    // platform-mandated tags (D18)
+  string form_schema_json = 10;
+  map<string, string> default_values = 11;
+  repeated string visible_to_teams = 12;
+  string layer_logical_id = 13;
+  map<string, string> default_tags = 14;
 }
 
 message PublishCatalogItemResponse {
@@ -155,10 +136,10 @@ message PublishCatalogItemResponse {
 }
 
 message UpdateCatalogItemRequest {
-  string catalog_item_id = 1;               // cat_<alphanum>
+  string catalog_item_id = 1;
   map<string, string> default_values = 2;
   repeated string visible_to_teams = 3;
-  string form_schema_json = 4;              // updated form schema
+  string form_schema_json = 4;
   map<string, string> default_tags = 5;
 }
 
