@@ -24,18 +24,18 @@ const (
 
 type LifecycleRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
-	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // req_<alphanum>
+	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Status            common.RequestStatus   `protobuf:"varint,2,opt,name=status,proto3,enum=aether.platform.v1.common.RequestStatus" json:"status,omitempty"`
-	CatalogItemId     string                 `protobuf:"bytes,3,opt,name=catalog_item_id,json=catalogItemId,proto3" json:"catalog_item_id,omitempty"` // cat_<alphanum>
+	CatalogItemId     string                 `protobuf:"bytes,3,opt,name=catalog_item_id,json=catalogItemId,proto3" json:"catalog_item_id,omitempty"`
 	EnvId             string                 `protobuf:"bytes,4,opt,name=env_id,json=envId,proto3" json:"env_id,omitempty"`
-	TeamId            string                 `protobuf:"bytes,5,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"` // team_<alphanum>
+	TeamId            string                 `protobuf:"bytes,5,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"`
 	TenantId          string                 `protobuf:"bytes,6,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	BundleId          string                 `protobuf:"bytes,7,opt,name=bundle_id,json=bundleId,proto3" json:"bundle_id,omitempty"`
 	FormValues        map[string]string      `protobuf:"bytes,8,rep,name=form_values,json=formValues,proto3" json:"form_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	FormHash          string                 `protobuf:"bytes,9,opt,name=form_hash,json=formHash,proto3" json:"form_hash,omitempty"` // sha256:<hex>
+	FormHash          string                 `protobuf:"bytes,9,opt,name=form_hash,json=formHash,proto3" json:"form_hash,omitempty"`
 	Source            common.RequestSource   `protobuf:"varint,10,opt,name=source,proto3,enum=aether.platform.v1.common.RequestSource" json:"source,omitempty"`
-	PinnedCommit      string                 `protobuf:"bytes,11,opt,name=pinned_commit,json=pinnedCommit,proto3" json:"pinned_commit,omitempty"`         // sha256:<hex>
-	PlanArtifactId    string                 `protobuf:"bytes,12,opt,name=plan_artifact_id,json=planArtifactId,proto3" json:"plan_artifact_id,omitempty"` // art_<alphanum>
+	PinnedCommit      string                 `protobuf:"bytes,11,opt,name=pinned_commit,json=pinnedCommit,proto3" json:"pinned_commit,omitempty"`
+	PlanArtifactId    string                 `protobuf:"bytes,12,opt,name=plan_artifact_id,json=planArtifactId,proto3" json:"plan_artifact_id,omitempty"`
 	CostEstimateCents int64                  `protobuf:"varint,13,opt,name=cost_estimate_cents,json=costEstimateCents,proto3" json:"cost_estimate_cents,omitempty"`
 	CostCurrency      string                 `protobuf:"bytes,14,opt,name=cost_currency,json=costCurrency,proto3" json:"cost_currency,omitempty"`
 	CreatedAt         string                 `protobuf:"bytes,15,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
@@ -204,7 +204,7 @@ func (x *LifecycleRequest) GetCorrelationId() string {
 
 type LifecycleEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // evt_<alphanum>
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	RequestId     string                 `protobuf:"bytes,2,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	EventType     string                 `protobuf:"bytes,3,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
 	Actor         *common.Actor          `protobuf:"bytes,4,opt,name=actor,proto3" json:"actor,omitempty"`
@@ -288,10 +288,10 @@ func (x *LifecycleEvent) GetCorrelationId() string {
 
 type PlanArtifact struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
-	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // art_<alphanum>
+	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	RequestId         string                 `protobuf:"bytes,2,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	Status            common.ArtifactStatus  `protobuf:"varint,3,opt,name=status,proto3,enum=aether.platform.v1.common.ArtifactStatus" json:"status,omitempty"`
-	PlanHash          string                 `protobuf:"bytes,4,opt,name=plan_hash,json=planHash,proto3" json:"plan_hash,omitempty"` // sha256:<hex>
+	PlanHash          string                 `protobuf:"bytes,4,opt,name=plan_hash,json=planHash,proto3" json:"plan_hash,omitempty"`
 	Summary           *PlanSummary           `protobuf:"bytes,5,opt,name=summary,proto3" json:"summary,omitempty"`
 	CostEstimateCents int64                  `protobuf:"varint,6,opt,name=cost_estimate_cents,json=costEstimateCents,proto3" json:"cost_estimate_cents,omitempty"`
 	StorageUri        string                 `protobuf:"bytes,7,opt,name=storage_uri,json=storageUri,proto3" json:"storage_uri,omitempty"`
@@ -532,7 +532,7 @@ func (x *GateResult) GetSeverity() common.GateSeverity {
 
 type ApprovalRun struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`
-	RunId         string                   `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"` // run_<alphanum>
+	RunId         string                   `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	Status        common.ApprovalRunStatus `protobuf:"varint,2,opt,name=status,proto3,enum=aether.platform.v1.common.ApprovalRunStatus" json:"status,omitempty"`
 	DecidedBy     string                   `protobuf:"bytes,3,opt,name=decided_by,json=decidedBy,proto3" json:"decided_by,omitempty"`
 	DecidedAt     string                   `protobuf:"bytes,4,opt,name=decided_at,json=decidedAt,proto3" json:"decided_at,omitempty"`

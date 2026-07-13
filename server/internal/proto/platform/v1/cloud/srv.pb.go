@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: platform/v1/cloud/entitlement_srv.proto
+// source: platform/v1/cloud/srv.proto
 
 package cloudv1
 
@@ -31,7 +31,7 @@ type ListRequestableCloudAccountsRequest struct {
 
 func (x *ListRequestableCloudAccountsRequest) Reset() {
 	*x = ListRequestableCloudAccountsRequest{}
-	mi := &file_platform_v1_cloud_entitlement_srv_proto_msgTypes[0]
+	mi := &file_platform_v1_cloud_srv_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +43,7 @@ func (x *ListRequestableCloudAccountsRequest) String() string {
 func (*ListRequestableCloudAccountsRequest) ProtoMessage() {}
 
 func (x *ListRequestableCloudAccountsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_cloud_entitlement_srv_proto_msgTypes[0]
+	mi := &file_platform_v1_cloud_srv_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +56,7 @@ func (x *ListRequestableCloudAccountsRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use ListRequestableCloudAccountsRequest.ProtoReflect.Descriptor instead.
 func (*ListRequestableCloudAccountsRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_cloud_entitlement_srv_proto_rawDescGZIP(), []int{0}
+	return file_platform_v1_cloud_srv_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ListRequestableCloudAccountsRequest) GetPagination() *common.PageRequest {
@@ -76,7 +76,7 @@ type ListRequestableCloudAccountsResponse struct {
 
 func (x *ListRequestableCloudAccountsResponse) Reset() {
 	*x = ListRequestableCloudAccountsResponse{}
-	mi := &file_platform_v1_cloud_entitlement_srv_proto_msgTypes[1]
+	mi := &file_platform_v1_cloud_srv_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -88,7 +88,7 @@ func (x *ListRequestableCloudAccountsResponse) String() string {
 func (*ListRequestableCloudAccountsResponse) ProtoMessage() {}
 
 func (x *ListRequestableCloudAccountsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_cloud_entitlement_srv_proto_msgTypes[1]
+	mi := &file_platform_v1_cloud_srv_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -101,7 +101,7 @@ func (x *ListRequestableCloudAccountsResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use ListRequestableCloudAccountsResponse.ProtoReflect.Descriptor instead.
 func (*ListRequestableCloudAccountsResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_cloud_entitlement_srv_proto_rawDescGZIP(), []int{1}
+	return file_platform_v1_cloud_srv_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ListRequestableCloudAccountsResponse) GetAccounts() []*CloudAccount {
@@ -118,11 +118,11 @@ func (x *ListRequestableCloudAccountsResponse) GetPagination() *common.PageRespo
 	return nil
 }
 
-var File_platform_v1_cloud_entitlement_srv_proto protoreflect.FileDescriptor
+var File_platform_v1_cloud_srv_proto protoreflect.FileDescriptor
 
-const file_platform_v1_cloud_entitlement_srv_proto_rawDesc = "" +
+const file_platform_v1_cloud_srv_proto_rawDesc = "" +
 	"\n" +
-	"'platform/v1/cloud/entitlement_srv.proto\x12\x18aether.platform.v1.cloud\x1a\x1cplatform/v1/common/dto.proto\x1a\x1bplatform/v1/cloud/dto.proto\"m\n" +
+	"\x1bplatform/v1/cloud/srv.proto\x12\x18aether.platform.v1.cloud\x1a\x1cplatform/v1/common/dto.proto\x1a\x1dplatform/v1/common/enum.proto\x1a\x1bplatform/v1/cloud/dto.proto\"m\n" +
 	"#ListRequestableCloudAccountsRequest\x12F\n" +
 	"\n" +
 	"pagination\x18\x01 \x01(\v2&.aether.platform.v1.common.PageRequestR\n" +
@@ -136,26 +136,26 @@ const file_platform_v1_cloud_entitlement_srv_proto_rawDesc = "" +
 	"\x1cListRequestableCloudAccounts\x12=.aether.platform.v1.cloud.ListRequestableCloudAccountsRequest\x1a>.aether.platform.v1.cloud.ListRequestableCloudAccountsResponse\"\x00BXZVgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/cloud;cloudv1b\x06proto3"
 
 var (
-	file_platform_v1_cloud_entitlement_srv_proto_rawDescOnce sync.Once
-	file_platform_v1_cloud_entitlement_srv_proto_rawDescData []byte
+	file_platform_v1_cloud_srv_proto_rawDescOnce sync.Once
+	file_platform_v1_cloud_srv_proto_rawDescData []byte
 )
 
-func file_platform_v1_cloud_entitlement_srv_proto_rawDescGZIP() []byte {
-	file_platform_v1_cloud_entitlement_srv_proto_rawDescOnce.Do(func() {
-		file_platform_v1_cloud_entitlement_srv_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_platform_v1_cloud_entitlement_srv_proto_rawDesc), len(file_platform_v1_cloud_entitlement_srv_proto_rawDesc)))
+func file_platform_v1_cloud_srv_proto_rawDescGZIP() []byte {
+	file_platform_v1_cloud_srv_proto_rawDescOnce.Do(func() {
+		file_platform_v1_cloud_srv_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_platform_v1_cloud_srv_proto_rawDesc), len(file_platform_v1_cloud_srv_proto_rawDesc)))
 	})
-	return file_platform_v1_cloud_entitlement_srv_proto_rawDescData
+	return file_platform_v1_cloud_srv_proto_rawDescData
 }
 
-var file_platform_v1_cloud_entitlement_srv_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_platform_v1_cloud_entitlement_srv_proto_goTypes = []any{
+var file_platform_v1_cloud_srv_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_platform_v1_cloud_srv_proto_goTypes = []any{
 	(*ListRequestableCloudAccountsRequest)(nil),  // 0: aether.platform.v1.cloud.ListRequestableCloudAccountsRequest
 	(*ListRequestableCloudAccountsResponse)(nil), // 1: aether.platform.v1.cloud.ListRequestableCloudAccountsResponse
 	(*common.PageRequest)(nil),                   // 2: aether.platform.v1.common.PageRequest
 	(*CloudAccount)(nil),                         // 3: aether.platform.v1.cloud.CloudAccount
 	(*common.PageResponse)(nil),                  // 4: aether.platform.v1.common.PageResponse
 }
-var file_platform_v1_cloud_entitlement_srv_proto_depIdxs = []int32{
+var file_platform_v1_cloud_srv_proto_depIdxs = []int32{
 	2, // 0: aether.platform.v1.cloud.ListRequestableCloudAccountsRequest.pagination:type_name -> aether.platform.v1.common.PageRequest
 	3, // 1: aether.platform.v1.cloud.ListRequestableCloudAccountsResponse.accounts:type_name -> aether.platform.v1.cloud.CloudAccount
 	4, // 2: aether.platform.v1.cloud.ListRequestableCloudAccountsResponse.pagination:type_name -> aether.platform.v1.common.PageResponse
@@ -168,9 +168,9 @@ var file_platform_v1_cloud_entitlement_srv_proto_depIdxs = []int32{
 	0, // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_platform_v1_cloud_entitlement_srv_proto_init() }
-func file_platform_v1_cloud_entitlement_srv_proto_init() {
-	if File_platform_v1_cloud_entitlement_srv_proto != nil {
+func init() { file_platform_v1_cloud_srv_proto_init() }
+func file_platform_v1_cloud_srv_proto_init() {
+	if File_platform_v1_cloud_srv_proto != nil {
 		return
 	}
 	file_platform_v1_cloud_dto_proto_init()
@@ -178,17 +178,17 @@ func file_platform_v1_cloud_entitlement_srv_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_cloud_entitlement_srv_proto_rawDesc), len(file_platform_v1_cloud_entitlement_srv_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_cloud_srv_proto_rawDesc), len(file_platform_v1_cloud_srv_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_platform_v1_cloud_entitlement_srv_proto_goTypes,
-		DependencyIndexes: file_platform_v1_cloud_entitlement_srv_proto_depIdxs,
-		MessageInfos:      file_platform_v1_cloud_entitlement_srv_proto_msgTypes,
+		GoTypes:           file_platform_v1_cloud_srv_proto_goTypes,
+		DependencyIndexes: file_platform_v1_cloud_srv_proto_depIdxs,
+		MessageInfos:      file_platform_v1_cloud_srv_proto_msgTypes,
 	}.Build()
-	File_platform_v1_cloud_entitlement_srv_proto = out.File
-	file_platform_v1_cloud_entitlement_srv_proto_goTypes = nil
-	file_platform_v1_cloud_entitlement_srv_proto_depIdxs = nil
+	File_platform_v1_cloud_srv_proto = out.File
+	file_platform_v1_cloud_srv_proto_goTypes = nil
+	file_platform_v1_cloud_srv_proto_depIdxs = nil
 }

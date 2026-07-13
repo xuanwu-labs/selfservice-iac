@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package aether.platform.v1.cloud;
+
+option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/cloud;cloudv1";
+
+// Cloud domain has no domain-specific enums beyond what's in common.
+// This file exists for future cloud-specific enums.

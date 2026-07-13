@@ -2,24 +2,36 @@ syntax = "proto3";
 
 package aether.platform.v1.lifecycle;
 
+import "platform/v1/common/dto.proto";
 import "platform/v1/common/enum.proto";
 import "platform/v1/lifecycle/dto.proto";
 
 option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/lifecycle;lifecyclev1";
 
 // ============================================================
-// LifecycleService — Server: IaC change request lifecycle.
-// Create -> (auto codegen) -> Plan -> Gate -> Approval -> Apply -> Reconcile
+// LifecycleService — Server: IaC change request full lifecycle.
+// All user-facing operations on requests, plans, gates, approvals,
+// and apply are consolidated in one service (the lifecycle is one
+// continuous flow, not separate domains).
 // ============================================================
 service LifecycleService {
+  // --- Request CRUD ---
   rpc CreateRequest(CreateRequestRequest) returns (CreateRequestResponse) {}
   rpc GetRequest(GetRequestRequest) returns (GetRequestResponse) {}
   rpc ListRequestEvents(ListRequestEventsRequest) returns (ListRequestEventsResponse) {}
   rpc CancelRequest(CancelRequestRequest) returns (CancelRequestResponse) {}
+
+  // --- Plan + Artifact ---
   rpc StartPlan(StartPlanRequest) returns (StartPlanResponse) {}
   rpc GetArtifact(GetArtifactRequest) returns (GetArtifactResponse) {}
+
+  // --- Gate ---
   rpc EvaluateGate(EvaluateGateRequest) returns (EvaluateGateResponse) {}
+
+  // --- Approval ---
   rpc DecideApproval(DecideApprovalRequest) returns (DecideApprovalResponse) {}
+
+  // --- Apply ---
   rpc StartApply(StartApplyRequest) returns (StartApplyResponse) {}
 }
 

@@ -15,7 +15,7 @@ import (
 
 	connectapi "github.com/xuanwu-labs/selfservice-iac/server/api/connect"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/middleware"
-	catalogv1connect "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/platformv1connect"
+	catalogv1connect "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/catalog/catalogv1connect"
 )
 
 // ProvideServerConfig assembles the full ServerConfig: gin middleware chain

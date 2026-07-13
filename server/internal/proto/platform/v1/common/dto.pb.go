@@ -21,7 +21,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// PageRequest is embedded in list RPC requests.
 type PageRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PageSize      int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
@@ -74,7 +73,6 @@ func (x *PageRequest) GetPageToken() string {
 	return ""
 }
 
-// PageResponse is embedded in list RPC responses.
 type PageResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	NextPageToken string                 `protobuf:"bytes,1,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
@@ -119,7 +117,6 @@ func (x *PageResponse) GetNextPageToken() string {
 	return ""
 }
 
-// Actor is the unified identity model (D10/D10.1).
 type Actor struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Type          ActorType              `protobuf:"varint,1,opt,name=type,proto3,enum=aether.platform.v1.common.ActorType" json:"type,omitempty"`

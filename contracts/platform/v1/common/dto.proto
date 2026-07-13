@@ -7,21 +7,18 @@ import "platform/v1/common/enum.proto";
 option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/common;commonv1";
 
 // ============================================================
-// Shared message types across all business domains.
+// Shared messages across all domains.
 // ============================================================
 
-// PageRequest is embedded in list RPC requests.
 message PageRequest {
   int32 page_size = 1;
   string page_token = 2;
 }
 
-// PageResponse is embedded in list RPC responses.
 message PageResponse {
   string next_page_token = 1;
 }
 
-// Actor is the unified identity model (D10/D10.1).
 message Actor {
   ActorType type = 1;
   string user_id = 2;

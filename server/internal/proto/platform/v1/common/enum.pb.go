@@ -21,7 +21,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// ActorType identifies who initiated an action.
 type ActorType int32
 
 const (
@@ -74,7 +73,6 @@ func (ActorType) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{0}
 }
 
-// RequestStatus is the lifecycle state of an IaC change request (D21).
 type RequestStatus int32
 
 const (
@@ -166,7 +164,6 @@ func (RequestStatus) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{1}
 }
 
-// RequestSource identifies where a request originated.
 type RequestSource int32
 
 const (
@@ -225,7 +222,6 @@ func (RequestSource) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{2}
 }
 
-// ApprovalDecision is the outcome of an approval step.
 type ApprovalDecision int32
 
 const (
@@ -275,7 +271,6 @@ func (ApprovalDecision) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{3}
 }
 
-// ApprovalRunStatus is the state of an approval run.
 type ApprovalRunStatus int32
 
 const (
@@ -331,7 +326,6 @@ func (ApprovalRunStatus) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{4}
 }
 
-// ArtifactStatus is the state of a plan artifact.
 type ArtifactStatus int32
 
 const (
@@ -384,7 +378,6 @@ func (ArtifactStatus) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{5}
 }
 
-// GateSeverity indicates the severity of a gate violation.
 type GateSeverity int32
 
 const (
@@ -434,7 +427,6 @@ func (GateSeverity) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{6}
 }
 
-// ModuleStatus is the lifecycle state of a registered module.
 type ModuleStatus int32
 
 const (
@@ -490,7 +482,6 @@ func (ModuleStatus) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{7}
 }
 
-// CatalogItemStatus is the visibility state of a catalog item.
 type CatalogItemStatus int32
 
 const (
@@ -540,7 +531,6 @@ func (CatalogItemStatus) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{8}
 }
 
-// Cardinality controls multi-instance generation (D25).
 type Cardinality int32
 
 const (
@@ -593,7 +583,6 @@ func (Cardinality) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{9}
 }
 
-// CloudProvider identifies a cloud vendor.
 type CloudProvider int32
 
 const (
@@ -649,7 +638,6 @@ func (CloudProvider) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{10}
 }
 
-// CloudAccountStatus is the state of a cloud account.
 type CloudAccountStatus int32
 
 const (
