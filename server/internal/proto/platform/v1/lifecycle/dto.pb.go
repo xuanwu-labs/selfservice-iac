@@ -42,8 +42,15 @@ type LifecycleRequest struct {
 	UpdatedAt         string                 `protobuf:"bytes,16,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	Version           int32                  `protobuf:"varint,17,opt,name=version,proto3" json:"version,omitempty"`
 	CorrelationId     string                 `protobuf:"bytes,18,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// requester_id: the identity that submitted the request. Required for
+	// "my requests" queries and approver-side attribution (docs/04 §2.4).
+	RequesterId string `protobuf:"bytes,19,opt,name=requester_id,json=requesterId,proto3" json:"requester_id,omitempty"`
+	// current_stage: human-readable pipeline stage within the current
+	// status (e.g. "codegen", "plan", "apply"). Coarse-grained UI hint;
+	// the authoritative state is `status` + `version` (docs/00 GetRequest).
+	CurrentStage  string `protobuf:"bytes,20,opt,name=current_stage,json=currentStage,proto3" json:"current_stage,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LifecycleRequest) Reset() {
@@ -198,6 +205,20 @@ func (x *LifecycleRequest) GetVersion() int32 {
 func (x *LifecycleRequest) GetCorrelationId() string {
 	if x != nil {
 		return x.CorrelationId
+	}
+	return ""
+}
+
+func (x *LifecycleRequest) GetRequesterId() string {
+	if x != nil {
+		return x.RequesterId
+	}
+	return ""
+}
+
+func (x *LifecycleRequest) GetCurrentStage() string {
+	if x != nil {
+		return x.CurrentStage
 	}
 	return ""
 }
@@ -531,11 +552,25 @@ func (x *GateResult) GetSeverity() common.GateSeverity {
 }
 
 type ApprovalRun struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	RunId         string                   `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	Status        common.ApprovalRunStatus `protobuf:"varint,2,opt,name=status,proto3,enum=aether.platform.v1.common.ApprovalRunStatus" json:"status,omitempty"`
-	DecidedBy     string                   `protobuf:"bytes,3,opt,name=decided_by,json=decidedBy,proto3" json:"decided_by,omitempty"`
-	DecidedAt     string                   `protobuf:"bytes,4,opt,name=decided_at,json=decidedAt,proto3" json:"decided_at,omitempty"`
+	state     protoimpl.MessageState   `protogen:"open.v1"`
+	RunId     string                   `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	Status    common.ApprovalRunStatus `protobuf:"varint,2,opt,name=status,proto3,enum=aether.platform.v1.common.ApprovalRunStatus" json:"status,omitempty"`
+	DecidedBy string                   `protobuf:"bytes,3,opt,name=decided_by,json=decidedBy,proto3" json:"decided_by,omitempty"`
+	DecidedAt string                   `protobuf:"bytes,4,opt,name=decided_at,json=decidedAt,proto3" json:"decided_at,omitempty"`
+	// request_id: the request this run belongs to. Approvers navigate
+	// from a run back to the request detail (docs/04 §2.10).
+	RequestId string `protobuf:"bytes,5,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	// gate: which of the two mandatory gates this run is for (D21).
+	// pre-plan = admission; pre-apply = execution confirmation.
+	Gate common.ApprovalGate `protobuf:"varint,6,opt,name=gate,proto3,enum=aether.platform.v1.common.ApprovalGate" json:"gate,omitempty"`
+	// current_node: the flow node currently awaiting decision
+	// (docs/12 §7 node-chain visualization).
+	CurrentNode string `protobuf:"bytes,7,opt,name=current_node,json=currentNode,proto3" json:"current_node,omitempty"`
+	StartedAt   string `protobuf:"bytes,8,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	FinishedAt  string `protobuf:"bytes,9,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	// expires_at: when the run (or its current node) times out and
+	// escalates / auto-rejects (docs/12 §2.3 on_timeout).
+	ExpiresAt     string `protobuf:"bytes,10,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -598,6 +633,205 @@ func (x *ApprovalRun) GetDecidedAt() string {
 	return ""
 }
 
+func (x *ApprovalRun) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *ApprovalRun) GetGate() common.ApprovalGate {
+	if x != nil {
+		return x.Gate
+	}
+	return common.ApprovalGate(0)
+}
+
+func (x *ApprovalRun) GetCurrentNode() string {
+	if x != nil {
+		return x.CurrentNode
+	}
+	return ""
+}
+
+func (x *ApprovalRun) GetStartedAt() string {
+	if x != nil {
+		return x.StartedAt
+	}
+	return ""
+}
+
+func (x *ApprovalRun) GetFinishedAt() string {
+	if x != nil {
+		return x.FinishedAt
+	}
+	return ""
+}
+
+func (x *ApprovalRun) GetExpiresAt() string {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return ""
+}
+
+// ApprovalNodeRun is the runtime state of one node within an approval
+// run (docs/04 §2.10 approval_node_runs). Drives the countersign
+// progress UI (decided_count / required_count).
+type ApprovalNodeRun struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	NodeId        string                    `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	Mode          common.ApprovalNodeMode   `protobuf:"varint,2,opt,name=mode,proto3,enum=aether.platform.v1.common.ApprovalNodeMode" json:"mode,omitempty"`
+	DecidedCount  int32                     `protobuf:"varint,3,opt,name=decided_count,json=decidedCount,proto3" json:"decided_count,omitempty"`
+	RequiredCount int32                     `protobuf:"varint,4,opt,name=required_count,json=requiredCount,proto3" json:"required_count,omitempty"`
+	Status        common.ApprovalNodeStatus `protobuf:"varint,5,opt,name=status,proto3,enum=aether.platform.v1.common.ApprovalNodeStatus" json:"status,omitempty"`
+	TimeoutAt     string                    `protobuf:"bytes,6,opt,name=timeout_at,json=timeoutAt,proto3" json:"timeout_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApprovalNodeRun) Reset() {
+	*x = ApprovalNodeRun{}
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApprovalNodeRun) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApprovalNodeRun) ProtoMessage() {}
+
+func (x *ApprovalNodeRun) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApprovalNodeRun.ProtoReflect.Descriptor instead.
+func (*ApprovalNodeRun) Descriptor() ([]byte, []int) {
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ApprovalNodeRun) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *ApprovalNodeRun) GetMode() common.ApprovalNodeMode {
+	if x != nil {
+		return x.Mode
+	}
+	return common.ApprovalNodeMode(0)
+}
+
+func (x *ApprovalNodeRun) GetDecidedCount() int32 {
+	if x != nil {
+		return x.DecidedCount
+	}
+	return 0
+}
+
+func (x *ApprovalNodeRun) GetRequiredCount() int32 {
+	if x != nil {
+		return x.RequiredCount
+	}
+	return 0
+}
+
+func (x *ApprovalNodeRun) GetStatus() common.ApprovalNodeStatus {
+	if x != nil {
+		return x.Status
+	}
+	return common.ApprovalNodeStatus(0)
+}
+
+func (x *ApprovalNodeRun) GetTimeoutAt() string {
+	if x != nil {
+		return x.TimeoutAt
+	}
+	return ""
+}
+
+// ApprovalDecisionRecord is one approver's decision on a node
+// (docs/04 §2.10 approval_decisions). The audit trail within a run.
+type ApprovalDecisionRecord struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	ApproverId    string                  `protobuf:"bytes,1,opt,name=approver_id,json=approverId,proto3" json:"approver_id,omitempty"`
+	Decision      common.ApprovalDecision `protobuf:"varint,2,opt,name=decision,proto3,enum=aether.platform.v1.common.ApprovalDecision" json:"decision,omitempty"`
+	Comment       string                  `protobuf:"bytes,3,opt,name=comment,proto3" json:"comment,omitempty"`
+	DecidedAt     string                  `protobuf:"bytes,4,opt,name=decided_at,json=decidedAt,proto3" json:"decided_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApprovalDecisionRecord) Reset() {
+	*x = ApprovalDecisionRecord{}
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApprovalDecisionRecord) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApprovalDecisionRecord) ProtoMessage() {}
+
+func (x *ApprovalDecisionRecord) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApprovalDecisionRecord.ProtoReflect.Descriptor instead.
+func (*ApprovalDecisionRecord) Descriptor() ([]byte, []int) {
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ApprovalDecisionRecord) GetApproverId() string {
+	if x != nil {
+		return x.ApproverId
+	}
+	return ""
+}
+
+func (x *ApprovalDecisionRecord) GetDecision() common.ApprovalDecision {
+	if x != nil {
+		return x.Decision
+	}
+	return common.ApprovalDecision(0)
+}
+
+func (x *ApprovalDecisionRecord) GetComment() string {
+	if x != nil {
+		return x.Comment
+	}
+	return ""
+}
+
+func (x *ApprovalDecisionRecord) GetDecidedAt() string {
+	if x != nil {
+		return x.DecidedAt
+	}
+	return ""
+}
+
 type CreateRequestRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	CatalogItemId string                 `protobuf:"bytes,1,opt,name=catalog_item_id,json=catalogItemId,proto3" json:"catalog_item_id,omitempty"`
@@ -614,7 +848,7 @@ type CreateRequestRequest struct {
 
 func (x *CreateRequestRequest) Reset() {
 	*x = CreateRequestRequest{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[6]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -626,7 +860,7 @@ func (x *CreateRequestRequest) String() string {
 func (*CreateRequestRequest) ProtoMessage() {}
 
 func (x *CreateRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[6]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -639,7 +873,7 @@ func (x *CreateRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRequestRequest.ProtoReflect.Descriptor instead.
 func (*CreateRequestRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{6}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CreateRequestRequest) GetCatalogItemId() string {
@@ -708,7 +942,7 @@ type CreateRequestResponse struct {
 
 func (x *CreateRequestResponse) Reset() {
 	*x = CreateRequestResponse{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[7]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -720,7 +954,7 @@ func (x *CreateRequestResponse) String() string {
 func (*CreateRequestResponse) ProtoMessage() {}
 
 func (x *CreateRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[7]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -733,7 +967,7 @@ func (x *CreateRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRequestResponse.ProtoReflect.Descriptor instead.
 func (*CreateRequestResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{7}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CreateRequestResponse) GetRequest() *LifecycleRequest {
@@ -759,7 +993,7 @@ type GetRequestRequest struct {
 
 func (x *GetRequestRequest) Reset() {
 	*x = GetRequestRequest{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[8]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -771,7 +1005,7 @@ func (x *GetRequestRequest) String() string {
 func (*GetRequestRequest) ProtoMessage() {}
 
 func (x *GetRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[8]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -784,7 +1018,7 @@ func (x *GetRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRequestRequest.ProtoReflect.Descriptor instead.
 func (*GetRequestRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{8}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetRequestRequest) GetRequestId() string {
@@ -804,7 +1038,7 @@ type GetRequestResponse struct {
 
 func (x *GetRequestResponse) Reset() {
 	*x = GetRequestResponse{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[9]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -816,7 +1050,7 @@ func (x *GetRequestResponse) String() string {
 func (*GetRequestResponse) ProtoMessage() {}
 
 func (x *GetRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[9]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -829,7 +1063,7 @@ func (x *GetRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRequestResponse.ProtoReflect.Descriptor instead.
 func (*GetRequestResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{9}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetRequestResponse) GetRequest() *LifecycleRequest {
@@ -857,7 +1091,7 @@ type ListRequestEventsRequest struct {
 
 func (x *ListRequestEventsRequest) Reset() {
 	*x = ListRequestEventsRequest{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[10]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -869,7 +1103,7 @@ func (x *ListRequestEventsRequest) String() string {
 func (*ListRequestEventsRequest) ProtoMessage() {}
 
 func (x *ListRequestEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[10]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -882,7 +1116,7 @@ func (x *ListRequestEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRequestEventsRequest.ProtoReflect.Descriptor instead.
 func (*ListRequestEventsRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{10}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListRequestEventsRequest) GetRequestId() string {
@@ -917,7 +1151,7 @@ type ListRequestEventsResponse struct {
 
 func (x *ListRequestEventsResponse) Reset() {
 	*x = ListRequestEventsResponse{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[11]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -929,7 +1163,7 @@ func (x *ListRequestEventsResponse) String() string {
 func (*ListRequestEventsResponse) ProtoMessage() {}
 
 func (x *ListRequestEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[11]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -942,7 +1176,7 @@ func (x *ListRequestEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRequestEventsResponse.ProtoReflect.Descriptor instead.
 func (*ListRequestEventsResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{11}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListRequestEventsResponse) GetEvents() []*LifecycleEvent {
@@ -977,7 +1211,7 @@ type CancelRequestRequest struct {
 
 func (x *CancelRequestRequest) Reset() {
 	*x = CancelRequestRequest{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[12]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -989,7 +1223,7 @@ func (x *CancelRequestRequest) String() string {
 func (*CancelRequestRequest) ProtoMessage() {}
 
 func (x *CancelRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[12]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1002,7 +1236,7 @@ func (x *CancelRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelRequestRequest.ProtoReflect.Descriptor instead.
 func (*CancelRequestRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{12}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *CancelRequestRequest) GetRequestId() string {
@@ -1036,7 +1270,7 @@ type CancelRequestResponse struct {
 
 func (x *CancelRequestResponse) Reset() {
 	*x = CancelRequestResponse{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[13]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1048,7 +1282,7 @@ func (x *CancelRequestResponse) String() string {
 func (*CancelRequestResponse) ProtoMessage() {}
 
 func (x *CancelRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[13]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1061,7 +1295,7 @@ func (x *CancelRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelRequestResponse.ProtoReflect.Descriptor instead.
 func (*CancelRequestResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{13}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *CancelRequestResponse) GetRequest() *LifecycleRequest {
@@ -1087,7 +1321,7 @@ type StartPlanRequest struct {
 
 func (x *StartPlanRequest) Reset() {
 	*x = StartPlanRequest{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[14]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1099,7 +1333,7 @@ func (x *StartPlanRequest) String() string {
 func (*StartPlanRequest) ProtoMessage() {}
 
 func (x *StartPlanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[14]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1112,7 +1346,7 @@ func (x *StartPlanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartPlanRequest.ProtoReflect.Descriptor instead.
 func (*StartPlanRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{14}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *StartPlanRequest) GetRequestId() string {
@@ -1132,7 +1366,7 @@ type StartPlanResponse struct {
 
 func (x *StartPlanResponse) Reset() {
 	*x = StartPlanResponse{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[15]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1144,7 +1378,7 @@ func (x *StartPlanResponse) String() string {
 func (*StartPlanResponse) ProtoMessage() {}
 
 func (x *StartPlanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[15]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1157,7 +1391,7 @@ func (x *StartPlanResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartPlanResponse.ProtoReflect.Descriptor instead.
 func (*StartPlanResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{15}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *StartPlanResponse) GetRequest() *LifecycleRequest {
@@ -1183,7 +1417,7 @@ type GetArtifactRequest struct {
 
 func (x *GetArtifactRequest) Reset() {
 	*x = GetArtifactRequest{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[16]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1195,7 +1429,7 @@ func (x *GetArtifactRequest) String() string {
 func (*GetArtifactRequest) ProtoMessage() {}
 
 func (x *GetArtifactRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[16]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1208,7 +1442,7 @@ func (x *GetArtifactRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetArtifactRequest.ProtoReflect.Descriptor instead.
 func (*GetArtifactRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{16}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetArtifactRequest) GetArtifactId() string {
@@ -1228,7 +1462,7 @@ type GetArtifactResponse struct {
 
 func (x *GetArtifactResponse) Reset() {
 	*x = GetArtifactResponse{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[17]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1240,7 +1474,7 @@ func (x *GetArtifactResponse) String() string {
 func (*GetArtifactResponse) ProtoMessage() {}
 
 func (x *GetArtifactResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[17]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1253,7 +1487,7 @@ func (x *GetArtifactResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetArtifactResponse.ProtoReflect.Descriptor instead.
 func (*GetArtifactResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{17}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetArtifactResponse) GetArtifact() *PlanArtifact {
@@ -1279,7 +1513,7 @@ type EvaluateGateRequest struct {
 
 func (x *EvaluateGateRequest) Reset() {
 	*x = EvaluateGateRequest{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[18]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1291,7 +1525,7 @@ func (x *EvaluateGateRequest) String() string {
 func (*EvaluateGateRequest) ProtoMessage() {}
 
 func (x *EvaluateGateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[18]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1304,7 +1538,7 @@ func (x *EvaluateGateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvaluateGateRequest.ProtoReflect.Descriptor instead.
 func (*EvaluateGateRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{18}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *EvaluateGateRequest) GetRequestId() string {
@@ -1326,7 +1560,7 @@ type EvaluateGateResponse struct {
 
 func (x *EvaluateGateResponse) Reset() {
 	*x = EvaluateGateResponse{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[19]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1338,7 +1572,7 @@ func (x *EvaluateGateResponse) String() string {
 func (*EvaluateGateResponse) ProtoMessage() {}
 
 func (x *EvaluateGateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[19]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1351,7 +1585,7 @@ func (x *EvaluateGateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvaluateGateResponse.ProtoReflect.Descriptor instead.
 func (*EvaluateGateResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{19}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *EvaluateGateResponse) GetRequestId() string {
@@ -1394,7 +1628,7 @@ type DecideApprovalRequest struct {
 
 func (x *DecideApprovalRequest) Reset() {
 	*x = DecideApprovalRequest{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[20]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1406,7 +1640,7 @@ func (x *DecideApprovalRequest) String() string {
 func (*DecideApprovalRequest) ProtoMessage() {}
 
 func (x *DecideApprovalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[20]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1419,7 +1653,7 @@ func (x *DecideApprovalRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecideApprovalRequest.ProtoReflect.Descriptor instead.
 func (*DecideApprovalRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{20}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *DecideApprovalRequest) GetRunId() string {
@@ -1460,7 +1694,7 @@ type DecideApprovalResponse struct {
 
 func (x *DecideApprovalResponse) Reset() {
 	*x = DecideApprovalResponse{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[21]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1472,7 +1706,7 @@ func (x *DecideApprovalResponse) String() string {
 func (*DecideApprovalResponse) ProtoMessage() {}
 
 func (x *DecideApprovalResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[21]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1485,7 +1719,7 @@ func (x *DecideApprovalResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecideApprovalResponse.ProtoReflect.Descriptor instead.
 func (*DecideApprovalResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{21}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *DecideApprovalResponse) GetRun() *ApprovalRun {
@@ -1511,7 +1745,7 @@ type StartApplyRequest struct {
 
 func (x *StartApplyRequest) Reset() {
 	*x = StartApplyRequest{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[22]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1523,7 +1757,7 @@ func (x *StartApplyRequest) String() string {
 func (*StartApplyRequest) ProtoMessage() {}
 
 func (x *StartApplyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[22]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1536,7 +1770,7 @@ func (x *StartApplyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartApplyRequest.ProtoReflect.Descriptor instead.
 func (*StartApplyRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{22}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *StartApplyRequest) GetRequestId() string {
@@ -1555,7 +1789,7 @@ type StartApplyResponse struct {
 
 func (x *StartApplyResponse) Reset() {
 	*x = StartApplyResponse{}
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[23]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1567,7 +1801,7 @@ func (x *StartApplyResponse) String() string {
 func (*StartApplyResponse) ProtoMessage() {}
 
 func (x *StartApplyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[23]
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1580,10 +1814,411 @@ func (x *StartApplyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartApplyResponse.ProtoReflect.Descriptor instead.
 func (*StartApplyResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{23}
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *StartApplyResponse) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+type ListRequestsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Filters. All optional; unset fields match everything.
+	RequesterId   string                 `protobuf:"bytes,1,opt,name=requester_id,json=requesterId,proto3" json:"requester_id,omitempty"`
+	TeamId        string                 `protobuf:"bytes,2,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"`
+	StatusFilter  []common.RequestStatus `protobuf:"varint,3,rep,packed,name=status_filter,json=statusFilter,proto3,enum=aether.platform.v1.common.RequestStatus" json:"status_filter,omitempty"`
+	CatalogItemId string                 `protobuf:"bytes,4,opt,name=catalog_item_id,json=catalogItemId,proto3" json:"catalog_item_id,omitempty"`
+	PageSize      int32                  `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,6,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListRequestsRequest) Reset() {
+	*x = ListRequestsRequest{}
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRequestsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRequestsRequest) ProtoMessage() {}
+
+func (x *ListRequestsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRequestsRequest.ProtoReflect.Descriptor instead.
+func (*ListRequestsRequest) Descriptor() ([]byte, []int) {
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *ListRequestsRequest) GetRequesterId() string {
+	if x != nil {
+		return x.RequesterId
+	}
+	return ""
+}
+
+func (x *ListRequestsRequest) GetTeamId() string {
+	if x != nil {
+		return x.TeamId
+	}
+	return ""
+}
+
+func (x *ListRequestsRequest) GetStatusFilter() []common.RequestStatus {
+	if x != nil {
+		return x.StatusFilter
+	}
+	return nil
+}
+
+func (x *ListRequestsRequest) GetCatalogItemId() string {
+	if x != nil {
+		return x.CatalogItemId
+	}
+	return ""
+}
+
+func (x *ListRequestsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListRequestsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListRequestsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Requests      []*LifecycleRequest    `protobuf:"bytes,1,rep,name=requests,proto3" json:"requests,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,3,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListRequestsResponse) Reset() {
+	*x = ListRequestsResponse{}
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRequestsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRequestsResponse) ProtoMessage() {}
+
+func (x *ListRequestsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRequestsResponse.ProtoReflect.Descriptor instead.
+func (*ListRequestsResponse) Descriptor() ([]byte, []int) {
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *ListRequestsResponse) GetRequests() []*LifecycleRequest {
+	if x != nil {
+		return x.Requests
+	}
+	return nil
+}
+
+func (x *ListRequestsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+func (x *ListRequestsResponse) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+type ListPendingApprovalsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// approver_id: the identity asking for their queue. The server
+	// resolves approver_id -> role_bindings to find runs whose current
+	// node is routed to one of the caller's (team, role) pairs
+	// (docs/12 §2.3 node binds role, not person).
+	ApproverId string `protobuf:"bytes,1,opt,name=approver_id,json=approverId,proto3" json:"approver_id,omitempty"`
+	// Optional narrowers.
+	GateFilter    common.ApprovalGate `protobuf:"varint,2,opt,name=gate_filter,json=gateFilter,proto3,enum=aether.platform.v1.common.ApprovalGate" json:"gate_filter,omitempty"`
+	TeamId        string              `protobuf:"bytes,3,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"`
+	PageSize      int32               `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string              `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPendingApprovalsRequest) Reset() {
+	*x = ListPendingApprovalsRequest{}
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPendingApprovalsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPendingApprovalsRequest) ProtoMessage() {}
+
+func (x *ListPendingApprovalsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPendingApprovalsRequest.ProtoReflect.Descriptor instead.
+func (*ListPendingApprovalsRequest) Descriptor() ([]byte, []int) {
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *ListPendingApprovalsRequest) GetApproverId() string {
+	if x != nil {
+		return x.ApproverId
+	}
+	return ""
+}
+
+func (x *ListPendingApprovalsRequest) GetGateFilter() common.ApprovalGate {
+	if x != nil {
+		return x.GateFilter
+	}
+	return common.ApprovalGate(0)
+}
+
+func (x *ListPendingApprovalsRequest) GetTeamId() string {
+	if x != nil {
+		return x.TeamId
+	}
+	return ""
+}
+
+func (x *ListPendingApprovalsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListPendingApprovalsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListPendingApprovalsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Runs          []*ApprovalRun         `protobuf:"bytes,1,rep,name=runs,proto3" json:"runs,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,3,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPendingApprovalsResponse) Reset() {
+	*x = ListPendingApprovalsResponse{}
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPendingApprovalsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPendingApprovalsResponse) ProtoMessage() {}
+
+func (x *ListPendingApprovalsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPendingApprovalsResponse.ProtoReflect.Descriptor instead.
+func (*ListPendingApprovalsResponse) Descriptor() ([]byte, []int) {
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *ListPendingApprovalsResponse) GetRuns() []*ApprovalRun {
+	if x != nil {
+		return x.Runs
+	}
+	return nil
+}
+
+func (x *ListPendingApprovalsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+func (x *ListPendingApprovalsResponse) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+type GetApprovalRunRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RunId         string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetApprovalRunRequest) Reset() {
+	*x = GetApprovalRunRequest{}
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetApprovalRunRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetApprovalRunRequest) ProtoMessage() {}
+
+func (x *GetApprovalRunRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetApprovalRunRequest.ProtoReflect.Descriptor instead.
+func (*GetApprovalRunRequest) Descriptor() ([]byte, []int) {
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *GetApprovalRunRequest) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
+type GetApprovalRunResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Run   *ApprovalRun           `protobuf:"bytes,1,opt,name=run,proto3" json:"run,omitempty"`
+	// nodes: the full node chain of the flow, with runtime progress
+	// (docs/12 §7 frontend node-chain rendering).
+	Nodes []*ApprovalNodeRun `protobuf:"bytes,2,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	// decisions: the audit trail of decisions recorded so far.
+	Decisions     []*ApprovalDecisionRecord `protobuf:"bytes,3,rep,name=decisions,proto3" json:"decisions,omitempty"`
+	CorrelationId string                    `protobuf:"bytes,4,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetApprovalRunResponse) Reset() {
+	*x = GetApprovalRunResponse{}
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetApprovalRunResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetApprovalRunResponse) ProtoMessage() {}
+
+func (x *GetApprovalRunResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetApprovalRunResponse.ProtoReflect.Descriptor instead.
+func (*GetApprovalRunResponse) Descriptor() ([]byte, []int) {
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *GetApprovalRunResponse) GetRun() *ApprovalRun {
+	if x != nil {
+		return x.Run
+	}
+	return nil
+}
+
+func (x *GetApprovalRunResponse) GetNodes() []*ApprovalNodeRun {
+	if x != nil {
+		return x.Nodes
+	}
+	return nil
+}
+
+func (x *GetApprovalRunResponse) GetDecisions() []*ApprovalDecisionRecord {
+	if x != nil {
+		return x.Decisions
+	}
+	return nil
+}
+
+func (x *GetApprovalRunResponse) GetCorrelationId() string {
 	if x != nil {
 		return x.CorrelationId
 	}
@@ -1594,7 +2229,7 @@ var File_platform_v1_lifecycle_dto_proto protoreflect.FileDescriptor
 
 const file_platform_v1_lifecycle_dto_proto_rawDesc = "" +
 	"\n" +
-	"\x1fplatform/v1/lifecycle/dto.proto\x12\x1caether.platform.v1.lifecycle\x1a\x1cplatform/v1/common/dto.proto\x1a\x1dplatform/v1/common/enum.proto\"\x98\x06\n" +
+	"\x1fplatform/v1/lifecycle/dto.proto\x12\x1caether.platform.v1.lifecycle\x1a\x1cplatform/v1/common/dto.proto\x1a\x1dplatform/v1/common/enum.proto\"\xe0\x06\n" +
 	"\x10LifecycleRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12@\n" +
 	"\x06status\x18\x02 \x01(\x0e2(.aether.platform.v1.common.RequestStatusR\x06status\x12&\n" +
@@ -1617,7 +2252,9 @@ const file_platform_v1_lifecycle_dto_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\x10 \x01(\tR\tupdatedAt\x12\x18\n" +
 	"\aversion\x18\x11 \x01(\x05R\aversion\x12%\n" +
-	"\x0ecorrelation_id\x18\x12 \x01(\tR\rcorrelationId\x1a=\n" +
+	"\x0ecorrelation_id\x18\x12 \x01(\tR\rcorrelationId\x12!\n" +
+	"\frequester_id\x18\x13 \x01(\tR\vrequesterId\x12#\n" +
+	"\rcurrent_stage\x18\x14 \x01(\tR\fcurrentStage\x1a=\n" +
 	"\x0fFormValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xde\x01\n" +
@@ -1655,12 +2292,38 @@ const file_platform_v1_lifecycle_dto_proto_rawDesc = "" +
 	"\x06passed\x18\x02 \x01(\bR\x06passed\x12\x16\n" +
 	"\x06policy\x18\x03 \x01(\tR\x06policy\x12\x18\n" +
 	"\amessage\x18\x04 \x01(\tR\amessage\x12C\n" +
-	"\bseverity\x18\x05 \x01(\x0e2'.aether.platform.v1.common.GateSeverityR\bseverity\"\xa8\x01\n" +
+	"\bseverity\x18\x05 \x01(\x0e2'.aether.platform.v1.common.GateSeverityR\bseverity\"\x86\x03\n" +
 	"\vApprovalRun\x12\x15\n" +
 	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12D\n" +
 	"\x06status\x18\x02 \x01(\x0e2,.aether.platform.v1.common.ApprovalRunStatusR\x06status\x12\x1d\n" +
 	"\n" +
 	"decided_by\x18\x03 \x01(\tR\tdecidedBy\x12\x1d\n" +
+	"\n" +
+	"decided_at\x18\x04 \x01(\tR\tdecidedAt\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x05 \x01(\tR\trequestId\x12;\n" +
+	"\x04gate\x18\x06 \x01(\x0e2'.aether.platform.v1.common.ApprovalGateR\x04gate\x12!\n" +
+	"\fcurrent_node\x18\a \x01(\tR\vcurrentNode\x12\x1d\n" +
+	"\n" +
+	"started_at\x18\b \x01(\tR\tstartedAt\x12\x1f\n" +
+	"\vfinished_at\x18\t \x01(\tR\n" +
+	"finishedAt\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\n" +
+	" \x01(\tR\texpiresAt\"\x9d\x02\n" +
+	"\x0fApprovalNodeRun\x12\x17\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12?\n" +
+	"\x04mode\x18\x02 \x01(\x0e2+.aether.platform.v1.common.ApprovalNodeModeR\x04mode\x12#\n" +
+	"\rdecided_count\x18\x03 \x01(\x05R\fdecidedCount\x12%\n" +
+	"\x0erequired_count\x18\x04 \x01(\x05R\rrequiredCount\x12E\n" +
+	"\x06status\x18\x05 \x01(\x0e2-.aether.platform.v1.common.ApprovalNodeStatusR\x06status\x12\x1d\n" +
+	"\n" +
+	"timeout_at\x18\x06 \x01(\tR\ttimeoutAt\"\xbb\x01\n" +
+	"\x16ApprovalDecisionRecord\x12\x1f\n" +
+	"\vapprover_id\x18\x01 \x01(\tR\n" +
+	"approverId\x12G\n" +
+	"\bdecision\x18\x02 \x01(\x0e2+.aether.platform.v1.common.ApprovalDecisionR\bdecision\x12\x18\n" +
+	"\acomment\x18\x03 \x01(\tR\acomment\x12\x1d\n" +
 	"\n" +
 	"decided_at\x18\x04 \x01(\tR\tdecidedAt\"\xbe\x04\n" +
 	"\x14CreateRequestRequest\x12&\n" +
@@ -1739,7 +2402,39 @@ const file_platform_v1_lifecycle_dto_proto_rawDesc = "" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\";\n" +
 	"\x12StartApplyResponse\x12%\n" +
-	"\x0ecorrelation_id\x18\x01 \x01(\tR\rcorrelationIdB`Z^github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/lifecycle;lifecyclev1b\x06proto3"
+	"\x0ecorrelation_id\x18\x01 \x01(\tR\rcorrelationId\"\x84\x02\n" +
+	"\x13ListRequestsRequest\x12!\n" +
+	"\frequester_id\x18\x01 \x01(\tR\vrequesterId\x12\x17\n" +
+	"\ateam_id\x18\x02 \x01(\tR\x06teamId\x12M\n" +
+	"\rstatus_filter\x18\x03 \x03(\x0e2(.aether.platform.v1.common.RequestStatusR\fstatusFilter\x12&\n" +
+	"\x0fcatalog_item_id\x18\x04 \x01(\tR\rcatalogItemId\x12\x1b\n" +
+	"\tpage_size\x18\x05 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x06 \x01(\tR\tpageToken\"\xb1\x01\n" +
+	"\x14ListRequestsResponse\x12J\n" +
+	"\brequests\x18\x01 \x03(\v2..aether.platform.v1.lifecycle.LifecycleRequestR\brequests\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12%\n" +
+	"\x0ecorrelation_id\x18\x03 \x01(\tR\rcorrelationId\"\xdd\x01\n" +
+	"\x1bListPendingApprovalsRequest\x12\x1f\n" +
+	"\vapprover_id\x18\x01 \x01(\tR\n" +
+	"approverId\x12H\n" +
+	"\vgate_filter\x18\x02 \x01(\x0e2'.aether.platform.v1.common.ApprovalGateR\n" +
+	"gateFilter\x12\x17\n" +
+	"\ateam_id\x18\x03 \x01(\tR\x06teamId\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\"\xac\x01\n" +
+	"\x1cListPendingApprovalsResponse\x12=\n" +
+	"\x04runs\x18\x01 \x03(\v2).aether.platform.v1.lifecycle.ApprovalRunR\x04runs\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12%\n" +
+	"\x0ecorrelation_id\x18\x03 \x01(\tR\rcorrelationId\".\n" +
+	"\x15GetApprovalRunRequest\x12\x15\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\"\x95\x02\n" +
+	"\x16GetApprovalRunResponse\x12;\n" +
+	"\x03run\x18\x01 \x01(\v2).aether.platform.v1.lifecycle.ApprovalRunR\x03run\x12C\n" +
+	"\x05nodes\x18\x02 \x03(\v2-.aether.platform.v1.lifecycle.ApprovalNodeRunR\x05nodes\x12R\n" +
+	"\tdecisions\x18\x03 \x03(\v24.aether.platform.v1.lifecycle.ApprovalDecisionRecordR\tdecisions\x12%\n" +
+	"\x0ecorrelation_id\x18\x04 \x01(\tR\rcorrelationIdB`Z^github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/lifecycle;lifecyclev1b\x06proto3"
 
 var (
 	file_platform_v1_lifecycle_dto_proto_rawDescOnce sync.Once
@@ -1753,69 +2448,91 @@ func file_platform_v1_lifecycle_dto_proto_rawDescGZIP() []byte {
 	return file_platform_v1_lifecycle_dto_proto_rawDescData
 }
 
-var file_platform_v1_lifecycle_dto_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
+var file_platform_v1_lifecycle_dto_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
 var file_platform_v1_lifecycle_dto_proto_goTypes = []any{
-	(*LifecycleRequest)(nil),          // 0: aether.platform.v1.lifecycle.LifecycleRequest
-	(*LifecycleEvent)(nil),            // 1: aether.platform.v1.lifecycle.LifecycleEvent
-	(*PlanArtifact)(nil),              // 2: aether.platform.v1.lifecycle.PlanArtifact
-	(*PlanSummary)(nil),               // 3: aether.platform.v1.lifecycle.PlanSummary
-	(*GateResult)(nil),                // 4: aether.platform.v1.lifecycle.GateResult
-	(*ApprovalRun)(nil),               // 5: aether.platform.v1.lifecycle.ApprovalRun
-	(*CreateRequestRequest)(nil),      // 6: aether.platform.v1.lifecycle.CreateRequestRequest
-	(*CreateRequestResponse)(nil),     // 7: aether.platform.v1.lifecycle.CreateRequestResponse
-	(*GetRequestRequest)(nil),         // 8: aether.platform.v1.lifecycle.GetRequestRequest
-	(*GetRequestResponse)(nil),        // 9: aether.platform.v1.lifecycle.GetRequestResponse
-	(*ListRequestEventsRequest)(nil),  // 10: aether.platform.v1.lifecycle.ListRequestEventsRequest
-	(*ListRequestEventsResponse)(nil), // 11: aether.platform.v1.lifecycle.ListRequestEventsResponse
-	(*CancelRequestRequest)(nil),      // 12: aether.platform.v1.lifecycle.CancelRequestRequest
-	(*CancelRequestResponse)(nil),     // 13: aether.platform.v1.lifecycle.CancelRequestResponse
-	(*StartPlanRequest)(nil),          // 14: aether.platform.v1.lifecycle.StartPlanRequest
-	(*StartPlanResponse)(nil),         // 15: aether.platform.v1.lifecycle.StartPlanResponse
-	(*GetArtifactRequest)(nil),        // 16: aether.platform.v1.lifecycle.GetArtifactRequest
-	(*GetArtifactResponse)(nil),       // 17: aether.platform.v1.lifecycle.GetArtifactResponse
-	(*EvaluateGateRequest)(nil),       // 18: aether.platform.v1.lifecycle.EvaluateGateRequest
-	(*EvaluateGateResponse)(nil),      // 19: aether.platform.v1.lifecycle.EvaluateGateResponse
-	(*DecideApprovalRequest)(nil),     // 20: aether.platform.v1.lifecycle.DecideApprovalRequest
-	(*DecideApprovalResponse)(nil),    // 21: aether.platform.v1.lifecycle.DecideApprovalResponse
-	(*StartApplyRequest)(nil),         // 22: aether.platform.v1.lifecycle.StartApplyRequest
-	(*StartApplyResponse)(nil),        // 23: aether.platform.v1.lifecycle.StartApplyResponse
-	nil,                               // 24: aether.platform.v1.lifecycle.LifecycleRequest.FormValuesEntry
-	nil,                               // 25: aether.platform.v1.lifecycle.CreateRequestRequest.FormValuesEntry
-	nil,                               // 26: aether.platform.v1.lifecycle.CreateRequestRequest.SourceContextEntry
-	(common.RequestStatus)(0),         // 27: aether.platform.v1.common.RequestStatus
-	(common.RequestSource)(0),         // 28: aether.platform.v1.common.RequestSource
-	(*common.Actor)(nil),              // 29: aether.platform.v1.common.Actor
-	(common.ArtifactStatus)(0),        // 30: aether.platform.v1.common.ArtifactStatus
-	(common.GateSeverity)(0),          // 31: aether.platform.v1.common.GateSeverity
-	(common.ApprovalRunStatus)(0),     // 32: aether.platform.v1.common.ApprovalRunStatus
-	(common.ApprovalDecision)(0),      // 33: aether.platform.v1.common.ApprovalDecision
+	(*LifecycleRequest)(nil),             // 0: aether.platform.v1.lifecycle.LifecycleRequest
+	(*LifecycleEvent)(nil),               // 1: aether.platform.v1.lifecycle.LifecycleEvent
+	(*PlanArtifact)(nil),                 // 2: aether.platform.v1.lifecycle.PlanArtifact
+	(*PlanSummary)(nil),                  // 3: aether.platform.v1.lifecycle.PlanSummary
+	(*GateResult)(nil),                   // 4: aether.platform.v1.lifecycle.GateResult
+	(*ApprovalRun)(nil),                  // 5: aether.platform.v1.lifecycle.ApprovalRun
+	(*ApprovalNodeRun)(nil),              // 6: aether.platform.v1.lifecycle.ApprovalNodeRun
+	(*ApprovalDecisionRecord)(nil),       // 7: aether.platform.v1.lifecycle.ApprovalDecisionRecord
+	(*CreateRequestRequest)(nil),         // 8: aether.platform.v1.lifecycle.CreateRequestRequest
+	(*CreateRequestResponse)(nil),        // 9: aether.platform.v1.lifecycle.CreateRequestResponse
+	(*GetRequestRequest)(nil),            // 10: aether.platform.v1.lifecycle.GetRequestRequest
+	(*GetRequestResponse)(nil),           // 11: aether.platform.v1.lifecycle.GetRequestResponse
+	(*ListRequestEventsRequest)(nil),     // 12: aether.platform.v1.lifecycle.ListRequestEventsRequest
+	(*ListRequestEventsResponse)(nil),    // 13: aether.platform.v1.lifecycle.ListRequestEventsResponse
+	(*CancelRequestRequest)(nil),         // 14: aether.platform.v1.lifecycle.CancelRequestRequest
+	(*CancelRequestResponse)(nil),        // 15: aether.platform.v1.lifecycle.CancelRequestResponse
+	(*StartPlanRequest)(nil),             // 16: aether.platform.v1.lifecycle.StartPlanRequest
+	(*StartPlanResponse)(nil),            // 17: aether.platform.v1.lifecycle.StartPlanResponse
+	(*GetArtifactRequest)(nil),           // 18: aether.platform.v1.lifecycle.GetArtifactRequest
+	(*GetArtifactResponse)(nil),          // 19: aether.platform.v1.lifecycle.GetArtifactResponse
+	(*EvaluateGateRequest)(nil),          // 20: aether.platform.v1.lifecycle.EvaluateGateRequest
+	(*EvaluateGateResponse)(nil),         // 21: aether.platform.v1.lifecycle.EvaluateGateResponse
+	(*DecideApprovalRequest)(nil),        // 22: aether.platform.v1.lifecycle.DecideApprovalRequest
+	(*DecideApprovalResponse)(nil),       // 23: aether.platform.v1.lifecycle.DecideApprovalResponse
+	(*StartApplyRequest)(nil),            // 24: aether.platform.v1.lifecycle.StartApplyRequest
+	(*StartApplyResponse)(nil),           // 25: aether.platform.v1.lifecycle.StartApplyResponse
+	(*ListRequestsRequest)(nil),          // 26: aether.platform.v1.lifecycle.ListRequestsRequest
+	(*ListRequestsResponse)(nil),         // 27: aether.platform.v1.lifecycle.ListRequestsResponse
+	(*ListPendingApprovalsRequest)(nil),  // 28: aether.platform.v1.lifecycle.ListPendingApprovalsRequest
+	(*ListPendingApprovalsResponse)(nil), // 29: aether.platform.v1.lifecycle.ListPendingApprovalsResponse
+	(*GetApprovalRunRequest)(nil),        // 30: aether.platform.v1.lifecycle.GetApprovalRunRequest
+	(*GetApprovalRunResponse)(nil),       // 31: aether.platform.v1.lifecycle.GetApprovalRunResponse
+	nil,                                  // 32: aether.platform.v1.lifecycle.LifecycleRequest.FormValuesEntry
+	nil,                                  // 33: aether.platform.v1.lifecycle.CreateRequestRequest.FormValuesEntry
+	nil,                                  // 34: aether.platform.v1.lifecycle.CreateRequestRequest.SourceContextEntry
+	(common.RequestStatus)(0),            // 35: aether.platform.v1.common.RequestStatus
+	(common.RequestSource)(0),            // 36: aether.platform.v1.common.RequestSource
+	(*common.Actor)(nil),                 // 37: aether.platform.v1.common.Actor
+	(common.ArtifactStatus)(0),           // 38: aether.platform.v1.common.ArtifactStatus
+	(common.GateSeverity)(0),             // 39: aether.platform.v1.common.GateSeverity
+	(common.ApprovalRunStatus)(0),        // 40: aether.platform.v1.common.ApprovalRunStatus
+	(common.ApprovalGate)(0),             // 41: aether.platform.v1.common.ApprovalGate
+	(common.ApprovalNodeMode)(0),         // 42: aether.platform.v1.common.ApprovalNodeMode
+	(common.ApprovalNodeStatus)(0),       // 43: aether.platform.v1.common.ApprovalNodeStatus
+	(common.ApprovalDecision)(0),         // 44: aether.platform.v1.common.ApprovalDecision
 }
 var file_platform_v1_lifecycle_dto_proto_depIdxs = []int32{
-	27, // 0: aether.platform.v1.lifecycle.LifecycleRequest.status:type_name -> aether.platform.v1.common.RequestStatus
-	24, // 1: aether.platform.v1.lifecycle.LifecycleRequest.form_values:type_name -> aether.platform.v1.lifecycle.LifecycleRequest.FormValuesEntry
-	28, // 2: aether.platform.v1.lifecycle.LifecycleRequest.source:type_name -> aether.platform.v1.common.RequestSource
-	29, // 3: aether.platform.v1.lifecycle.LifecycleEvent.actor:type_name -> aether.platform.v1.common.Actor
-	30, // 4: aether.platform.v1.lifecycle.PlanArtifact.status:type_name -> aether.platform.v1.common.ArtifactStatus
+	35, // 0: aether.platform.v1.lifecycle.LifecycleRequest.status:type_name -> aether.platform.v1.common.RequestStatus
+	32, // 1: aether.platform.v1.lifecycle.LifecycleRequest.form_values:type_name -> aether.platform.v1.lifecycle.LifecycleRequest.FormValuesEntry
+	36, // 2: aether.platform.v1.lifecycle.LifecycleRequest.source:type_name -> aether.platform.v1.common.RequestSource
+	37, // 3: aether.platform.v1.lifecycle.LifecycleEvent.actor:type_name -> aether.platform.v1.common.Actor
+	38, // 4: aether.platform.v1.lifecycle.PlanArtifact.status:type_name -> aether.platform.v1.common.ArtifactStatus
 	3,  // 5: aether.platform.v1.lifecycle.PlanArtifact.summary:type_name -> aether.platform.v1.lifecycle.PlanSummary
-	31, // 6: aether.platform.v1.lifecycle.GateResult.severity:type_name -> aether.platform.v1.common.GateSeverity
-	32, // 7: aether.platform.v1.lifecycle.ApprovalRun.status:type_name -> aether.platform.v1.common.ApprovalRunStatus
-	25, // 8: aether.platform.v1.lifecycle.CreateRequestRequest.form_values:type_name -> aether.platform.v1.lifecycle.CreateRequestRequest.FormValuesEntry
-	28, // 9: aether.platform.v1.lifecycle.CreateRequestRequest.source:type_name -> aether.platform.v1.common.RequestSource
-	26, // 10: aether.platform.v1.lifecycle.CreateRequestRequest.source_context:type_name -> aether.platform.v1.lifecycle.CreateRequestRequest.SourceContextEntry
-	0,  // 11: aether.platform.v1.lifecycle.CreateRequestResponse.request:type_name -> aether.platform.v1.lifecycle.LifecycleRequest
-	0,  // 12: aether.platform.v1.lifecycle.GetRequestResponse.request:type_name -> aether.platform.v1.lifecycle.LifecycleRequest
-	1,  // 13: aether.platform.v1.lifecycle.ListRequestEventsResponse.events:type_name -> aether.platform.v1.lifecycle.LifecycleEvent
-	0,  // 14: aether.platform.v1.lifecycle.CancelRequestResponse.request:type_name -> aether.platform.v1.lifecycle.LifecycleRequest
-	0,  // 15: aether.platform.v1.lifecycle.StartPlanResponse.request:type_name -> aether.platform.v1.lifecycle.LifecycleRequest
-	2,  // 16: aether.platform.v1.lifecycle.GetArtifactResponse.artifact:type_name -> aether.platform.v1.lifecycle.PlanArtifact
-	4,  // 17: aether.platform.v1.lifecycle.EvaluateGateResponse.gates:type_name -> aether.platform.v1.lifecycle.GateResult
-	33, // 18: aether.platform.v1.lifecycle.DecideApprovalRequest.decision:type_name -> aether.platform.v1.common.ApprovalDecision
-	5,  // 19: aether.platform.v1.lifecycle.DecideApprovalResponse.run:type_name -> aether.platform.v1.lifecycle.ApprovalRun
-	20, // [20:20] is the sub-list for method output_type
-	20, // [20:20] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	39, // 6: aether.platform.v1.lifecycle.GateResult.severity:type_name -> aether.platform.v1.common.GateSeverity
+	40, // 7: aether.platform.v1.lifecycle.ApprovalRun.status:type_name -> aether.platform.v1.common.ApprovalRunStatus
+	41, // 8: aether.platform.v1.lifecycle.ApprovalRun.gate:type_name -> aether.platform.v1.common.ApprovalGate
+	42, // 9: aether.platform.v1.lifecycle.ApprovalNodeRun.mode:type_name -> aether.platform.v1.common.ApprovalNodeMode
+	43, // 10: aether.platform.v1.lifecycle.ApprovalNodeRun.status:type_name -> aether.platform.v1.common.ApprovalNodeStatus
+	44, // 11: aether.platform.v1.lifecycle.ApprovalDecisionRecord.decision:type_name -> aether.platform.v1.common.ApprovalDecision
+	33, // 12: aether.platform.v1.lifecycle.CreateRequestRequest.form_values:type_name -> aether.platform.v1.lifecycle.CreateRequestRequest.FormValuesEntry
+	36, // 13: aether.platform.v1.lifecycle.CreateRequestRequest.source:type_name -> aether.platform.v1.common.RequestSource
+	34, // 14: aether.platform.v1.lifecycle.CreateRequestRequest.source_context:type_name -> aether.platform.v1.lifecycle.CreateRequestRequest.SourceContextEntry
+	0,  // 15: aether.platform.v1.lifecycle.CreateRequestResponse.request:type_name -> aether.platform.v1.lifecycle.LifecycleRequest
+	0,  // 16: aether.platform.v1.lifecycle.GetRequestResponse.request:type_name -> aether.platform.v1.lifecycle.LifecycleRequest
+	1,  // 17: aether.platform.v1.lifecycle.ListRequestEventsResponse.events:type_name -> aether.platform.v1.lifecycle.LifecycleEvent
+	0,  // 18: aether.platform.v1.lifecycle.CancelRequestResponse.request:type_name -> aether.platform.v1.lifecycle.LifecycleRequest
+	0,  // 19: aether.platform.v1.lifecycle.StartPlanResponse.request:type_name -> aether.platform.v1.lifecycle.LifecycleRequest
+	2,  // 20: aether.platform.v1.lifecycle.GetArtifactResponse.artifact:type_name -> aether.platform.v1.lifecycle.PlanArtifact
+	4,  // 21: aether.platform.v1.lifecycle.EvaluateGateResponse.gates:type_name -> aether.platform.v1.lifecycle.GateResult
+	44, // 22: aether.platform.v1.lifecycle.DecideApprovalRequest.decision:type_name -> aether.platform.v1.common.ApprovalDecision
+	5,  // 23: aether.platform.v1.lifecycle.DecideApprovalResponse.run:type_name -> aether.platform.v1.lifecycle.ApprovalRun
+	35, // 24: aether.platform.v1.lifecycle.ListRequestsRequest.status_filter:type_name -> aether.platform.v1.common.RequestStatus
+	0,  // 25: aether.platform.v1.lifecycle.ListRequestsResponse.requests:type_name -> aether.platform.v1.lifecycle.LifecycleRequest
+	41, // 26: aether.platform.v1.lifecycle.ListPendingApprovalsRequest.gate_filter:type_name -> aether.platform.v1.common.ApprovalGate
+	5,  // 27: aether.platform.v1.lifecycle.ListPendingApprovalsResponse.runs:type_name -> aether.platform.v1.lifecycle.ApprovalRun
+	5,  // 28: aether.platform.v1.lifecycle.GetApprovalRunResponse.run:type_name -> aether.platform.v1.lifecycle.ApprovalRun
+	6,  // 29: aether.platform.v1.lifecycle.GetApprovalRunResponse.nodes:type_name -> aether.platform.v1.lifecycle.ApprovalNodeRun
+	7,  // 30: aether.platform.v1.lifecycle.GetApprovalRunResponse.decisions:type_name -> aether.platform.v1.lifecycle.ApprovalDecisionRecord
+	31, // [31:31] is the sub-list for method output_type
+	31, // [31:31] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_platform_v1_lifecycle_dto_proto_init() }
@@ -1829,7 +2546,7 @@ func file_platform_v1_lifecycle_dto_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_lifecycle_dto_proto_rawDesc), len(file_platform_v1_lifecycle_dto_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   27,
+			NumMessages:   35,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

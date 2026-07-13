@@ -105,3 +105,32 @@ enum CloudAccountStatus {
   CLOUD_ACCOUNT_STATUS_ACTIVE = 1;
   CLOUD_ACCOUNT_STATUS_SUSPENDED = 2;
 }
+
+// ApprovalGate distinguishes the two mandatory review gates in the
+// request lifecycle (D21): admission (pre-plan) and execution
+// confirmation (pre-apply). See docs/12 §3.1.
+enum ApprovalGate {
+  APPROVAL_GATE_UNSPECIFIED = 0;
+  APPROVAL_GATE_PRE_PLAN = 1;
+  APPROVAL_GATE_PRE_APPLY = 2;
+}
+
+// ApprovalNodeMode is the countersign mode of an approval node, as
+// declared in the approval flow DSL (docs/12 §2.3).
+enum ApprovalNodeMode {
+  APPROVAL_NODE_MODE_UNSPECIFIED = 0;
+  APPROVAL_NODE_MODE_SINGLE = 1;
+  APPROVAL_NODE_MODE_COUNTERSIGN = 2;
+  APPROVAL_NODE_MODE_CONDITIONAL = 3;
+}
+
+// ApprovalNodeStatus is the runtime status of a single approval node
+// within a run (docs/04 §2.10 approval_node_runs.status).
+enum ApprovalNodeStatus {
+  APPROVAL_NODE_STATUS_UNSPECIFIED = 0;
+  APPROVAL_NODE_STATUS_PENDING = 1;
+  APPROVAL_NODE_STATUS_APPROVED = 2;
+  APPROVAL_NODE_STATUS_REJECTED = 3;
+  APPROVAL_NODE_STATUS_SKIPPED = 4;
+  APPROVAL_NODE_STATUS_TIMEOUT = 5;
+}

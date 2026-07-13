@@ -33,6 +33,13 @@ message LifecycleRequest {
   string updated_at = 16;
   int32 version = 17;
   string correlation_id = 18;
+  // requester_id: the identity that submitted the request. Required for
+  // "my requests" queries and approver-side attribution (docs/04 §2.4).
+  string requester_id = 19;
+  // current_stage: human-readable pipeline stage within the current
+  // status (e.g. "codegen", "plan", "apply"). Coarse-grained UI hint;
+  // the authoritative state is `status` + `version` (docs/00 GetRequest).
+  string current_stage = 20;
 }
 
 message LifecycleEvent {
@@ -74,6 +81,41 @@ message ApprovalRun {
   string run_id = 1;
   aether.platform.v1.common.ApprovalRunStatus status = 2;
   string decided_by = 3;
+  string decided_at = 4;
+  // request_id: the request this run belongs to. Approvers navigate
+  // from a run back to the request detail (docs/04 §2.10).
+  string request_id = 5;
+  // gate: which of the two mandatory gates this run is for (D21).
+  // pre-plan = admission; pre-apply = execution confirmation.
+  aether.platform.v1.common.ApprovalGate gate = 6;
+  // current_node: the flow node currently awaiting decision
+  // (docs/12 §7 node-chain visualization).
+  string current_node = 7;
+  string started_at = 8;
+  string finished_at = 9;
+  // expires_at: when the run (or its current node) times out and
+  // escalates / auto-rejects (docs/12 §2.3 on_timeout).
+  string expires_at = 10;
+}
+
+// ApprovalNodeRun is the runtime state of one node within an approval
+// run (docs/04 §2.10 approval_node_runs). Drives the countersign
+// progress UI (decided_count / required_count).
+message ApprovalNodeRun {
+  string node_id = 1;
+  aether.platform.v1.common.ApprovalNodeMode mode = 2;
+  int32 decided_count = 3;
+  int32 required_count = 4;
+  aether.platform.v1.common.ApprovalNodeStatus status = 5;
+  string timeout_at = 6;
+}
+
+// ApprovalDecisionRecord is one approver's decision on a node
+// (docs/04 §2.10 approval_decisions). The audit trail within a run.
+message ApprovalDecisionRecord {
+  string approver_id = 1;
+  aether.platform.v1.common.ApprovalDecision decision = 2;
+  string comment = 3;
   string decided_at = 4;
 }
 
@@ -190,4 +232,59 @@ message StartApplyRequest {
 
 message StartApplyResponse {
   string correlation_id = 1;
+}
+
+// --- RPC: ListRequests ---
+
+message ListRequestsRequest {
+  // Filters. All optional; unset fields match everything.
+  string requester_id = 1;
+  string team_id = 2;
+  repeated aether.platform.v1.common.RequestStatus status_filter = 3;
+  string catalog_item_id = 4;
+  int32 page_size = 5;
+  string page_token = 6;
+}
+
+message ListRequestsResponse {
+  repeated LifecycleRequest requests = 1;
+  string next_page_token = 2;
+  string correlation_id = 3;
+}
+
+// --- RPC: ListPendingApprovals ---
+
+message ListPendingApprovalsRequest {
+  // approver_id: the identity asking for their queue. The server
+  // resolves approver_id -> role_bindings to find runs whose current
+  // node is routed to one of the caller's (team, role) pairs
+  // (docs/12 §2.3 node binds role, not person).
+  string approver_id = 1;
+  // Optional narrowers.
+  aether.platform.v1.common.ApprovalGate gate_filter = 2;
+  string team_id = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+message ListPendingApprovalsResponse {
+  repeated ApprovalRun runs = 1;
+  string next_page_token = 2;
+  string correlation_id = 3;
+}
+
+// --- RPC: GetApprovalRun ---
+
+message GetApprovalRunRequest {
+  string run_id = 1;
+}
+
+message GetApprovalRunResponse {
+  ApprovalRun run = 1;
+  // nodes: the full node chain of the flow, with runtime progress
+  // (docs/12 §7 frontend node-chain rendering).
+  repeated ApprovalNodeRun nodes = 2;
+  // decisions: the audit trail of decisions recorded so far.
+  repeated ApprovalDecisionRecord decisions = 3;
+  string correlation_id = 4;
 }

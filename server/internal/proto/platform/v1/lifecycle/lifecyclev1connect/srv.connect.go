@@ -39,6 +39,9 @@ const (
 	// LifecycleServiceGetRequestProcedure is the fully-qualified name of the LifecycleService's
 	// GetRequest RPC.
 	LifecycleServiceGetRequestProcedure = "/aether.platform.v1.lifecycle.LifecycleService/GetRequest"
+	// LifecycleServiceListRequestsProcedure is the fully-qualified name of the LifecycleService's
+	// ListRequests RPC.
+	LifecycleServiceListRequestsProcedure = "/aether.platform.v1.lifecycle.LifecycleService/ListRequests"
 	// LifecycleServiceListRequestEventsProcedure is the fully-qualified name of the LifecycleService's
 	// ListRequestEvents RPC.
 	LifecycleServiceListRequestEventsProcedure = "/aether.platform.v1.lifecycle.LifecycleService/ListRequestEvents"
@@ -54,6 +57,12 @@ const (
 	// LifecycleServiceEvaluateGateProcedure is the fully-qualified name of the LifecycleService's
 	// EvaluateGate RPC.
 	LifecycleServiceEvaluateGateProcedure = "/aether.platform.v1.lifecycle.LifecycleService/EvaluateGate"
+	// LifecycleServiceListPendingApprovalsProcedure is the fully-qualified name of the
+	// LifecycleService's ListPendingApprovals RPC.
+	LifecycleServiceListPendingApprovalsProcedure = "/aether.platform.v1.lifecycle.LifecycleService/ListPendingApprovals"
+	// LifecycleServiceGetApprovalRunProcedure is the fully-qualified name of the LifecycleService's
+	// GetApprovalRun RPC.
+	LifecycleServiceGetApprovalRunProcedure = "/aether.platform.v1.lifecycle.LifecycleService/GetApprovalRun"
 	// LifecycleServiceDecideApprovalProcedure is the fully-qualified name of the LifecycleService's
 	// DecideApproval RPC.
 	LifecycleServiceDecideApprovalProcedure = "/aether.platform.v1.lifecycle.LifecycleService/DecideApproval"
@@ -67,6 +76,7 @@ type LifecycleServiceClient interface {
 	// --- Request CRUD ---
 	CreateRequest(context.Context, *connect.Request[lifecycle.CreateRequestRequest]) (*connect.Response[lifecycle.CreateRequestResponse], error)
 	GetRequest(context.Context, *connect.Request[lifecycle.GetRequestRequest]) (*connect.Response[lifecycle.GetRequestResponse], error)
+	ListRequests(context.Context, *connect.Request[lifecycle.ListRequestsRequest]) (*connect.Response[lifecycle.ListRequestsResponse], error)
 	ListRequestEvents(context.Context, *connect.Request[lifecycle.ListRequestEventsRequest]) (*connect.Response[lifecycle.ListRequestEventsResponse], error)
 	CancelRequest(context.Context, *connect.Request[lifecycle.CancelRequestRequest]) (*connect.Response[lifecycle.CancelRequestResponse], error)
 	// --- Plan + Artifact ---
@@ -75,6 +85,8 @@ type LifecycleServiceClient interface {
 	// --- Gate ---
 	EvaluateGate(context.Context, *connect.Request[lifecycle.EvaluateGateRequest]) (*connect.Response[lifecycle.EvaluateGateResponse], error)
 	// --- Approval ---
+	ListPendingApprovals(context.Context, *connect.Request[lifecycle.ListPendingApprovalsRequest]) (*connect.Response[lifecycle.ListPendingApprovalsResponse], error)
+	GetApprovalRun(context.Context, *connect.Request[lifecycle.GetApprovalRunRequest]) (*connect.Response[lifecycle.GetApprovalRunResponse], error)
 	DecideApproval(context.Context, *connect.Request[lifecycle.DecideApprovalRequest]) (*connect.Response[lifecycle.DecideApprovalResponse], error)
 	// --- Apply ---
 	StartApply(context.Context, *connect.Request[lifecycle.StartApplyRequest]) (*connect.Response[lifecycle.StartApplyResponse], error)
@@ -102,6 +114,12 @@ func NewLifecycleServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			httpClient,
 			baseURL+LifecycleServiceGetRequestProcedure,
 			connect.WithSchema(lifecycleServiceMethods.ByName("GetRequest")),
+			connect.WithClientOptions(opts...),
+		),
+		listRequests: connect.NewClient[lifecycle.ListRequestsRequest, lifecycle.ListRequestsResponse](
+			httpClient,
+			baseURL+LifecycleServiceListRequestsProcedure,
+			connect.WithSchema(lifecycleServiceMethods.ByName("ListRequests")),
 			connect.WithClientOptions(opts...),
 		),
 		listRequestEvents: connect.NewClient[lifecycle.ListRequestEventsRequest, lifecycle.ListRequestEventsResponse](
@@ -134,6 +152,18 @@ func NewLifecycleServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(lifecycleServiceMethods.ByName("EvaluateGate")),
 			connect.WithClientOptions(opts...),
 		),
+		listPendingApprovals: connect.NewClient[lifecycle.ListPendingApprovalsRequest, lifecycle.ListPendingApprovalsResponse](
+			httpClient,
+			baseURL+LifecycleServiceListPendingApprovalsProcedure,
+			connect.WithSchema(lifecycleServiceMethods.ByName("ListPendingApprovals")),
+			connect.WithClientOptions(opts...),
+		),
+		getApprovalRun: connect.NewClient[lifecycle.GetApprovalRunRequest, lifecycle.GetApprovalRunResponse](
+			httpClient,
+			baseURL+LifecycleServiceGetApprovalRunProcedure,
+			connect.WithSchema(lifecycleServiceMethods.ByName("GetApprovalRun")),
+			connect.WithClientOptions(opts...),
+		),
 		decideApproval: connect.NewClient[lifecycle.DecideApprovalRequest, lifecycle.DecideApprovalResponse](
 			httpClient,
 			baseURL+LifecycleServiceDecideApprovalProcedure,
@@ -151,15 +181,18 @@ func NewLifecycleServiceClient(httpClient connect.HTTPClient, baseURL string, op
 
 // lifecycleServiceClient implements LifecycleServiceClient.
 type lifecycleServiceClient struct {
-	createRequest     *connect.Client[lifecycle.CreateRequestRequest, lifecycle.CreateRequestResponse]
-	getRequest        *connect.Client[lifecycle.GetRequestRequest, lifecycle.GetRequestResponse]
-	listRequestEvents *connect.Client[lifecycle.ListRequestEventsRequest, lifecycle.ListRequestEventsResponse]
-	cancelRequest     *connect.Client[lifecycle.CancelRequestRequest, lifecycle.CancelRequestResponse]
-	startPlan         *connect.Client[lifecycle.StartPlanRequest, lifecycle.StartPlanResponse]
-	getArtifact       *connect.Client[lifecycle.GetArtifactRequest, lifecycle.GetArtifactResponse]
-	evaluateGate      *connect.Client[lifecycle.EvaluateGateRequest, lifecycle.EvaluateGateResponse]
-	decideApproval    *connect.Client[lifecycle.DecideApprovalRequest, lifecycle.DecideApprovalResponse]
-	startApply        *connect.Client[lifecycle.StartApplyRequest, lifecycle.StartApplyResponse]
+	createRequest        *connect.Client[lifecycle.CreateRequestRequest, lifecycle.CreateRequestResponse]
+	getRequest           *connect.Client[lifecycle.GetRequestRequest, lifecycle.GetRequestResponse]
+	listRequests         *connect.Client[lifecycle.ListRequestsRequest, lifecycle.ListRequestsResponse]
+	listRequestEvents    *connect.Client[lifecycle.ListRequestEventsRequest, lifecycle.ListRequestEventsResponse]
+	cancelRequest        *connect.Client[lifecycle.CancelRequestRequest, lifecycle.CancelRequestResponse]
+	startPlan            *connect.Client[lifecycle.StartPlanRequest, lifecycle.StartPlanResponse]
+	getArtifact          *connect.Client[lifecycle.GetArtifactRequest, lifecycle.GetArtifactResponse]
+	evaluateGate         *connect.Client[lifecycle.EvaluateGateRequest, lifecycle.EvaluateGateResponse]
+	listPendingApprovals *connect.Client[lifecycle.ListPendingApprovalsRequest, lifecycle.ListPendingApprovalsResponse]
+	getApprovalRun       *connect.Client[lifecycle.GetApprovalRunRequest, lifecycle.GetApprovalRunResponse]
+	decideApproval       *connect.Client[lifecycle.DecideApprovalRequest, lifecycle.DecideApprovalResponse]
+	startApply           *connect.Client[lifecycle.StartApplyRequest, lifecycle.StartApplyResponse]
 }
 
 // CreateRequest calls aether.platform.v1.lifecycle.LifecycleService.CreateRequest.
@@ -170,6 +203,11 @@ func (c *lifecycleServiceClient) CreateRequest(ctx context.Context, req *connect
 // GetRequest calls aether.platform.v1.lifecycle.LifecycleService.GetRequest.
 func (c *lifecycleServiceClient) GetRequest(ctx context.Context, req *connect.Request[lifecycle.GetRequestRequest]) (*connect.Response[lifecycle.GetRequestResponse], error) {
 	return c.getRequest.CallUnary(ctx, req)
+}
+
+// ListRequests calls aether.platform.v1.lifecycle.LifecycleService.ListRequests.
+func (c *lifecycleServiceClient) ListRequests(ctx context.Context, req *connect.Request[lifecycle.ListRequestsRequest]) (*connect.Response[lifecycle.ListRequestsResponse], error) {
+	return c.listRequests.CallUnary(ctx, req)
 }
 
 // ListRequestEvents calls aether.platform.v1.lifecycle.LifecycleService.ListRequestEvents.
@@ -197,6 +235,16 @@ func (c *lifecycleServiceClient) EvaluateGate(ctx context.Context, req *connect.
 	return c.evaluateGate.CallUnary(ctx, req)
 }
 
+// ListPendingApprovals calls aether.platform.v1.lifecycle.LifecycleService.ListPendingApprovals.
+func (c *lifecycleServiceClient) ListPendingApprovals(ctx context.Context, req *connect.Request[lifecycle.ListPendingApprovalsRequest]) (*connect.Response[lifecycle.ListPendingApprovalsResponse], error) {
+	return c.listPendingApprovals.CallUnary(ctx, req)
+}
+
+// GetApprovalRun calls aether.platform.v1.lifecycle.LifecycleService.GetApprovalRun.
+func (c *lifecycleServiceClient) GetApprovalRun(ctx context.Context, req *connect.Request[lifecycle.GetApprovalRunRequest]) (*connect.Response[lifecycle.GetApprovalRunResponse], error) {
+	return c.getApprovalRun.CallUnary(ctx, req)
+}
+
 // DecideApproval calls aether.platform.v1.lifecycle.LifecycleService.DecideApproval.
 func (c *lifecycleServiceClient) DecideApproval(ctx context.Context, req *connect.Request[lifecycle.DecideApprovalRequest]) (*connect.Response[lifecycle.DecideApprovalResponse], error) {
 	return c.decideApproval.CallUnary(ctx, req)
@@ -213,6 +261,7 @@ type LifecycleServiceHandler interface {
 	// --- Request CRUD ---
 	CreateRequest(context.Context, *connect.Request[lifecycle.CreateRequestRequest]) (*connect.Response[lifecycle.CreateRequestResponse], error)
 	GetRequest(context.Context, *connect.Request[lifecycle.GetRequestRequest]) (*connect.Response[lifecycle.GetRequestResponse], error)
+	ListRequests(context.Context, *connect.Request[lifecycle.ListRequestsRequest]) (*connect.Response[lifecycle.ListRequestsResponse], error)
 	ListRequestEvents(context.Context, *connect.Request[lifecycle.ListRequestEventsRequest]) (*connect.Response[lifecycle.ListRequestEventsResponse], error)
 	CancelRequest(context.Context, *connect.Request[lifecycle.CancelRequestRequest]) (*connect.Response[lifecycle.CancelRequestResponse], error)
 	// --- Plan + Artifact ---
@@ -221,6 +270,8 @@ type LifecycleServiceHandler interface {
 	// --- Gate ---
 	EvaluateGate(context.Context, *connect.Request[lifecycle.EvaluateGateRequest]) (*connect.Response[lifecycle.EvaluateGateResponse], error)
 	// --- Approval ---
+	ListPendingApprovals(context.Context, *connect.Request[lifecycle.ListPendingApprovalsRequest]) (*connect.Response[lifecycle.ListPendingApprovalsResponse], error)
+	GetApprovalRun(context.Context, *connect.Request[lifecycle.GetApprovalRunRequest]) (*connect.Response[lifecycle.GetApprovalRunResponse], error)
 	DecideApproval(context.Context, *connect.Request[lifecycle.DecideApprovalRequest]) (*connect.Response[lifecycle.DecideApprovalResponse], error)
 	// --- Apply ---
 	StartApply(context.Context, *connect.Request[lifecycle.StartApplyRequest]) (*connect.Response[lifecycle.StartApplyResponse], error)
@@ -243,6 +294,12 @@ func NewLifecycleServiceHandler(svc LifecycleServiceHandler, opts ...connect.Han
 		LifecycleServiceGetRequestProcedure,
 		svc.GetRequest,
 		connect.WithSchema(lifecycleServiceMethods.ByName("GetRequest")),
+		connect.WithHandlerOptions(opts...),
+	)
+	lifecycleServiceListRequestsHandler := connect.NewUnaryHandler(
+		LifecycleServiceListRequestsProcedure,
+		svc.ListRequests,
+		connect.WithSchema(lifecycleServiceMethods.ByName("ListRequests")),
 		connect.WithHandlerOptions(opts...),
 	)
 	lifecycleServiceListRequestEventsHandler := connect.NewUnaryHandler(
@@ -275,6 +332,18 @@ func NewLifecycleServiceHandler(svc LifecycleServiceHandler, opts ...connect.Han
 		connect.WithSchema(lifecycleServiceMethods.ByName("EvaluateGate")),
 		connect.WithHandlerOptions(opts...),
 	)
+	lifecycleServiceListPendingApprovalsHandler := connect.NewUnaryHandler(
+		LifecycleServiceListPendingApprovalsProcedure,
+		svc.ListPendingApprovals,
+		connect.WithSchema(lifecycleServiceMethods.ByName("ListPendingApprovals")),
+		connect.WithHandlerOptions(opts...),
+	)
+	lifecycleServiceGetApprovalRunHandler := connect.NewUnaryHandler(
+		LifecycleServiceGetApprovalRunProcedure,
+		svc.GetApprovalRun,
+		connect.WithSchema(lifecycleServiceMethods.ByName("GetApprovalRun")),
+		connect.WithHandlerOptions(opts...),
+	)
 	lifecycleServiceDecideApprovalHandler := connect.NewUnaryHandler(
 		LifecycleServiceDecideApprovalProcedure,
 		svc.DecideApproval,
@@ -293,6 +362,8 @@ func NewLifecycleServiceHandler(svc LifecycleServiceHandler, opts ...connect.Han
 			lifecycleServiceCreateRequestHandler.ServeHTTP(w, r)
 		case LifecycleServiceGetRequestProcedure:
 			lifecycleServiceGetRequestHandler.ServeHTTP(w, r)
+		case LifecycleServiceListRequestsProcedure:
+			lifecycleServiceListRequestsHandler.ServeHTTP(w, r)
 		case LifecycleServiceListRequestEventsProcedure:
 			lifecycleServiceListRequestEventsHandler.ServeHTTP(w, r)
 		case LifecycleServiceCancelRequestProcedure:
@@ -303,6 +374,10 @@ func NewLifecycleServiceHandler(svc LifecycleServiceHandler, opts ...connect.Han
 			lifecycleServiceGetArtifactHandler.ServeHTTP(w, r)
 		case LifecycleServiceEvaluateGateProcedure:
 			lifecycleServiceEvaluateGateHandler.ServeHTTP(w, r)
+		case LifecycleServiceListPendingApprovalsProcedure:
+			lifecycleServiceListPendingApprovalsHandler.ServeHTTP(w, r)
+		case LifecycleServiceGetApprovalRunProcedure:
+			lifecycleServiceGetApprovalRunHandler.ServeHTTP(w, r)
 		case LifecycleServiceDecideApprovalProcedure:
 			lifecycleServiceDecideApprovalHandler.ServeHTTP(w, r)
 		case LifecycleServiceStartApplyProcedure:
@@ -324,6 +399,10 @@ func (UnimplementedLifecycleServiceHandler) GetRequest(context.Context, *connect
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.lifecycle.LifecycleService.GetRequest is not implemented"))
 }
 
+func (UnimplementedLifecycleServiceHandler) ListRequests(context.Context, *connect.Request[lifecycle.ListRequestsRequest]) (*connect.Response[lifecycle.ListRequestsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.lifecycle.LifecycleService.ListRequests is not implemented"))
+}
+
 func (UnimplementedLifecycleServiceHandler) ListRequestEvents(context.Context, *connect.Request[lifecycle.ListRequestEventsRequest]) (*connect.Response[lifecycle.ListRequestEventsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.lifecycle.LifecycleService.ListRequestEvents is not implemented"))
 }
@@ -342,6 +421,14 @@ func (UnimplementedLifecycleServiceHandler) GetArtifact(context.Context, *connec
 
 func (UnimplementedLifecycleServiceHandler) EvaluateGate(context.Context, *connect.Request[lifecycle.EvaluateGateRequest]) (*connect.Response[lifecycle.EvaluateGateResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.lifecycle.LifecycleService.EvaluateGate is not implemented"))
+}
+
+func (UnimplementedLifecycleServiceHandler) ListPendingApprovals(context.Context, *connect.Request[lifecycle.ListPendingApprovalsRequest]) (*connect.Response[lifecycle.ListPendingApprovalsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.lifecycle.LifecycleService.ListPendingApprovals is not implemented"))
+}
+
+func (UnimplementedLifecycleServiceHandler) GetApprovalRun(context.Context, *connect.Request[lifecycle.GetApprovalRunRequest]) (*connect.Response[lifecycle.GetApprovalRunResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("aether.platform.v1.lifecycle.LifecycleService.GetApprovalRun is not implemented"))
 }
 
 func (UnimplementedLifecycleServiceHandler) DecideApproval(context.Context, *connect.Request[lifecycle.DecideApprovalRequest]) (*connect.Response[lifecycle.DecideApprovalResponse], error) {

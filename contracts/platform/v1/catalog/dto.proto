@@ -2,13 +2,21 @@ syntax = "proto3";
 
 package aether.platform.v1.catalog;
 
-import "platform/v1/common/dto.proto";
 import "platform/v1/common/enum.proto";
+import "platform/v1/registry/dto.proto";
 
 option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/catalog;catalogv1";
 
 // ============================================================
-// Catalog messages — domain objects + RPC request/response.
+// Catalog messages — service-catalog domain objects + RPC
+// request/response.
+//
+// This domain owns user-facing catalog items published from a
+// registered module version (registry domain). A CatalogItem pins a
+// ModuleVersion and exposes a form schema so users can request it.
+// ModuleDependencyInfo / AvailableStack are the resolved,
+// consumer-side views of the provider-declared dependencies (the
+// provider-side contract lives in registry/ModuleDependency).
 // ============================================================
 
 // --- Domain Objects ---
@@ -19,41 +27,13 @@ message CatalogItem {
   string description = 3;
   string category = 4;
   aether.platform.v1.common.CatalogItemStatus status = 5;
-  ModuleVersion module_version = 6;
+  aether.platform.v1.registry.ModuleVersion module_version = 6;
   string form_schema_json = 7;
   map<string, string> default_tags = 8;
 }
 
-message ModuleVersion {
-  string version = 1;
-  string commit_sha = 2;
-  repeated string providers = 3;
-  string variables_contract_json = 4;
-  repeated ModuleDependency dependencies = 5;
-  string registered_at = 6;
-}
-
-message ModuleDependency {
-  string variable_name = 1;
-  string description = 2;
-  string depends_on_layer = 3;
-  string depends_on_module = 4;
-  string output_key = 5;
-  bool required = 6;
-}
-
-message Module {
-  string id = 1;
-  string name = 2;
-  string description = 3;
-  string git_source = 4;
-  string provider = 5;
-  aether.platform.v1.common.ModuleStatus status = 6;
-  repeated ModuleVersion versions = 7;
-  string created_at = 8;
-  string updated_at = 9;
-}
-
+// ModuleDependencyInfo is the consumer-side view of a module's
+// declared dependency, enriched with the stacks that can satisfy it.
 message ModuleDependencyInfo {
   string variable_name = 1;
   string description = 2;
@@ -116,50 +96,6 @@ message ListAvailableStacksRequest {
 
 message ListAvailableStacksResponse {
   repeated AvailableStack stacks = 1;
-}
-
-// --- RPC: RegistryAdminService (Admin) ---
-
-message RegisterModuleRequest {
-  string git_source = 1;
-  string module_path = 2;
-  string version = 3;
-  string provider = 4;
-  string name = 5;
-  string description = 6;
-}
-
-message RegisterModuleResponse {
-  Module module = 1;
-}
-
-message ListModulesRequest {
-  aether.platform.v1.common.PageRequest pagination = 1;
-  string provider_filter = 2;
-  aether.platform.v1.common.ModuleStatus status_filter = 3;
-}
-
-message ListModulesResponse {
-  repeated Module modules = 1;
-  aether.platform.v1.common.PageResponse pagination = 2;
-}
-
-message GetModuleRequest {
-  string module_id = 1;
-}
-
-message GetModuleResponse {
-  Module module = 1;
-}
-
-message DeprecateModuleRequest {
-  string module_id = 1;
-  string version = 2;
-  string reason = 3;
-}
-
-message DeprecateModuleResponse {
-  Module module = 1;
 }
 
 // --- RPC: CatalogAdminService (Admin) ---

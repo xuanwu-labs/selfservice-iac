@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package aether.platform.v1.registry;
+
+import "platform/v1/registry/dto.proto";
+
+option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/registry;registryv1";
+
+// ============================================================
+// RegistryAdminService — Admin: Terraform module registry.
+// Operator-facing operations for registering, versioning, and
+// deprecating atomic Terraform modules. Distinct from the service
+// catalog (catalog domain): the registry ingests raw modules; the
+// catalog publishes user-facing items derived from them.
+// ============================================================
+service RegistryAdminService {
+  rpc RegisterModule(RegisterModuleRequest) returns (RegisterModuleResponse) {}
+  rpc ListModules(ListModulesRequest) returns (ListModulesResponse) {}
+  rpc GetModule(GetModuleRequest) returns (GetModuleResponse) {}
+  rpc DeprecateModule(DeprecateModuleRequest) returns (DeprecateModuleResponse) {}
+}

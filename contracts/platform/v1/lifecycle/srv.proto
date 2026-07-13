@@ -15,6 +15,7 @@ service LifecycleService {
   // --- Request CRUD ---
   rpc CreateRequest(CreateRequestRequest) returns (CreateRequestResponse) {}
   rpc GetRequest(GetRequestRequest) returns (GetRequestResponse) {}
+  rpc ListRequests(ListRequestsRequest) returns (ListRequestsResponse) {}
   rpc ListRequestEvents(ListRequestEventsRequest) returns (ListRequestEventsResponse) {}
   rpc CancelRequest(CancelRequestRequest) returns (CancelRequestResponse) {}
   // --- Plan + Artifact ---
@@ -23,6 +24,8 @@ service LifecycleService {
   // --- Gate ---
   rpc EvaluateGate(EvaluateGateRequest) returns (EvaluateGateResponse) {}
   // --- Approval ---
+  rpc ListPendingApprovals(ListPendingApprovalsRequest) returns (ListPendingApprovalsResponse) {}
+  rpc GetApprovalRun(GetApprovalRunRequest) returns (GetApprovalRunResponse) {}
   rpc DecideApproval(DecideApprovalRequest) returns (DecideApprovalResponse) {}
   // --- Apply ---
   rpc StartApply(StartApplyRequest) returns (StartApplyResponse) {}
