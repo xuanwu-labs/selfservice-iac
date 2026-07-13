@@ -285,6 +285,11 @@ requests(
   --          ix_requests_plan_artifact_id, ix_requests_layer_rule_set_version_id
   -- 唯一: uq_requests_idempotency_key ON (idempotency_key)
   -- 注：doc 12 列 20 值含 reconcile-pending（已在主路径）+ blocked-state-health/paused-drift/blocked-policy（异常）
+  -- MVP 边界（悬挂字符串，Wave 落表后加 FK）：
+  --   requester_id TEXT —— identities 表属 B4（非 MVP Wave 2-3），MVP 是外部 SSO subject 字符串，鉴权在网关层。
+  --     同理影响 request_events.actor_id / approval_decisions.approver_id / audit_logs.actor_id。
+  --   env_id/tenant_id TEXT —— environments/tenants 属 B11（非 MVP Wave 6），Phase 1 tenant 恒为 'platform-default'（doc 07）。
+  --   这些列 MVP 不加 FK（无目标表），Wave 落对应表后回加 FK。详见 audit-link-completeness.md L-边界-1/2。
 request_events(id, request_id FK→requests, event_type TEXT CHECK(event_type IN
                ('state_transition','log','error','approval','hook')),
                stage, from_status, to_status, actor_id, actor_type TEXT CHECK(actor_type IN
@@ -318,6 +323,9 @@ approval_runs(id, request_id FK→requests, flow_id FK→approval_flows,
   current_node, status TEXT CHECK(status IN ('pending','approved','rejected','timeout','cancelled')),
   decided_by, decided_at, started_at, finished_at, expires_at)
   -- FK 索引: ix_approval_runs_request_id, ix_approval_runs_flow_id
+  -- 唯一: uq_approval_runs_(request_id, gate)_active WHERE status='pending'
+  --   doc 12 §3：一个 request 每个 gate 至多一个 pending run（防并发双 pre-apply race）；
+  --   partial（只约束 pending）允许历史 completed run 共存
 approval_node_runs(id, run_id FK→approval_runs, node_id,
   mode TEXT CHECK(mode IN ('any','all','majority','count>=N')),  -- doc 12 §2.3 权威
   decided_count INT, required_count INT, status TEXT CHECK(status IN
@@ -422,9 +430,10 @@ drift_runs(id, stack_id FK→stacks, started_at, finished_at, exit_code INT,
 drift_records(id, stack_id FK→stacks, drift_run_id FK→drift_runs,
   status TEXT CHECK(status IN ('open','adopted','reverted')),
   detected_at, resolved_at, resolver_id,
-  resolution TEXT CHECK(resolution IN ('adopt-cloud','restore-desired','mark-failed-terminal')))
+  resolution TEXT CHECK(resolution IN ('adopt-cloud','restore-desired','mark-failed-terminal')),
+  remediation_request_id FK→requests nullable)   -- doc 13 §5.1：漂移修复创建的 request（kind=drift-remediation），闭合追溯链
   -- doc 21 RB-001 第三路径 mark-failed-terminal
-  -- FK 索引: ix_drift_records_stack_id, ix_drift_records_drift_run_id
+  -- FK 索引: ix_drift_records_stack_id, ix_drift_records_drift_run_id, ix_drift_records_remediation_request_id
   -- 索引: ix_drift_records_(stack_id, status, detected_at)（连续漂移计数，doc 15 §3.1 3 次暂停判据）
 ```
 
@@ -550,7 +559,7 @@ layer_migrations(id, from_version_id FK→layer_rule_set_versions, to_version_id
   old_path, new_path, state_mv_script_path, backup_token,
   status TEXT CHECK(status IN ('planned','running','succeeded','rolled_back','failed')),
   operator, approved_by, silence_until, created_at, completed_at)
-  -- FK 索引: ix_layer_migrations_stack_id, ix_layer_migrations_from_version_id
+  -- FK 索引: ix_layer_migrations_stack_id, ix_layer_migrations_from_version_id, ix_layer_migrations_to_version_id
 ```
 
 #### B9. CMDB 与 FinOps（Wave 4 实现，docs/04 §2.11 + docs/14）
@@ -662,9 +671,10 @@ import_jobs(id, request_id FK→requests nullable, module_version_id FK→module
     'managed-changeable','standard','failed')),   -- doc 15 §1 七态
   status TEXT CHECK(status IN ('pending','running','waiting-review','succeeded','failed','cancelled')),
   review_required BOOL,
+  created_stack_id FK→stacks nullable,   -- doc 15 §6 step 4：import 创建的 stack（nullable 直到 step 4 完成）
   exemption_expires_at nullable, exemption_reason nullable, exemption_review_cycle nullable,  -- doc 15 §3.1
   created_at, updated_at)
-  -- FK 索引: ix_import_jobs_request_id, ix_import_jobs_module_version_id, ix_import_jobs_catalog_item_id
+  -- FK 索引: ix_import_jobs_request_id, ix_import_jobs_module_version_id, ix_import_jobs_catalog_item_id, ix_import_jobs_created_stack_id
 import_resources(id, import_job_id FK→import_jobs, cloud_id, tf_address,
   import_status TEXT CHECK(import_status IN ('pending','imported','limited','sensitive','failed')),
   limited BOOL, sensitive_fields_json, last_plan_summary_json, created_at)
@@ -738,6 +748,16 @@ skills(id, name, description, trigger_patterns_json, steps_yaml, output_contract
 | B10 drift_records.resolution 缺第三路径 | 加 mark-failed-terminal（doc 21 RB-001）| B3 |
 | B11 incidents 用 `...` 占位 | 展开全字段 + legal_hold/source_type（doc 04 §2.8b + doc 20）| B7 |
 | B12 11 张表缺失 | 新增（见 audit-docs-sweep B-致命-1）| B1/B4/B7/B12/B15 |
+
+### C 级（跨表链路断裂，docs 全量通读 + 链路审计后新增）
+
+| 断裂 | 修复 | 来源 |
+|---|---|---|
+| C1 approval_runs 无 (request_id, gate) 唯一约束 | 加 partial unique `WHERE status='pending'`（防并发双 pre-apply race，doc 12 §3）| A5 |
+| C2 drift_records 无 remediation_request_id | 加列 FK→requests nullable（闭合漂移修复追溯链，doc 13 §5.1）| B3 |
+| C3 import_jobs 无 created_stack_id | 加列 FK→stacks nullable（闭合 import→stack 创建链，doc 15 §6 step 4）| B14 |
+| C4 layer_migrations 缺 to_version_id 索引 | 补索引 | B8 |
+| C5 MVP requester_id/env_id/tenant_id 悬挂 | 显式标注 MVP 边界（identities B4 / environments B11 非 MVP），Wave 落表后加 FK | A4 |
 
 ## 05-Phase 推进策略
 

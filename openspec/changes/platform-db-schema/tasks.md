@@ -102,6 +102,12 @@
 - [ ] 10.26 **gate_events.status 不反向扩展 requests.status**（doc 16 §3.1.1 投影语义）
 - [ ] 10.27 **两套幂等公式独立**：requests.idempotency_key（actor+catalog+form_hash+24h）vs cicd_triggers.idempotency_key（pipeline:commit:catalogItem:form_hash）
 
+### 链路完整性对账（audit-link-completeness.md）
+- [ ] 10.28 **approval_runs 有 (request_id, gate) partial unique**（WHERE status='pending'，doc 12 §3 防 race）
+- [ ] 10.29 **drift_records.remediation_request_id 存在**（闭合漂移修复追溯，doc 13 §5.1）
+- [ ] 10.30 **import_jobs.created_stack_id 存在**（闭合 import→stack，doc 15 §6）
+- [ ] 10.31 **MVP requester_id/env_id/tenant_id 标注为悬挂字符串**（identities B4 / environments B11 非 MVP，Wave 落表后加 FK）
+
 ## 11-非 MVP 表设计定稿（本 change 内，不落迁移）
 
 > 这些表的**字段清单已推导**（design.md §03 B1-B14），但不写迁移 SQL——等对应 Wave 实现功能时按定稿直接落迁移。
