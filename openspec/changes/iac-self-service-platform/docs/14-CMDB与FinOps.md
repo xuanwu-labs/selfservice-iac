@@ -126,7 +126,7 @@ platform-managed = true                # L1 platform-mandated 层（绝对，不
    ├──> FinOps 看板（团队成本趋势 / 预算燃尽 / Top资源 / 孤儿）
    │
    ▼
-[优化建议引擎] Infracost + 利用率 → finops_recommendations
+[优化建议引擎] Infracost 成本差 + MetricsProvider 利用率 → finops_recommendations（带 confidence_score）
    │
    ▼
 [一键转申请]（降配 / 释放走正常审批流）
@@ -142,7 +142,114 @@ platform-managed = true                # L1 platform-mandated 层（绝对，不
 | 4 | 失败重试 3 次，仍失败则 outbox 入 dead-letter，request 进入 `reconcile-pending` |
 | 5 | reconcile job 后续从 state 重建 resources；仍失败则生成 `manual_intervention_tasks` |
 
-## 5. 双成本源
+## 4.5 利用率数据源（MetricsProvider 接口）
+
+优化建议（rightsize）需要真实利用率数据，但**利用率采集是监控平台的职责，不是 IaC 平台的**。平台通过可插拔 `MetricsProvider` 接口对接外部监控系统，不自己采集指标。
+
+### 职责边界
+
+```
+Aether（IaC 平台）知道：               监控平台知道：
+  ✅ 创建了什么资源（state）              ✅ CPU/内存/IO 利用率曲线
+  ✅ 资源归属（tag）                      ✅ 峰值/P95/均值
+  ✅ 资源规格和预估成本（Infracost）       ✅ 业务峰值时间窗口
+  ✅ 实际账单总数（云账单）               ✅ Kafka topic 流量、MySQL 连接数
+
+Aether 不做：                            监控平台不做：
+  ❌ 自己采集 CPU/内存                    ❌ 知道资源归属哪个团队
+  ❌ 自己算 Pod 级成本                    ❌ 知道资源是否该降配
+  ❌ 自己存指标时序数据                   ❌ 审批降配建议
+```
+
+### MetricsProvider 接口
+
+```go
+// MetricsProvider 查询资源利用率（对接外部监控系统）。
+// 实现可插拔：云监控 / OpenCost / Prometheus，按配置选择。
+type MetricsProvider interface {
+    // GetUtilization 拉取资源最近 N 天的利用率指标摘要。
+    GetUtilization(ctx context.Context, resourceID, metric string, days int) (*UtilizationSummary, error)
+}
+
+// UtilizationSummary 利用率摘要，供优化建议引擎决策。
+type UtilizationSummary struct {
+    AvgPercent  float64 // 平均利用率
+    PeakPercent float64 // 峰值利用率
+    P95Percent  float64 // P95（更能反映真实需求）
+    Samples     int     // 采样点数（数据可信度：< 7 天 → low，> 30 天 → high）
+    Source      string  // 数据来源标识（cloudwatch / opencost / prometheus）
+}
+```
+
+### 实现矩阵
+
+| 实现 | 覆盖资源 | 数据来源 | 适用场景 |
+|------|----------|----------|----------|
+| `CloudWatchMetricsProvider` | AWS ECS/RDS/ELB 等 | AWS CloudWatch GetMetricStatistics API | AWS 云主机/数据库 |
+| `AliyunMetricsProvider` | 阿里云 ECS/RDS/SLB 等 | 阿里云云监控 DescribeMetricList API | 阿里云资源 |
+| `OpenCostMetricsProvider` | K8s Pod/Node/Namespace | OpenCost API（CNCF，K8s 原生成本分摊） | K8s 容器场景 |
+| `PrometheusMetricsProvider` | 任意（按自定义查询） | Prometheus Query API（PromQL） | 已有 Prometheus 的用户 |
+
+### OpenCost 定位
+
+OpenCost（CNCF 项目）解决 K8s 场景的**Pod 级成本分摊 + 利用率**——这是云账单和 Infracost 都做不到的：
+
+```
+K8s 集群（5台 ECS，月费 $2000）
+  └── 100 个 Pod
+       ├── team-a 的订单服务：应分摊多少？
+       ├── team-b 的日志服务：应分摊多少？
+       └── OpenCost 按 CPU/memory request + 实际用量分摊
+```
+
+- **不强制依赖**：没有 K8s 的用户不需要 OpenCost，MetricsProvider 可空。
+- **Phase 2 可选**：Phase 1 只实现 CloudWatch / 阿里云监控适配器；OpenCost 等用户有 K8s 场景时再加。
+
+### 资源类型与利用率获取方式
+
+| 资源类型 | 利用率指标 | 获取方式 | 分摊可行性 |
+|----------|-----------|----------|-----------|
+| ECS（云主机） | CPU / 内存 / 网络 IO | 云监控 API | ✅ 直接（1:1 对应账单） |
+| RDS（数据库） | 连接数 / IOPS / 存储 | 云监控 API | ✅ 直接 |
+| ELB/SLB（负载均衡） | 活跃连接数 / 流量 | 云监控 API | ✅ 直接 |
+| Kafka（托管） | 分区数 / 消息吞吐 | 云监控 API | ✅ 实例级；❌ topic 级需 Kafka metrics |
+| Kafka（自建） | 无独立账单 | Prometheus + JMX exporter | ⚠️ 需用户自配监控，平台只读指标 |
+| K8s Pod | CPU / 内存 request vs actual | OpenCost | ✅ Pod 级分摊 |
+| Redis（托管） | 内存使用率 / 连接数 / 命中率 | 云监控 API | ✅ 直接 |
+| S3 / OSS（对象存储） | 存储量 / 请求次数 | 云监控 API / 账单 | ✅ 按 bucket tag |
+
+> **关键原则**：平台只**读**利用率指标（GetUtilization），不**写**（不安装 agent、不部署 exporter）。用户负责自己的监控基础设施，平台负责对接和决策。
+
+### 优化建议引擎 + 置信度
+
+rightsize 建议生成时附带 `confidence_score`，让审批人判断建议可信度：
+
+```go
+// 优化建议引擎综合三个维度产出建议：
+func (e *OptimizationEngine) Analyze(
+    resource *Resource,          // CMDB 资源（规格/类型/归属）
+    utilization *UtilizationSummary, // MetricsProvider 返回
+    costDelta *CostDelta,       // Infracost 当前 vs 建议规格成本差
+) *Recommendation {
+    // 置信度规则：
+    //   数据天数 < 7 → low（可能偶发低负载，不建议降配）
+    //   数据天数 7-30 → medium
+    //   数据天数 > 30 → high
+    //   P95 < 10% + 数据 > 30天 → high + "长期低负载，强烈建议降配"
+    //   P95 > 60% → 不建议降配（峰值接近瓶颈）
+}
+```
+
+**审批人看到的信息**：
+```
+建议：将 ecs.g6.large（2核8G）降配为 ecs.g6.medium（1核4G）
+依据：最近 30 天 CPU 平均 3.2%，P95 8.1%，峰值 12%
+预估节省：$42/月
+置信度：高（30天数据，P95 < 10%）
+数据来源：CloudWatch（可信）
+```
+
+
 
 | 源 | 用途 | 时效 | 精度 |
 |----|------|------|------|
