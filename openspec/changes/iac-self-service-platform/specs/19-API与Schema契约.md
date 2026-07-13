@@ -2,7 +2,7 @@
 
 能力 ID：`api-schema-contract`
 
-覆盖：平台 HTTP API、gRPC API、错误 envelope、幂等、correlation id、分页、核心 schema、协议映射、Webhook payload。对应 `docs/00-工程契约.md` 与 `docs/00a-contract-artifacts-plan.md`。
+覆盖：平台 API 契约（Connect-native，proto 唯一源）、错误 envelope、幂等、correlation id、分页、核心 schema、Webhook payload。对应 `docs/00-工程契约.md` 与已冻结的 `specs/03-平台契约.md`（实际 proto 契约）。
 
 ## ADDED Requirements
 
@@ -20,28 +20,26 @@
 - **WHEN** 同一 actor 在 24 小时窗口内重复提交相同 `catalog_item_id + form_hash`
 - **THEN** 平台返回已有 `request_id`，不得创建新工单
 
-### Requirement: 核心 API 列表
-平台 SHALL 在 OpenAPI 描述中至少覆盖以下 API：`POST /requests`、`GET /requests/{id}`、`GET /requests/{id}/events`、`GET /requests/{id}/gate`、`POST /requests/{id}/plan`、`GET /artifacts/{artifact_id}`、`POST /approvals/{run_id}/decide`、`POST /requests/{id}/apply`、`GET /catalog`、`GET /requestable-cloud-accounts`。`POST /webhooks/subscriptions` SHALL 作为 P1 预留接口描述，MUST NOT 阻塞 Phase 0 golden path。
-
-平台 SHALL 在 Proto 描述中至少覆盖等价 gRPC service：`RequestService.CreateRequest/GetRequest/ListRequestEvents`、`PlanningService.StartPlan`、`ArtifactService.GetArtifact`、`ApprovalService.DecideApproval`、`ApplyService.StartApply`、`CatalogService.ListCatalogItems/GetCatalogItem`、`EntitlementService.ListRequestableCloudAccounts`。
+### Requirement: 核心 API 列表（Connect-native proto 单源）
+平台 SHALL 以 `contracts/platform/v1/**/*.proto` 为 API 唯一契约源（D1 Connect-native），经 `buf generate` 产出 Go 类型与 Connect service 接口，单个 http.Server 通过 Connect-RPC 原生覆盖 gRPC / gRPC-Web / Connect-JSON。MVP 主链路 SHALL 至少覆盖 `LifecycleService`（CreateRequest/GetRequest/ListRequests/ListRequestEvents/CancelRequest/StartPlan/GetArtifact/EvaluateGate/ListPendingApprovals/GetApprovalRun/DecideApproval/StartApply）、`CatalogService`（ListItems/GetCatalogItem/ListModuleDependencies/ListAvailableStacks）、`CatalogAdminService`、`RegistryAdminService`、`EntitlementService`，共 6 service / 24 RPC。`POST /webhooks/subscriptions` SHALL 作为 P1 预留，MUST NOT 阻塞 Phase 0 golden path。**平台 SHALL NOT 手写** `openapi.yaml` / `protocol-mapping.md` / `schemas/*.json` 作为契约源——如未来需 REST 文档，用 `protoc-gen-openapi` 从 proto 自动生成。
 
 #### Scenario: API 文档可驱动前端与 CLI
 - **WHEN** 前端和 `tm` CLI 需要接入平台
-- **THEN** 它们 SHALL 从同一 OpenAPI 契约生成或校验客户端模型，不能各自猜字段
+- **THEN** 它们 SHALL 从 proto（经 connect-es / connect-go）生成客户端模型，不能各自猜字段
 
-### Requirement: gRPC 与协议边界
-平台 SHALL 在核心平台内提供与 HTTP API 语义一致的 gRPC Proto 契约。HTTP 与 gRPC MUST 共享同一领域模型、错误码、状态机、幂等语义和 correlation id。Dubbo、OA、ITSM、Legacy protocol 兼容 SHALL 由未来独立 Go Gateway 转换到 HTTP/gRPC，MUST NOT 进入核心平台服务。平台 identity、RBAC、approval、CMDB、FinOps SHALL 是内建能力；外部用户中心、OA、ITSM 只是可选对接源。
+### Requirement: 协议边界（Connect-native 单 handler）
+平台 SHALL 以单一 http.Server 通过 Connect-RPC 同时服务 gRPC / gRPC-Web / Connect-JSON 三协议，共享同一 proto 契约、领域模型、错误码、状态机、幂等语义与 correlation id。Dubbo、OA、ITSM、Legacy protocol 兼容 SHALL 由未来独立 Go Gateway 转换到 Connect（HTTP/gRPC），MUST NOT 进入核心平台服务。平台 identity、RBAC、approval、CMDB、FinOps SHALL 是内建能力；外部用户中心、OA、ITSM 只是可选对接源。
 
 #### Scenario: Dubbo 不污染核心平台
 - **WHEN** 外部系统只能通过 Dubbo 调用资源申请能力
-- **THEN** 未来 Go Gateway SHALL 将 Dubbo method 转换为平台 gRPC/HTTP 调用，核心平台不得暴露 Dubbo service，也不得为 Dubbo 定义独立状态机、权限模型、CMDB 模型或 FinOps 模型
+- **THEN** 未来 Go Gateway SHALL 将 Dubbo method 转换为平台 Connect 调用，核心平台不得暴露 Dubbo service，也不得为 Dubbo 定义独立状态机、权限模型、CMDB 模型或 FinOps 模型
 
-### Requirement: Phase 0 契约产物
-平台 SHALL 在进入大规模业务开发前产出可机器校验的契约产物，包括 `contracts/openapi.yaml`、`contracts/proto/platform/v1/*.proto`、`contracts/protocol-mapping.md`、`contracts/schemas/*.schema.json`、`contracts/error-codes.yaml`、`contracts/fixtures/state-machine/*.json`、`contracts/fixtures/adapter/*.json`、`contracts/fixtures/walking-skeleton/*.json`。这些产物 SHALL 遵循 `docs/00a-contract-artifacts-plan.md`。
+### Requirement: Phase 0 契约产物（Connect-native）
+平台 SHALL 在进入大规模业务开发前产出可机器校验的契约产物：`contracts/platform/v1/**/*.proto`（proto 唯一契约源，Connect-native）、`contracts/error-codes.yaml`（错误码注册表）、`contracts/fixtures/state-machine/*.json`、`contracts/fixtures/adapter/*.json`、`contracts/fixtures/walking-skeleton/*.json`。这些产物 SHALL 通过 `buf lint && buf generate` 校验。**平台 SHALL NOT 产出** `openapi.yaml`、`protocol-mapping.md`、`schemas/*.json`（proto 是唯一源，Connect-RPC 原生覆盖三协议）。
 
 #### Scenario: 契约不是 Markdown 说明
 - **WHEN** Phase 0 验收 API、schema、状态机、Adapter 和 walking skeleton
-- **THEN** 验收依据 SHALL 是 `contracts/` 下的 OpenAPI、Proto、Protocol Mapping、JSON Schema 和 fixture 产物，而不是仅阅读设计文档
+- **THEN** 验收依据 SHALL 是 `contracts/` 下的 proto、error-codes.yaml 和 fixture 产物（经 buf lint 校验），而不是仅阅读设计文档
 
 ### Requirement: RequestCreate Schema
 `POST /requests` 的请求 schema SHALL 包含 `catalog_item_id`、`env_id`、`team_id`、`form_values`、`source`，并可选包含 `tenant_id`、`bundle_id`、`source_context`。平台 SHALL 对 `form_values` 做 canonical JSON 计算 `form_hash`。

@@ -244,6 +244,8 @@
 
 ## 6. 最优下一步
 
+> 📌 **后续更新（2026-07）**：本节设想的 `docs/00a-contract-artifacts-plan.md` 及其 OpenAPI+gRPC 双契约源方案已被 **D1 Connect-native** 取代——proto 是唯一契约源，不手写 openapi.yaml / protocol-mapping.md / schemas。实际落地的契约见 `specs/03-平台契约.md` 与 `contracts/`（5 域 / 6 service / 24 RPC）。下方原文保留作历史评审记录。
+
 下一阶段应进入 Phase 0 契约产物化，具体规划见 `docs/00a-contract-artifacts-plan.md`。建议按五类交付推进：
 
 1. **Protocol contract artifacts**：产出 `contracts/openapi.yaml`、`contracts/proto/platform/v1/*.proto`、`contracts/protocol-mapping.md`、`contracts/schemas/*.schema.json`、`contracts/error-codes.yaml`，明确核心平台提供 HTTP/gRPC，Dubbo/OA/ITSM/Legacy 由未来 Go Gateway 转换；identity/RBAC、approval、CMDB、FinOps 是平台内建能力，外部系统只作为可选对接源。
