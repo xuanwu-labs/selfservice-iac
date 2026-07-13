@@ -167,6 +167,14 @@ deleted_at TIMESTAMPTZ NULL,
 >
 > 若确有"全局唯一含 NULL"需求（非软删场景），用 `UNIQUE (...) NULLS NOT DISTINCT`（PG15+，skill 推荐）。本平台软删场景一律走 partial index。
 
+> **偏离 docs 说明（soft-delete policy）**：docs（04/05/06/07）的软删除一律用 status 枚举（`active|deprecated|archived` / `active|frozen|deprecated` 等），全文无 `deleted_at` 列。本 design **刻意保留 `deleted_at` 列**作为统一的软删机制，理由：
+> 1. **统一性**：所有业务表一个软删机制（deleted_at），不按表混用 status 语义（有些表 status 是业务状态机如 requests，软删塞进去会污染状态机）。
+> 2. **查询清晰**：`WHERE deleted_at IS NULL` 统一过滤，不需记住"这张表用 status='active' 那张表用 status!='deprecated'"。
+> 3. **docs 的 status 枚举保留业务含义**：catalog_items.status(active/deprecated/archived) 表达**业务生命周期**（上架/下架/归档），不是软删；deleted_at 表达**记录删除**。两者正交。
+> 4. **代价**：与 docs 表述不一致，docs 标注修订时需说明本 change 的偏离。
+>
+> **规则**：业务表用 deleted_at 软删；status 枚举只表达业务生命周期（不动）。查询活跃记录一律 `WHERE deleted_at IS NULL`。
+
 ### 2.2 updated_at 自动维护（trigger）
 
 sqlc 不自动管 `updated_at`（不像 GORM/sqlboiler 有 hook）。业界做法（Brandur/sqlc 共识）：**PG trigger 自动维护**，不让应用层操心。
@@ -205,71 +213,136 @@ sqlc 生成的 struct 自动含 created_at/updated_at（timestamptz → `time.Ti
 
 #### A1. 组织归属（3 张）
 ```
-teams(id, name, slug, kind[platform|dba|middleware|business], tags_json, policy_json,
-      created_at, updated_at, deleted_at)
-projects(id, name, team_id FK→teams, created_at, updated_at)
+teams(id, name, slug, kind[platform|dba|middleware|business], status[active|deprecated],
+      tags_json, policy_json, created_at, updated_at, deleted_at)
+  -- policy_json: S6 team 策略（allowed_regions/cost_cap/mandatory_tags，doc 08 S6）
+  -- FK 索引: 无（被引用方）
+  -- 唯一: uq_teams_slug_active ON (slug) WHERE deleted_at IS NULL
+projects(id, name, team_id FK→teams, created_at, updated_at, deleted_at)
+  -- FK 索引: ix_projects_team_id
 bundles(id, name, project_id FK→projects, layer_logical_id FK→layer_logical_refs,
-        repo_path, tags_json, created_at, updated_at)
+        repo_path, tags_json, created_at, updated_at, deleted_at)
+  -- FK 索引: ix_bundles_project_id, ix_bundles_layer_logical_id
 ```
+**对账 docs**：teams 加 status（doc 04 §2.1 + 业务生命周期）；policy_json 是 doc 08 S6 team 策略落点（allowed_regions/cost_cap/mandatory_tags）。
 
 #### A2. 模块注册（3 张）
 ```
-modules(id, name, git_source, provider, layer, owner_team_id FK→teams, status, description,
-        created_at, updated_at)
+modules(id, name, git_source, provider, layer, owner_team_id FK→teams,
+  status TEXT CHECK(status IN ('pending_validation','validated','validation_failed','deprecated')),
+  description, created_at, updated_at)
+  -- FK 索引: ix_modules_owner_team_id
 module_versions(id, module_id FK→modules, version, commit_sha, providers_json,
-                variables_contract_json, registered_at)
+  variables_contract_json,   -- 纯 scalar 契约（D25 零侵入），S1 管道输入
+  is_current BOOL, registered_at, created_at)
+  -- FK 索引: ix_module_versions_module_id
 module_dependencies(id, module_version_id FK→module_versions, variable_name,
-                    depends_on_layer, depends_on_module, output_key, required, description)
+  depends_on_layer, depends_on_module, output_key, required BOOL, description, created_at)
+  -- FK 索引: ix_module_dependencies_module_version_id
 ```
-**修复断裂**：modules 补 name/provider/description（proto 有）；module_versions 补 version/providers_json + 接收 variables_contract_json（从 modules 移入，proto 归属版本）；新增 module_dependencies 表（proto 有 ModuleDependency，docs/04 无表）。
+**修复断裂**：modules 补 name/provider/description + status 4 值 CHECK；module_versions 补 is_current（doc 04 §2.2）；module_dependencies 新增（proto ModuleDependency，docs/04 无表）。
 
 #### A3. 服务目录（1 张）
 ```
 catalog_items(id, module_version_id FK→module_versions, display_name, description, category,
-              status, form_schema_json, defaults_json, cardinality[single|list|map],
-              instance_key, per_instance_fields_json, shared_fields_json,
-              layer_logical_id FK→layer_logical_refs, stack_grouping, owner_team_id FK→teams,
-              default_tags_json, user_allowed_tag_keys_json, visibility_json,
-              created_at, updated_at, deleted_at)
+  status TEXT CHECK(status IN ('draft','active','deprecated','archived','blocked')),  -- doc 19 §1 五态
+  form_schema_json, defaults_json,   -- defaults_json = S2 catalog defaults（doc 08）
+  cardinality TEXT CHECK(cardinality IN ('single','list','map')),   -- D25
+  instance_key, per_instance_fields_json, shared_fields_json,
+  layer_logical_id FK→layer_logical_refs, stack_grouping TEXT CHECK(stack_grouping IN
+    ('per-component','per-bundle','per-team','custom')),   -- D24
+  owner_team_id FK→teams, default_tags_json,   -- L6 catalog defaults（doc 08）
+  user_allowed_tag_keys_json,   -- L7 用户 tag 白名单（doc 08）
+  visibility_json,   -- 团可见性（team_ids 数组）
+  created_at, updated_at, deleted_at)
+  -- FK 索引: ix_catalog_items_module_version_id, ix_catalog_items_layer_logical_id, ix_catalog_items_owner_team_id
+  -- GIN: ix_catalog_items_visibility ON (visibility_json), ix_catalog_items_user_allowed_tag_keys ON (user_allowed_tag_keys_json)
+  -- 唯一: uq_catalog_items_(module_version_id, display_name)_active WHERE deleted_at IS NULL
 ```
-**修复断裂**：补 category（proto CatalogItem 有）。visibility_json 建 GIN 索引（按团队过滤目录高频查询）。
+**修复断裂**：status 补全 5 值（draft/active/deprecated/archived/blocked，doc 19 §1）；visibility_json + user_allowed_tag_keys_json 建 GIN（按团队过滤 + tag 白名单高频查询）。
 
 #### A4. 工单生命周期（4 张）
 ```
-requests(id, catalog_item_id FK→catalog_items, bundle_id FK→bundles, env_id, tenant_id,
-         team_id FK→teams, requester_id, status, current_stage, source,
-         form_values_json, form_hash, idempotency_key, pinned_commit,
-         plan_artifact_id FK→plan_artifacts, cost_estimate_cents, cost_currency,
-         correlation_id, version, layer_rule_set_version_id FK→layer_rule_set_versions,
-         created_at, updated_at)
-request_events(id, request_id FK→requests, event_type, stage, from_status, to_status,
-               actor_id, actor_type, message, correlation_id, occurred_at)  -- append-only
-plan_artifacts(id, request_id FK→requests, status, plan_hash, storage_uri,
-               resources_to_add, resources_to_change, resources_to_destroy,
-               cost_estimate_cents, expires_at, created_at)
-gate_results(id, request_id FK→requests, gate_id, passed, policy, message, severity,
-             evaluated_at)
+requests(
+  id, catalog_item_id FK→catalog_items, bundle_id FK→bundles nullable,
+  env_id, tenant_id, team_id FK→teams, requester_id,
+  kind TEXT CHECK(kind IN ('standard','drift-remediation','legacy-import','maintenance-apply')),
+  source TEXT CHECK(source IN ('web','cli','cicd','ai')),
+  status TEXT CHECK(status IN (
+    'submitted','generating','pending-admission','planning','plan-ready',
+    'pending-approval','applying','reconciling','succeeded','reconcile-pending',
+    'rejected','cancelled','expired','failed-retryable','failed-terminal',
+    'waiting-manual','blocked-policy','blocked-state-health','paused-drift')),  -- 19 值（doc 00 §5 + doc 12a）
+  current_stage, form_values_json, form_hash, resolved_params_json,  -- resolved_params: doc 08 provenance
+  idempotency_key,   -- sha256(actor+catalog+form_hash+24h_window)，UNIQUE
+  pinned_commit, plan_artifact_id FK→plan_artifacts nullable,
+  cost_estimate_cents, cost_currency, correlation_id,
+  retry_count INT DEFAULT 0,   -- doc 12 reject.terminal 判据（≥3 → terminal）
+  version INT NOT NULL DEFAULT 0,   -- doc 00 §5 乐观锁
+  layer_rule_set_version_id FK→layer_rule_set_versions,
+  created_at, updated_at)
+  -- FK 索引: ix_requests_catalog_item_id, ix_requests_bundle_id, ix_requests_team_id,
+  --          ix_requests_plan_artifact_id, ix_requests_layer_rule_set_version_id
+  -- 唯一: uq_requests_idempotency_key ON (idempotency_key)
+  -- 注：doc 12 列 20 值含 reconcile-pending（已在主路径）+ blocked-state-health/paused-drift/blocked-policy（异常）
+request_events(id, request_id FK→requests, event_type TEXT CHECK(event_type IN
+               ('state_transition','log','error','approval','hook')),
+               stage, from_status, to_status, actor_id, actor_type TEXT CHECK(actor_type IN
+               ('human','ai','system')), message, correlation_id, occurred_at)  -- append-only
+  -- FK 索引: ix_request_events_request_id
+plan_artifacts(id, request_id FK→requests,
+  status TEXT CHECK(status IN ('active','superseded','expired','orphan')),
+  plan_hash, storage_uri, sha256, size_bytes,
+  pinned_commit, toolchain_profile_hash, provider_lock_hash, tf_version_sha256,
+  stack_id, state_key,   -- PathGenerator 输出（doc 09 §5.2）
+  resources_to_add, resources_to_change, resources_to_destroy,   -- plan summary
+  cost_estimate_cents, expires_at, created_at)
+  -- FK 索引: ix_plan_artifacts_request_id
+  -- 对账 doc 09 §5.2 + doc 12 invariant 0：plan/apply 版本一致性校验全字段
+gate_results(id, request_id FK→requests, gate_id, passed BOOL, policy, message,
+  severity TEXT CHECK(severity IN ('info','warning','error','critical')), evaluated_at)
+  -- FK 索引: ix_gate_results_request_id
 ```
-**修复 A 级断裂**：requests 补 team_id/source/cost_estimate_cents/cost_currency/correlation_id/plan_artifact_id（全 proto 有而表缺）；plan_artifacts 独立成表（解决"并入 executor_runs"三处矛盾）；gate_results 独立成表（proto GateResult）。
+**修复 A 级断裂**：
+- requests 补 kind（doc 13/15 工单判别）/source（doc 00 §4.1）/resolved_params_json（doc 08 provenance）/retry_count（doc 12 reject.terminal）/全 19 值 status CHECK。
+- plan_artifacts 补全 plan/apply 版本一致性字段（pinned_commit/toolchain_profile_hash/provider_lock_hash/tf_version_sha256/stack_id/state_key/sha256/size_bytes）—— D21 plan/apply 解耦安全前提。
+- status 19 值覆盖 doc 00 §5 主路径 9 + 异常 10（reconcile-pending 计主路径，故 19 非 20）。
+- gate_status 是 requests.status 的投影，独立枚举（doc 16 §3.1.1），不混入 requests.status。
 
-#### A5. 审批（3 张）
+#### A5. 审批（4 张）
 ```
-approval_runs(id, request_id FK→requests, flow_id, gate, current_node, status,
-               decided_by, decided_at, started_at, finished_at, expires_at)
-approval_node_runs(id, run_id FK→approval_runs, node_id, mode, decided_count,
-                   required_count, status, timeout_at)
-approval_decisions(id, node_run_id FK→approval_node_runs, approver_id, decision,
-                   comment, decided_at)  -- append-only
+approval_flows(id, name, trigger, dsl_yaml, version INT, active BOOL,
+               created_at, updated_at)   -- doc 12 §6 审批流定义（DSL YAML 持久化）
+approval_runs(id, request_id FK→requests, flow_id FK→approval_flows,
+  gate TEXT CHECK(gate IN ('pre-plan','pre-apply','break-glass-retroactive')),  -- D21 双门禁判别
+  current_node, status TEXT CHECK(status IN ('pending','approved','rejected','timeout','cancelled')),
+  decided_by, decided_at, started_at, finished_at, expires_at)
+  -- FK 索引: ix_approval_runs_request_id, ix_approval_runs_flow_id
+approval_node_runs(id, run_id FK→approval_runs, node_id,
+  mode TEXT CHECK(mode IN ('any','all','majority','count>=N')),  -- doc 12 §2.3 权威
+  decided_count INT, required_count INT, status TEXT CHECK(status IN
+  ('pending','approved','rejected','timeout')), timeout_at)
+  -- FK 索引: ix_approval_node_runs_run_id
+approval_decisions(id, node_run_id FK→approval_node_runs, approver_id,
+  decision TEXT CHECK(decision IN ('approve','reject','abstain')),
+  comment, decided_at)  -- append-only
+  -- FK 索引: ix_approval_decisions_node_run_id
 ```
-**修复 B 级断裂**：approval_runs 补 decided_by/decided_at/expires_at（proto 有）；status 取值域对齐 proto（expired 统一不用 timeout）。
+**修复 B 级断裂**：新增 approval_flows（doc 12 §6 硬要求，DSL 持久化）；approval_runs 补 gate 列（D21 双门禁）+ 全枚举 CHECK；node_runs.mode 对齐 doc 12 §2.3 权威（any/all/majority/count>=N，非 doc 04 的 single/countersign/conditional）。
 
 #### A6. 云账号（1 张）
 ```
-cloud_accounts(id, provider, account_id, name, status[active|suspended], regions_json,
-               default_region, credentials_ref, bootstrap_status, oidc_trust_configured,
-               created_at, updated_at)
+cloud_accounts(id,
+  provider TEXT CHECK(provider IN ('alicloud','aws','azure')),
+  account_id, alias, display_name,
+  status TEXT CHECK(status IN ('active','suspended','deprecating','deprecated')),  -- doc 07c §14 cascade
+  default_region, regions_json, credentials_ref, billing_enabled BOOL,
+  default_team_id FK→teams nullable, tags_json,
+  bootstrap_status TEXT CHECK(bootstrap_status IN ('ok','rotate','none')),
+  oidc_trust_configured BOOL, created_at, updated_at)
+  -- FK 索引: ix_cloud_accounts_default_team_id
+  -- 对齐 doc 04 §2.12 权威（doc 06 footnote 指向）；status 含 deprecating/deprecated 支持 doc 07c §14 注销 cascade
 ```
-**修复断裂**：补 status（proto CloudAccountStatus）+ regions_json（proto repeated regions）。
 
 #### A7. 分层（2 张，Phase 1 只 seed）
 ```
@@ -281,11 +354,19 @@ Phase 1 出厂 seed：3 条 layer_logical_refs（global/middleware/application�
 
 #### A8. 审计/事件（2 张）
 ```
-audit_logs(id, actor_id, actor_type[human|ai|system], action, target_type, target_id,
-           before_json, after_json, correlation_id, occurred_at)  -- append-only
-outbox_events(id, aggregate_type, aggregate_id, event_type, payload_json,
-              status[pending|processed|failed], retry_count, created_at, processed_at)
+audit_logs(id, actor_id, actor_type TEXT CHECK(actor_type IN ('human','ai','system')),
+  action, target_type, target_id, before_json, after_json,
+  ai_metadata_json,   -- nullable，仅 actor_type=ai 时填（doc 17 §9.2: prompt_hash/skill_name/llm_model/tool_calls_json/confidence_score）
+  correlation_id, occurred_at)  -- append-only
+  -- 合规可选（doc 20 §2，HMAC 链启用时加列）: prev_hash, entry_hash, signing_key_id, sealed_at
+  -- 索引: ix_audit_logs_target(target_type, target_id), ix_audit_logs_correlation_id, ix_audit_logs_occurred_at
+outbox_events(id, event_id,   -- event_id UNIQUE，幂等（doc 12a IDEMP-005）
+  aggregate_type, aggregate_id, event_type, payload_json,
+  status TEXT CHECK(status IN ('pending','processing','succeeded','failed','dead-letter')),
+  retry_count INT, next_retry_at, correlation_id, created_at, updated_at, processed_at)
+  -- 索引: ix_outbox_events_status, ix_outbox_events_next_retry_at
 ```
+**修复**：audit_logs 补 ai_metadata_json（doc 17 §9.2，AI 操作审计链）；outbox_events 枚举改 5 值（pending/processing/succeeded/failed/dead-letter，doc 04 §2.8a）+ 补 event_id（幂等 UNIQUE）/next_retry_at/correlation_id。
 
 ### 优先级 B：非 MVP 表（本 change 设计定稿，迁移随 Wave 落）
 
@@ -293,16 +374,30 @@ outbox_events(id, aggregate_type, aggregate_id, event_type, payload_json,
 
 #### B1. 执行与工作仓库（Wave 2-3 实现）
 ```
-executor_runs(id, request_id FK→requests, phase[plan|apply|drift|import], pinned_commit,
-              artifact_id FK→plan_artifacts nullable, toolchain_profile_hash, provider_lock_hash,
-              credential_session_id nullable, exit_code, started_at, finished_at,
-              status[running|succeeded|failed|interrupted])
-workspaces(id, name, remote_url, default_branch, created_at)
+executor_runs(id, request_id FK→requests,
+  phase TEXT CHECK(phase IN ('plan','apply','drift','import')),
+  pinned_commit, artifact_id FK→plan_artifacts nullable,
+  toolchain_profile_hash, provider_lock_hash,
+  credential_session_id nullable, exit_code INT, started_at, finished_at,
+  status TEXT CHECK(status IN ('running','succeeded','failed','interrupted')),
+  failure_category TEXT CHECK(failure_category IN
+    ('user_input','policy_denied','cloud_quota','cloud_api','toolchain','state_backend',
+     'platform_bug','manual_required')) nullable)   -- doc 18 §4/§6 Phase 1 验收门
+  -- FK 索引: ix_executor_runs_request_id, ix_executor_runs_artifact_id
+workspaces(id, name, remote_url, default_branch, created_at, updated_at)
 workspace_checkouts(id, workspace_id FK→workspaces, node_id, worktree_path, branch,
-                    pinned_commit, purpose, leased_by_request_id FK→requests nullable,
-                    leased_until, status[active|released|stale], updated_at)
+  pinned_commit, purpose, leased_by_request_id FK→requests nullable,
+  leased_until, status TEXT CHECK(status IN ('active','released','stale')),
+  created_at, updated_at)
+  -- FK 索引: ix_workspace_checkouts_workspace_id, ix_workspace_checkouts_leased_by_request_id
+  -- 索引: ix_workspace_checkouts_status（reconcile 扫 stale）
+toolchain_manifest(node_id, mode TEXT CHECK(mode IN ('process','container','kubernetes','remote')),
+  terramate_version, tf_version, tofu_version, providers_json,
+  checked_at, status TEXT CHECK(status IN ('active','superseded')), created_at, updated_at)
+  -- doc 11 §6 节点工具链版本真相源（DB+节点双写），校验时机③的输入
+  -- PK: (node_id, mode) 或独立 id；此处用 (node_id) 单节点单 manifest
 ```
-注意：executor_runs.artifact_id → plan_artifacts（非"并入"——plan_artifacts 独立，executor_runs 引用它）。这解决了 docs/04 A1 三处矛盾。
+注意：executor_runs.artifact_id → plan_artifacts（非"并入"——plan_artifacts 独立，executor_runs 引用它）。这解决了 docs/04 A1 三处矛盾。补 failure_category（doc 18 §4 结构化失败归因，dashboard 必需）+ toolchain_manifest（doc 11 §6 节点工具链真相源）。
 
 #### B2. stack 注册表（Wave 2 codegen 后实现）
 ```
@@ -321,27 +416,54 @@ stack_dependencies(id, from_stack_id FK→stacks, to_stack_id FK→stacks,
 
 #### B3. 漂移检测（Wave 4 实现）
 ```
-drift_runs(id, stack_id FK→stacks, started_at, finished_at, exit_code,
-           has_drift, diff_summary_json)
+drift_runs(id, stack_id FK→stacks, started_at, finished_at, exit_code INT,
+  has_drift BOOL, diff_summary_json, created_at)
+  -- FK 索引: ix_drift_runs_stack_id
 drift_records(id, stack_id FK→stacks, drift_run_id FK→drift_runs,
-              status[open|adopted|reverted], detected_at, resolved_at, resolver_id,
-              resolution[adopt-cloud|restore-desired])
+  status TEXT CHECK(status IN ('open','adopted','reverted')),
+  detected_at, resolved_at, resolver_id,
+  resolution TEXT CHECK(resolution IN ('adopt-cloud','restore-desired','mark-failed-terminal')))
+  -- doc 21 RB-001 第三路径 mark-failed-terminal
+  -- FK 索引: ix_drift_records_stack_id, ix_drift_records_drift_run_id
+  -- 索引: ix_drift_records_(stack_id, status, detected_at)（连续漂移计数，doc 15 §3.1 3 次暂停判据）
 ```
 
-#### B4. 鉴权与身份（Wave 2-3 实现，docs/04 §2.7）
+#### B4. 鉴权与身份（Wave 2-3 实现，docs/04 §2.7 + docs/05 §5）
 ```
 oidc_providers(name PK, issuer_url, client_id, client_secret_encrypted, claim_mapping_json,
-               scopes_json, bridge_mode, is_default, status[active|disabled],
-               created_at, updated_at)
+  scopes_json, bridge_mode BOOL, is_default BOOL,
+  status TEXT CHECK(status IN ('active','disabled')), created_at, updated_at)
 identities(id, external_id, display_name, email, provider_name FK→oidc_providers,
-           primary_source, status[active|disabled|merged], merged_into_id FK→identities nullable,
-           last_synced_at, created_at)
+  primary_source, status TEXT CHECK(status IN ('active','disabled','merged')),
+  merged_into_id FK→identities nullable, last_synced_at, created_at)
+  -- FK 索引: ix_identities_provider_name, ix_identities_merged_into_id
 sessions(id, identity_id FK→identities, idp_session_id, issued_at, expires_at, revoked_at)
-role_bindings(id, subject_id, role, scope_type[team|project|bundle|stack|layer], scope_id, actions_json)
+  -- FK 索引: ix_sessions_identity_id
+role_bindings(id, subject_id, role,
+  scope_type TEXT CHECK(scope_type IN ('team','project','bundle','stack','layer')),
+  scope_id, actions_json)
+  -- 索引: ix_role_bindings_(subject_id), ix_role_bindings_(scope_type, scope_id)
 emergency_runs(id, request_id FK→requests, break_glass_operator_ids_json, reason, recording_url,
-               retroactive_approval_id, retroactive_deadline,
-               status[active|retroactively_approved|overdue], created_at)
-sensitive_field_blacklist(pattern, added_at)
+  retroactive_approval_id FK→approval_runs nullable, retroactive_deadline,
+  status TEXT CHECK(status IN ('active','retroactively_approved','overdue')), created_at)
+  -- FK 索引: ix_emergency_runs_request_id
+sensitive_field_blacklist(pattern PK, added_at)
+-- ↓ docs/05 §5 目录同步层（4 张，原 design.md 漏）
+identity_sources(id, kind TEXT CHECK(kind IN ('oidc','scim','feishu','dingtalk','ldap')),
+  config_json, priority INT, enabled BOOL, created_at, updated_at)
+  -- 目录同步源配置（config_json 含敏感连接信息，加密）
+org_nodes(id, source_id FK→identity_sources, external_id, parent_id FK→org_nodes nullable,
+  name, path, created_at, updated_at)
+  -- 同步的组织树（自引用 parent_id，path 物化路径）
+  -- FK 索引: ix_org_nodes_source_id, ix_org_nodes_parent_id
+org_mappings(id, match_type TEXT CHECK(match_type IN ('dept','group')), match_expr,
+  target_team_id FK→teams, target_role, target_layer, created_at, updated_at)
+  -- 组织→团队/角色映射规则，event-driven 推 role_bindings（doc 05 §7）
+  -- FK 索引: ix_org_mappings_target_team_id
+sync_runs(id, source_id FK→identity_sources, started_at, finished_at,
+  status TEXT CHECK(status IN ('pending','running','succeeded','failed')),
+  stats_json, created_at)
+  -- FK 索引: ix_sync_runs_source_id
 ```
 
 #### B5. 适配器配置（Wave 1 实现，docs/04 §2.8）
@@ -353,64 +475,136 @@ adapters_config(id, adapter_type[git|state|policy|cost|notify|cloud|identity|cre
 #### B6. Saga 补偿（Wave 3 实现，docs/04 §2.8a）
 ```
 reconcile_jobs(id, aggregate_type, aggregate_id, job_type, payload_json,
-               status[pending|running|succeeded|failed], retry_count, last_error,
-               created_at, updated_at)
-manual_intervention_tasks(id, request_id FK→requests nullable, task_type, description,
-                          status[open|in_progress|resolved|cancelled], assigned_to,
-                          resolution_notes, created_at, updated_at, resolved_at)
+  status TEXT CHECK(status IN ('pending','running','succeeded','failed')),
+  diff_summary_json, retry_count INT, last_error, started_at, finished_at, created_at, updated_at)
+  -- 对齐 doc 04 §2.8a（补 diff_summary_json/started_at/finished_at）
+manual_intervention_tasks(id,
+  source_type TEXT CHECK(source_type IN ('request','stack','cloud_account','import','migration','executor')),
+  source_id, reason_code, owner_team_id FK→teams nullable, assignee_id nullable,
+  severity TEXT CHECK(severity IN ('p0','p1','p2','p3')),
+  status TEXT CHECK(status IN ('open','acknowledged','resolved','cancelled')),
+  context_json, recovery_action_json, sla_deadline, correlation_id,
+  created_at, updated_at, resolved_at)
+  -- 对齐 doc 04 §2.8a 权威字段（source_type/severity/sla_deadline/recovery_action_json）
+  -- FK 索引: ix_manual_intervention_tasks_owner_team_id
 ```
 
 #### B7. 商业级 Run Hooks / 运营（Phase 2+ 实现，docs/04 §2.8b）
 ```
-run_hooks(id, name, phase[pre-plan|post-plan|pre-apply|post-apply], target_url, auth_secret_ref,
-          timeout_seconds, failure_policy[fail-open|fail-closed|warn-only], requires_credentials,
-          status[active|disabled], created_at, updated_at)
-run_hook_results(id, hook_id FK→run_hooks, request_id FK→requests, phase, status[running|succeeded|failed|timeout],
-                 decision[allow|deny|warn], summary, details_ref, started_at, finished_at)
-incidents(id, severity[p0|p1|p2|p3], title, status[open|mitigated|resolved|closed], ...)
-runbook_executions(id, runbook_id, incident_id FK→incidents nullable, triggered_by, ...)
-drill_results(id, drill_type, status, started_at, finished_at, ...)
-platform_scorecards(id, period, category, score, metadata_json, ...)
-catalog_health_checks(id, catalog_item_id FK→catalog_items, check_type, status, ...)
+run_hooks(id, name, phase TEXT CHECK(phase IN ('pre-plan','post-plan','pre-apply','post-apply')),
+  target_url, auth_secret_ref, timeout_seconds INT,
+  failure_policy TEXT CHECK(failure_policy IN ('fail-open','fail-closed','warn-only')),
+  requires_credentials BOOL, status TEXT CHECK(status IN ('active','disabled')),
+  created_at, updated_at)
+run_hook_results(id, hook_id FK→run_hooks, request_id FK→requests,
+  phase TEXT CHECK(phase IN ('pre-plan','post-plan','pre-apply','post-apply')),
+  status TEXT CHECK(status IN ('running','succeeded','failed','timeout')),
+  decision TEXT CHECK(decision IN ('allow','deny','warn')),
+  summary, details_ref, started_at, finished_at)
+  -- FK 索引: ix_run_hook_results_hook_id, ix_run_hook_results_request_id
+incidents(id, severity TEXT CHECK(severity IN ('p0','p1','p2','p3')), title,
+  status TEXT CHECK(status IN ('open','mitigated','resolved','closed')),
+  source_type TEXT CHECK(source_type IN ('request','stack','executor','state','security','platform')),
+  source_id, owner_team_id FK→teams nullable, legal_hold BOOL,
+  started_at, mitigated_at, resolved_at, postmortem_ref, correlation_id, created_at)
+  -- 对齐 doc 04 §2.8b + doc 20 §3.1（legal_hold/source_type）
+  -- FK 索引: ix_incidents_owner_team_id
+runbook_executions(id, runbook_id FK→runbooks, incident_id FK→incidents nullable,
+  operator_id, status TEXT CHECK(status IN ('started','completed','failed')),
+  evidence_ref, started_at, finished_at, created_at)
+  -- FK 索引: ix_runbook_executions_runbook_id, ix_runbook_executions_incident_id
+drill_results(id, drill_type TEXT CHECK(drill_type IN
+    ('state_restore','db_restore','break_glass','oidc_jwks_rotation','provider_mirror_outage')),
+  runbook_id FK→runbooks nullable, scheduled_frequency,
+  status TEXT CHECK(status IN ('passed','failed')),
+  findings_json, follow_up_task_id FK→manual_intervention_tasks nullable,
+  executed_at, executed_by, created_at)
+  -- doc 20 §7 + doc 21 §10（5 种演练类型）
+platform_scorecards(id, subject_type TEXT CHECK(subject_type IN ('catalog_item','team','platform')),
+  subject_id, period, score INT,   -- 0-100
+  confidence TEXT CHECK(confidence IN ('low','medium','high')),   -- doc 19 §3.1
+  sample_size INT, data_completeness INT, missing_dimensions_json,
+  dimension_scores_json,   -- 6 维度子分（reliability30/governance20/usage15/cost15/version10/ownership10）
+  calculated_at, created_at)
+catalog_health_checks(id, catalog_item_id FK→catalog_items,
+  usage_json, reliability_json, governance_json, cost_json, version_json, ownership_json,
+  status TEXT CHECK(status IN ('healthy','degraded','blocked')),
+  calculated_at, created_at)
+  -- FK 索引: ix_catalog_health_checks_catalog_item_id
+-- ↓ docs 丢失表（doc 20 §3.2 HMAC 签名密钥 + doc 21 §1 runbook 引用）
+signing_keys(signing_key_id PK, status TEXT CHECK(status IN ('active','readonly','compromised')),
+  rotated_at, compromised_window_start nullable, compromised_window_end nullable, created_at)
+  -- doc 20 §3.2 HMAC 审计链签名密钥轮换（90 天默认）
+runbooks(runbook_id PK, title, severity TEXT CHECK(severity IN ('p0','p1','p2')),
+  scenario, steps_json, created_at, updated_at)
+  -- doc 21 §1 9 个 runbook 种子（RB-001~RB-009）
 ```
 
 #### B8. 分层迁移（Phase 2-3 实现，docs/04 §2.9）
 ```
-stack_grouping_rules(id, scope_type[catalog_item|layer|global], scope_id,
-                     granularity[per-component|per-bundle|per-team|custom], custom_rule_json, priority)
+stack_grouping_rules(id, scope_type TEXT CHECK(scope_type IN ('catalog_item','layer','global')),
+  scope_id, granularity TEXT CHECK(granularity IN ('per-component','per-bundle','per-team','custom')),
+  custom_rule_json, priority INT, created_at, updated_at)
 layer_migrations(id, from_version_id FK→layer_rule_set_versions, to_version_id FK→layer_rule_set_versions,
-                 batch_id, stack_id FK→stacks, tier[1|2|3], old_path, new_path,
-                 state_mv_script_path, backup_token, status[planned|running|succeeded|rolled_back|failed],
-                 operator, approved_by, silence_until, created_at, completed_at)
+  batch_id, stack_id FK→stacks, tier TEXT CHECK(tier IN ('1','2','3')),
+  old_path, new_path, state_mv_script_path, backup_token,
+  status TEXT CHECK(status IN ('planned','running','succeeded','rolled_back','failed')),
+  operator, approved_by, silence_until, created_at, completed_at)
+  -- FK 索引: ix_layer_migrations_stack_id, ix_layer_migrations_from_version_id
 ```
 
-#### B9. CMDB 与 FinOps（Wave 4 实现，docs/04 §2.11）
+#### B9. CMDB 与 FinOps（Wave 4 实现，docs/04 §2.11 + docs/14）
 ```
-resources(id, stack_id FK→stacks nullable, bundle_id FK→bundles nullable, team_id FK→teams nullable,
-          layer, address, type, cloud_provider, region, cloud_resource_id, name,
-          tags_json, attributes_json, monthly_cost_estimate_cents, currency, managed,
-          first_seen_at, last_synced_at)
+resources(id, stack_id FK→stacks nullable, bundle_id FK→bundles nullable,
+  team_id FK→teams nullable, tenant_id,   -- doc 07 §7 tenant_id 反规范化（租户级成本归集）
+  layer, address, type, cloud_provider, region, cloud_resource_id, name,
+  tags_json, attributes_json, monthly_cost_estimate_cents, currency, managed BOOL,
+  status TEXT CHECK(status IN ('active','drifted','orphan','destroyed')),   -- doc 14 §2
+  first_seen_at, last_synced_at, created_at, updated_at)
+  -- FK 索引: ix_resources_stack_id, ix_resources_bundle_id, ix_resources_team_id
+  -- GIN: ix_resources_tags ON (tags_json)（成本归集锚点，doc 18）
+resource_relations(id, source_resource_id FK→resources, target_resource_id FK→resources,
+  relation_type, created_at)
+  -- doc 14 §2 资源关系图（dependency/contains/part-of）
+  -- FK 索引: ix_resource_relations_source, ix_resource_relations_target
 cost_records(id, period_month, team_id FK→teams, bundle_id FK→bundles, stack_id FK→stacks,
-             resource_id FK→resources nullable, cloud_provider, service_code, amount_cents, currency,
-             cost_source[bill|estimate], tags_json, recorded_at)
-cost_budgets(id, scope_type[team|bundle|stack|layer], scope_id, period_month, budget_cents,
-             alert_thresholds_json, alert_status[ok|warning|exceeded])
-finops_recommendations(id, kind[rightsize|release_orphan|reserved_instance|tag_missing],
-                       resource_id FK→resources, detail_json, estimated_saving_cents,
-                       status[open|dismissed|applied], created_at)
+  resource_id FK→resources nullable,   -- nullable：unallocated cost（doc 14 §2）
+  cloud_provider, service_code, amount_cents, currency,
+  cost_source TEXT CHECK(cost_source IN ('bill','estimate')), tags_json, recorded_at, created_at)
+  -- FK 索引: ix_cost_records_resource_id, ix_cost_records_(team_id, period_month)
+cost_budgets(id, scope_type TEXT CHECK(scope_type IN ('team','bundle','stack','layer')),
+  scope_id, period_month, budget_cents, alert_thresholds_json,
+  alert_status TEXT CHECK(alert_status IN ('ok','warning','exceeded')), created_at, updated_at)
+finops_recommendations(id,
+  kind TEXT CHECK(kind IN ('rightsize','release_orphan','reserved_instance','tag_missing')),
+  resource_id FK→resources, detail_json, estimated_saving_cents,
+  confidence TEXT CHECK(confidence IN ('low','medium','high')),   -- doc 14 §4.5
+  metric_source, utilization_summary_json, data_days INT, sample_count INT,   -- doc 14 §4.5 支撑字段
+  status TEXT CHECK(status IN ('open','dismissed','applied')), created_at, updated_at)
+  -- FK 索引: ix_finops_recommendations_resource_id
+  -- 对齐 doc 14 §4.5：补 confidence_score + 4 个支撑字段
 ```
 
-#### B10. 云凭据管理（Wave 5 实现，docs/04 §2.12）
+#### B10. 云凭据管理（Wave 5 实现，docs/04 §2.12 权威）
 ```
-team_cloud_grants(id, team_id FK→teams, bundle_id FK→bundles nullable, cloud_account_id FK→cloud_accounts,
-                  allowed_layers_json, iam_role_template, budget_quota_cents, expires_at,
-                  env_scope_json, granted_by, granted_at)
-cloud_credentials(id, cloud_account_id FK→cloud_accounts, team_id FK→teams nullable, bundle_id FK→bundles nullable,
-                  credential_type[bootstrap|execution_long_lived|execution_oidc], name, secret_ref,
-                  iam_role_assumed, status[active|rotating|revoked|expired], rotated_at, rotate_after,
-                  guardians_json, last_used_at, last_used_by_request, created_at)
-catalog_items_required_permissions(catalog_item_id FK→catalog_items, provider, permission)
-iam_role_templates(id, name, team_id FK→teams, cloud_account_id FK→cloud_accounts, policy_json, ...)
+team_cloud_grants(id, team_id FK→teams, bundle_id FK→bundles nullable,
+  cloud_account_id FK→cloud_accounts, allowed_layers_json, iam_role_template,
+  budget_quota_cents, expires_at, env_scope_json, granted_by, granted_at, created_at, updated_at)
+  -- FK 索引: ix_team_cloud_grants_team_id, ix_team_cloud_grants_cloud_account_id
+  -- GIN: ix_team_cloud_grants_env_scope ON (env_scope_json)（doc 06 §8 JSON_CONTAINS 查询）
+cloud_credentials(id, cloud_account_id FK→cloud_accounts, team_id FK→teams nullable,
+  bundle_id FK→bundles nullable,
+  credential_type TEXT CHECK(credential_type IN ('bootstrap','execution_long_lived','execution_oidc')),
+  name, secret_ref, iam_role_assumed,
+  status TEXT CHECK(status IN ('active','rotating','revoked','expired')),
+  rotated_at, rotate_after, guardians_json, last_used_at, last_used_by_request, created_at, updated_at)
+  -- FK 索引: ix_cloud_credentials_cloud_account_id, ix_cloud_credentials_team_id
+catalog_items_required_permissions(catalog_item_id FK→catalog_items, provider, permission, created_at)
+  -- 复合 PK: (catalog_item_id, provider, permission)
+iam_role_templates(id, name, team_id FK→teams, cloud_account_id FK→cloud_accounts,
+  permissions_json, cloud_role_name, oidc_audience, oidc_sub, managed_by_bootstrap BOOL,
+  version INT, created_at, updated_at)
+  -- FK 索引: ix_iam_role_templates_team_id, ix_iam_role_templates_cloud_account_id
 ```
 
 #### B11. 环境与租户（Wave 6 实现，docs/04 §2.13）
@@ -430,40 +624,84 @@ environment_tenant_bindings(id, env_id FK→environments, tenant_id FK→tenants
 
 #### B12. 标签策略（Wave 7 实现，docs/04 §2.14）
 ```
-tag_policies(id, scope_type[platform|env|tenant|team|bundle|catalog_item], scope_id,
-             tag_namespace_json, mandatory_keys_json, user_allowed_tag_keys_json, version, updated_at)
+tag_policies(id, scope_type TEXT CHECK(scope_type IN ('platform','env','tenant','team','bundle','catalog_item')),
+  scope_id, tag_namespace_json, mandatory_keys_json, user_allowed_tag_keys_json,
+  version INT, created_at, updated_at)
+tag_policy_versions(id, tag_policy_id FK→tag_policies, version INT,
+  tag_namespace_json, mandatory_keys_json, user_allowed_tag_keys_json,
+  superseded_by FK→tag_policy_versions nullable, created_at)
+  -- doc 04 §2.14 版本化子表（结构同 tag_policies + superseded_by）
+  -- FK 索引: ix_tag_policy_versions_tag_policy_id
 ```
 
-#### B13. CICD 触发（Wave 5 实现，docs/04 §2.15）
+#### B13. CICD 触发（Wave 5 实现，docs/04 §2.15 + docs/16）
 ```
-cicd_triggers(id, request_id FK→requests nullable, cicd_kind[pipeline|webhook|manual],
-              pipeline, commit, artifact, catalog_item_id FK→catalog_items, form_hash,
-              triggered_by, idempotency_key UNIQUE, created_at)
-gate_subscriptions(id, request_id FK→requests, mode[poll|webhook], webhook_url, secret_ref, expires_at)
-gate_events(id, request_id FK→requests, status, occurred_at, actor_id, detail_json)
+cicd_triggers(id, request_id FK→requests nullable,
+  cicd_kind TEXT CHECK(cicd_kind IN ('pipeline','webhook','manual')),
+  pipeline, commit, artifact, catalog_item_id FK→catalog_items, form_hash,
+  triggered_by, idempotency_key UNIQUE,   -- sha256(pipeline:commit:catalogItem:form_hash)，doc 16 §3.1
+  created_at)
+  -- FK 索引: ix_cicd_triggers_request_id, ix_cicd_triggers_catalog_item_id
+gate_subscriptions(id, request_id FK→requests,
+  mode TEXT CHECK(mode IN ('poll','webhook')), webhook_url, secret_ref, expires_at, created_at)
+  -- FK 索引: ix_gate_subscriptions_request_id
+gate_events(id, request_id FK→requests,
+  status TEXT CHECK(status IN ('pending','admission_approved','plan_ready','approval_granted',
+    'applying','apply_succeeded','rejected','timeout','failed',   -- 主集（doc 16 §3.1）
+    'policy_blocked','needs_replan','manual_intervention_required','reconcile_pending')),  -- Phase 2（doc 16 §3.1.2）
+  occurred_at, actor_id, detail_json, created_at)
+  -- gate_status 是 requests.status 的投影，不反向扩展 RequestLifecycle（doc 16 §3.1.1）
+  -- FK 索引: ix_gate_events_request_id
 ```
 
-#### B14. 存量导入（Wave 5 实现，docs/04 §2.16）
+#### B14. 存量导入（Wave 5 实现，docs/04 §2.16 + docs/15）
 ```
 import_jobs(id, request_id FK→requests nullable, module_version_id FK→module_versions,
-            catalog_item_id FK→catalog_items, bundle_id FK→bundles nullable, requester_id,
-            lifecycle, status, review_required, created_at, updated_at)
+  catalog_item_id FK→catalog_items, bundle_id FK→bundles nullable, requester_id,
+  lifecycle TEXT CHECK(lifecycle IN ('discovered','candidate','imported-limited','managed-readonly',
+    'managed-changeable','standard','failed')),   -- doc 15 §1 七态
+  status TEXT CHECK(status IN ('pending','running','waiting-review','succeeded','failed','cancelled')),
+  review_required BOOL,
+  exemption_expires_at nullable, exemption_reason nullable, exemption_review_cycle nullable,  -- doc 15 §3.1
+  created_at, updated_at)
+  -- FK 索引: ix_import_jobs_request_id, ix_import_jobs_module_version_id, ix_import_jobs_catalog_item_id
 import_resources(id, import_job_id FK→import_jobs, cloud_id, tf_address,
-                 import_status[pending|imported|limited|sensitive|failed], limited,
-                 sensitive_fields_json, last_plan_summary_json, created_at)
+  import_status TEXT CHECK(import_status IN ('pending','imported','limited','sensitive','failed')),
+  limited BOOL, sensitive_fields_json, last_plan_summary_json, created_at)
+  -- FK 索引: ix_import_resources_import_job_id
+```
+
+#### B15. AI 与机器身份（Wave 8+ 实现，docs/17 + docs/20）
+> docs/17 §3/§6/§9.2 + docs/20 §3.2 要求的表，原 design.md §03 完全缺失。
+```
+service_accounts(id, name, display_name,
+  status TEXT CHECK(status IN ('active','disabled','rotating')), created_at, updated_at)
+  -- 机器身份（doc 17 §3），AK 明文存、SK 只存 hash
+service_account_keys(id, service_account_id FK→service_accounts, ak, sk_hash,
+  scope_json, status TEXT CHECK(status IN ('active','revoked')), rotated_at, created_at)
+  -- 双 AK 轮换支持（doc 17 §3），同一 service_account 可有多 active key
+  -- FK 索引: ix_service_account_keys_service_account_id
+ai_prompts(prompt_hash PK, prompt_ciphertext, prompt_length INT, created_at)
+  -- doc 17 §9.2 AI prompt 加密存储（按 hash 查，不存明文）
+skills(id, name, description, trigger_patterns_json, steps_yaml, output_contract,
+  owner_team_id FK→teams nullable, version INT, builtin BOOL, created_at, updated_at)
+  -- doc 17 §6 声明式 skills（builtin + team-custom）
+  -- FK 索引: ix_skills_owner_team_id
 ```
 
 ### 全量表统计
 
 | 优先级 | 域 | 表数 | 本 change 动作 |
 |---|---|---|---|
-| A（MVP）| 组织/registry/catalog/lifecycle/approval/cloud/layer/审计 | 19 | 落迁移 SQL + sqlc |
-| B（非 MVP）| exec/workspace/stacks/drift/auth/adapters/saga/hooks/layer-migration/cmdb/finops/cloud-creds/env-tenant/tag/cicd/import | ~33 | **设计定稿**，迁移随 Wave 落 |
-| **合计** | | **~52** | 全部初版设计完成 |
+| A（MVP）| 组织3/registry3/catalog1/lifecycle4（+approval_flows 共5）/cloud1/layer2/审计2 | **20** | 落迁移 SQL + sqlc |
+| B（非 MVP）| exec4（+toolchain_manifest）/stacks2/drift2/auth11（+identity_sources/org_nodes/org_mappings/sync_runs）/adapters1/saga2/hooks运营10（+signing_keys/runbooks）/layer-migration2/cmdb7（+resource_relations）/finops/cloud-creds4/env-tenant3/tag2（+tag_policy_versions）/cicd3/import2/AI机器身份4（B15 新增） | **~48** | **设计定稿**，迁移随 Wave 落 |
+| **合计** | | **~68** | 全部初版设计完成（docs 全量对账后） |
 
-## 04-proto 断裂修复方案（A 级优先）
+> **表数变化说明**：原 ~52 张基于 docs/04 §2.1-2.16 + proto 契约；docs 全量通读（含 docs/05 §5 目录同步层、docs/11 §6 toolchain_manifest、docs/17 §3/§6/§9.2 AI/机器身份、docs/20 §3.2 signing_keys、docs/21 §1 runbooks、docs/04 §2.14 tag_policy_versions、docs/14 §2 resource_relations）后补全至 ~68 张。新增表见 audit-docs-sweep.md B-致命-1。
 
-按审计报告 A 级断裂逐项修复：
+## 04-断裂修复方案（docs 全量对账后更新）
+
+### A 级（proto 契约断裂，原 11 项 + 新增）
 
 | 断裂 | 修复 |
 |---|---|
@@ -472,12 +710,34 @@ import_resources(id, import_job_id FK→import_jobs, cloud_id, tf_address,
 | A3 requests 缺 team_id | 补 `team_id` BIGINT FK |
 | A4 requests 缺 correlation_id | 补 `correlation_id` TEXT |
 | A5 requests 缺 source | 补 `source` TEXT CHECK |
-| A6 stacks 无 layer_logical_id | 本 change 在 B2 stacks 表设计中补 `layer_logical_id` 列（定稿），Wave 2 落迁移时直接含此列 |
-| A7 CatalogItem proto 暴露少 | 本 change 只管表结构（表有全部列）；proto 暴露字段调整是 proto change 的事 |
+| A6 stacks 无 layer_logical_id | B2 stacks 补 `layer_logical_id` 列 |
+| A7 CatalogItem proto 暴露少 | 表有全部列；proto 暴露调整属 proto change |
 | A8 module_versions 缺 dependencies | 新增 `module_dependencies` 表 |
 | A9 modules 缺 provider | 补 `provider` 列 |
-| A10 variables_contract_json 归属 | 移到 `module_versions`（proto 归属版本） |
-| A11 layer 表不在 Phase 1 清单 | 本 change 纳入 `layer_logical_refs` + `layer_rule_set_versions`（Phase 1 seed 用） |
+| A10 variables_contract_json 归属 | 移到 `module_versions` |
+| A11 layer 表不在 Phase 1 清单 | 纳入 `layer_logical_refs` + `layer_rule_set_versions`（seed） |
+| **A12（新）requests 缺 kind/resolved_params_json/retry_count** | 补 `kind`/`resolved_params_json`/`retry_count`（doc 08/12/13/15）|
+| **A13（新）plan_artifacts 缺版本校验字段** | 补 `toolchain_profile_hash`/`provider_lock_hash`/`tf_version_sha256`/`stack_id`/`state_key`/`sha256`/`size_bytes`/`pinned_commit`（doc 09 §5.2 + doc 12 invariant 0）|
+| **A14（新）approval_flows 表缺失** | 新增 `approval_flows`（doc 12 §6 审批流 DSL 持久化）|
+| **A15（新）outbox_events 枚举/列不全** | 枚举改 5 值 + 补 `event_id`/`next_retry_at`/`correlation_id`（doc 04 §2.8a）|
+| **A16（新）requests.status CHECK 域缺失** | 列 19 值 CHECK（doc 00 §5 + doc 12a）|
+
+### B 级（docs 不一致/短路，docs 全量通读后新增）
+
+| 断裂 | 修复 | 来源 |
+|---|---|---|
+| B1 cloud_accounts 字段不全 | 对齐 doc 04 §2.12 权威（alias/display_name/billing_enabled/default_team_id/tags_json）| A6 |
+| B2 catalog_items.status 缺 blocked | 5 值 CHECK（doc 19 §1）| A3 |
+| B3 approval_node_runs.mode 漂移 | 对齐 doc 12 §2.3（any/all/majority/count>=N）| A5 |
+| B4 audit_logs 缺 ai_metadata_json | 补列（doc 17 §9.2）| A8 |
+| B5 resources 缺 tenant_id/status | 补列 + 新增 resource_relations（doc 07 §7 + doc 14 §2）| B9 |
+| B6 finops_recommendations 缺 confidence | 补 confidence_score + 4 支撑字段（doc 14 §4.5）| B9 |
+| B7 executor_runs 缺 failure_category | 补列（doc 18 §4 Phase 1 验收门）| B1 |
+| B8 manual_intervention_tasks 字段不全 | 对齐 doc 04 §2.8a（source_type/severity/sla_deadline 等）| B6 |
+| B9 import_jobs 缺 exemption + lifecycle/status CHECK | 补 3 豁免列 + CHECK（doc 15 §3.1）| B14 |
+| B10 drift_records.resolution 缺第三路径 | 加 mark-failed-terminal（doc 21 RB-001）| B3 |
+| B11 incidents 用 `...` 占位 | 展开全字段 + legal_hold/source_type（doc 04 §2.8b + doc 20）| B7 |
+| B12 11 张表缺失 | 新增（见 audit-docs-sweep B-致命-1）| B1/B4/B7/B12/B15 |
 
 ## 05-Phase 推进策略
 
