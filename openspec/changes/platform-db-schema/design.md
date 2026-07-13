@@ -323,7 +323,7 @@ approval_runs(id, request_id FK→requests, flow_id FK→approval_flows,
   current_node, status TEXT CHECK(status IN ('pending','approved','rejected','timeout','cancelled')),
   decided_by, decided_at, started_at, finished_at, expires_at)
   -- FK 索引: ix_approval_runs_request_id, ix_approval_runs_flow_id
-  -- 唯一: uq_approval_runs_(request_id, gate)_active WHERE status='pending'
+  -- 唯一: uq_approval_runs_req_gate_active WHERE status='pending'
   --   doc 12 §3：一个 request 每个 gate 至多一个 pending run（防并发双 pre-apply race）；
   --   partial（只约束 pending）允许历史 completed run 共存
 approval_node_runs(id, run_id FK→approval_runs, node_id,
