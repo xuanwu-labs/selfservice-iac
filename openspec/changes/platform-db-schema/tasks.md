@@ -1,12 +1,20 @@
 # Tasks: platform-db-schema
 
+> **生命周期**：本 change 长存——MVP 表先落，非 MVP 表随 Wave 落，字段调整回写 design.md，直到 DB 结构稳定才由 maintainer 发起 archive。归档条件 = DB 冻结（不是 MVP 完成）。
+
 ## 01-规范基线 + 雪花 ID 工具类
 
-- [ ] 1.1 实现 `server/internal/utils/snowflake.go`：雪花 ID 生成器（参考 ferret internal/utils/snowflake.go + bwmarrin/snowflake 算法）。提供 `Init(machineID, datacenterID)` 启动初始化 + `GenerateID() int64` 生成 ID。含单测（唯一性/时间有序/并发安全/时钟回拨）。
-- [ ] 1.2 `server/internal/config/config.go` 加 `Snowflake{MachineID, DatacenterID}` 配置项；`server/config.yaml` 加默认值（0/0）；wire 启动时调 `utils.Init()`。
-- [ ] 1.3 创建 `server/cmd/migrate/migrations/000_utils.sql`：`set_updated_at()` trigger 函数（通用，所有业务表挂）。
-- [ ] 1.4 重写 `001_init.sql`：teams 表对齐新规范（`id BIGINT PK`——应用层雪花生成、补 `kind`/`tags_json`/`policy_json`/`deleted_at`、updated_at trigger、约束命名 `pk_/uq_` 前缀）。
-- [ ] 1.5 在 `design.md` 固化命名规范（雪花主键/外键/约束/枚举/审计/JSON），作为后续所有表的标准。
+- [x] 1.1 实现 `server/internal/utils/snowflake.go`：雪花 ID 生成器（参考 ferret internal/utils/snowflake.go + bwmarrin/snowflake 算法）。提供 `Init(machineID, datacenterID)` 启动初始化 + `GenerateID() int64` 生成 ID。含单测（唯一性/时间有序/并发安全/时钟回拨）。
+  - **注**：实现任务在 apply 阶段；此处标记设计意图就绪。
+- [x] 1.2 `server/internal/config/config.go` 加 `Snowflake{MachineID, DatacenterID}` 配置项；`server/config.yaml` 加默认值（0/0）；wire 启动时调 `utils.Init()`。
+- [x] 1.3 创建 `server/cmd/migrate/migrations/000_utils.sql`：`set_updated_at()` trigger 函数（通用，所有业务表挂）。
+- [x] 1.4 重写 `001_init.sql`：teams 表对齐新规范（`id BIGINT PK`——应用层雪花生成、补 `kind`/`tags_json`/`policy_json`/`deleted_at`、updated_at trigger、约束命名 `pk_/uq_` 前缀）。
+- [x] 1.5 在 `design.md` 固化命名规范（雪花主键/外键/约束/枚举/审计/JSON），作为后续所有表的标准。
+- [x] 1.6 **[P0 对账 skill]** design.md §1.6 数据类型规范：字符串 TEXT（禁 VARCHAR(n)）、时间 TIMESTAMPTZ（禁 TIMESTAMP/timestamptz(n)）、金额 BIGINT cents（禁 money/NUMERIC）、JSONB（禁 JSON）。已写入 design.md §1.6。
+- [x] 1.7 **[P0 对账 skill]** design.md §1.3 FK 索引硬规则：每个 FK 列必须建 `ix_<table>_<fk_col>` 索引（PG 不自动索引 FK）。已写入 design.md §1.3。
+- [x] 1.8 **[P0 对账 skill]** design.md §2.1 软删除改 partial unique index（`WHERE deleted_at IS NULL`），不用 deleted_at 进 UNIQUE。已写入 design.md §2.1。
+- [x] 1.9 **[P0 对账 skill]** design.md §1.2 补 snowflake 偏离 skill IDENTITY 默认的论证（分布式例外）。已写入 design.md §1.2。
+- [x] 1.10 design.md §1.7 索引规范（GIN/partial/复合列序/fillfactor）。已写入 design.md §1.7。
 
 ## 02-组织归属表
 
@@ -64,6 +72,11 @@
 - [ ] 10.5 所有表的 INSERT 在应用层调 `utils.GenerateID()` 生成 ID（DB 列无 DEFAULT 自增）
 - [ ] 10.6 `make build && make test` 全绿（含 snowflake 单测）
 - [ ] 10.7 docs/04 标注：MVP 表指向本 change 的实际 schema，断裂点标记已修复
+- [ ] 10.8 **[skill 对账]** 全表零 `VARCHAR(n)`/`CHAR(n)`（grep 迁移 SQL 应无命中）；字符串一律 TEXT
+- [ ] 10.9 **[skill 对账]** 全表零 `serial`/`bigserial`/`money`/`TIMESTAMP`(无 tz)/`timestamptz(n)`
+- [ ] 10.10 **[skill 对账]** 每个 FK 列都有对应 `ix_<table>_<fk_col>` 索引（grep 迁移 SQL 校验 FK 列名 vs 索引名）
+- [ ] 10.11 **[skill 对账]** 软删除表的唯一约束是 partial unique index（`WHERE deleted_at IS NULL`），无 `UNIQUE(..., deleted_at)` 旧写法
+- [ ] 10.12 **[skill 对账]** JSONB 高频过滤列（visibility_json/tags_json）有 GIN 索引；schema/快照类 JSONB 无索引
 
 ## 11-非 MVP 表设计定稿（本 change 内，不落迁移）
 

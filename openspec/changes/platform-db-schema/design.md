@@ -40,6 +40,14 @@ func GenerateID() int64 { ... }                          // 所有 INSERT 前调
 
 **现有 teams 表（BIGSERIAL）需重写**：改为 `id BIGINT PRIMARY KEY`（去掉 BIGSERIAL 的自增），INSERT 时应用层传雪花 ID。teams 尚无业务数据，重写无成本。
 
+> **为何偏离 skill 默认（skill 偏好 `BIGINT GENERATED ALWAYS AS IDENTITY`）**：postgresql-table-design skill 把 `IDENTITY` 列为默认首选，snowflake 属于"分布式部署需要"的例外场景。本平台采用 snowflake 的论证：
+> 1. **day 1 就为多实例设计**——控制面未来必然水平扩展（多 region 部署），snowflake 提前到位避免后期从 IDENTITY 迁移（IDENTITY 单 sequence 跨实例要协调，迁移成本高；snowflake 用 machineID/datacenterID 天然分布式）。
+> 2. **时间有序 → B-Tree 插入友好**——雪花 ID 单调递增，新行追加到 B-Tree 末尾，不像 UUIDv4 随机导致页分裂（skill 在 Insert-Heavy 段也承认这点，故建议 `IDENTITY over UUID`；snowflake 同样具备这个优势）。
+> 3. **int64 比 UUID 省空间**——主键 + 所有 FK 列都受益（索引/表存储减半）。
+> 4. **不暴露增量信息**——不像 `BIGSERIAL` 能从 ID 推断业务量（这是 P0：现有 `BIGSERIAL` 同时违反 skill 的 `DO NOT use serial`，必须改）。
+>
+> 此决策记录在 audit-postgresql-skill.md P0-4，属 skill 接受的"分布式例外"。代价：需应用层 `utils.Init(machineID, datacenterID)` 协调（单实例默认 0/0），多实例时配不同值。
+
 **machineID/datacenterID 配置**：从 `server/config.yaml` 读（`snowflake.machine_id` / `snowflake.datacenter_id`），多实例部署时每实例配不同值。单实例开发默认 0/0。
 
 ### 1.3 外键策略
@@ -51,6 +59,16 @@ team_id BIGINT NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,
 - 所有 FK 列类型 `BIGINT`（与主键一致）。
 - 控制面 DB 强制引用完整性（`ON DELETE RESTRICT` 防误删，不用 CASCADE 防连锁）。
 - 逻辑引用但无 FK 是 docs/04 的缺陷，本 change 全部补 FK。
+
+> **P0 硬规则（对账 skill：FK 必须手动索引）**：PostgreSQL **不自动索引 FK 列**（skill Core Rules #4 + Gotchas + Constraints 段三处强调）。每个 FK 列**必须**配显式索引，否则父表删除/更新时子表全表扫 + 锁。规则：
+> ```sql
+> team_id BIGINT NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,
+> -- 紧跟索引（命名 ix_<table>_<fk_col>）
+> CREATE INDEX ix_projects_team_id ON projects(team_id);
+> ```
+> - **无例外**：所有 FK 列都要建索引，单列索引即可。
+> - 多 FK 列指向同一父表或常一起查询时，按访问路径考虑复合索引（如 `ix_requests_(team_id, status)`）。
+> - 索引在迁移 SQL 中紧跟建表语句，不靠 sqlc 管理。
 
 ### 1.4 约束命名
 
@@ -64,15 +82,53 @@ team_id BIGINT NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,
 
 ### 1.5 枚举值策略
 
-`VARCHAR(32) NOT NULL CHECK (xxx IN (...))`，取值域与 proto enum 对齐：
+`TEXT NOT NULL CHECK (xxx IN (...))`，取值域与 proto enum 对齐：
 ```sql
-status VARCHAR(32) NOT NULL CHECK (status IN (
+status TEXT NOT NULL CHECK (status IN (
     'submitted', 'generating', 'pending_admission', ...
 )) DEFAULT 'submitted',
 ```
 - 不用 PostgreSQL 原生 ENUM 类型（加值要 `ALTER TYPE`，迁移麻烦）。
-- 用 VARCHAR + CHECK（加值改 CHECK 约束，迁移友好）。
+- 用 `TEXT + CHECK`（加值改 CHECK 约束，迁移友好）——**对齐 skill**：skill 明确"evolving values（如订单状态）→ TEXT + CHECK"，本平台 status 都属 evolving。
 - snake_case 取值（proto enum 值剥前缀后 lowercase + snake）。
+
+### 1.6 数据类型规范（对账 postgresql-table-design skill）
+
+> skill 的硬 DO/DO NOT 作为红线。下表是全库统一的类型选择，落迁移时无例外：
+
+| 类别 | 决策 | 依据（skill 原文） |
+|---|---|---|
+| **字符串** | `TEXT`（禁 `VARCHAR(n)`/`CHAR(n)`）| "DO NOT use char(n) or varchar(n); DO use text" |
+| 字符串长度上限 | 如需，`CHECK (LENGTH(col) <= n)` | "if length limits needed, use CHECK (LENGTH(col) <= n) instead of VARCHAR(n)" |
+| **时间戳** | `TIMESTAMPTZ`（禁 `TIMESTAMP`、`timestamptz(n)`）| "DO NOT use timestamp (without time zone); DO NOT use timestamptz(0) or any precision" |
+| **整数 ID** | `BIGINT`（应用层 snowflake，无 DEFAULT/IDENTITY）| 见 §1.2 论证（skill 默认 IDENTITY，本平台分布式例外）|
+| 普通整数 | `BIGINT`（除非空间敏感才 `INTEGER`）| "prefer BIGINT unless storage space is critical" |
+| **金额** | `BIGINT` 存整数分（`*_cents` 后缀）+ 独立 `currency TEXT` | **偏离 skill 默认**（skill 建议 NUMERIC），但整数分是业界共识（Stripe/Shopify），避免浮点；偏离理由记此 |
+| **禁用** | `money` 类型、`serial`/`bigserial`、`timetz` | skill DO NOT use 清单 |
+| **布尔** | `BOOLEAN NOT NULL`（除非三态）| skill Data Types > Booleans |
+| **JSONB** | 半结构化可选属性用 `JSONB`，禁 `JSON`（保序才用 JSON）| "JSONB preferred over JSON; index with GIN" |
+| **二进制** | `BYTEA` | skill Data Types > Strings |
+
+### 1.7 索引规范（对账 skill Indexing 段）
+
+| 场景 | 索引类型 | 示例 |
+|---|---|---|
+| FK 列（**强制**，见 §1.3）| B-tree | `CREATE INDEX ix_projects_team_id ON projects(team_id);` |
+| 高频过滤/排序 | B-tree | `CREATE INDEX ix_requests_status ON requests(status);` |
+| JSONB 按内容过滤 | GIN | `CREATE INDEX ix_catalog_items_visibility ON catalog_items USING GIN(visibility_json);` |
+| 软删未删行唯一 | partial unique | 见 §2.1 |
+| 高频 status 子集（可选）| partial | `CREATE INDEX ix_requests_active ON requests(team_id) WHERE status IN ('submitted','generating');` |
+
+**JSONB GIN 索引取舍**（skill JSONB Guidance）：
+- 默认 opclass（支持 `@>`/`?`/`?|`/`?&`）：通用，多数场景用这个。
+- `jsonb_path_ops`（仅支持 `@>`，索引更小更快）：确认只做 containment 不做 key existence 时用。
+- **不建索引的 JSONB**：schema 文档（form_schema_json）、只读快照（before_json/after_json）、低频访问的配置。
+
+**复合索引列序**（skill Composite）：等值过滤列在前，范围列在后。如 `requests(team_id, status)` 服务"团队 X 的 submitted 工单"。
+
+**partial index**（skill Partial）：热查询只查子集时用，缩小索引体积。MVP 可选，按实际查询模式决定。
+
+**fillfactor / update-heavy**（skill Update-Heavy，可选）：update-heavy 表（requests/approval_runs/executor_runs）可设 `fillfactor=90` 提升 HOT update 命中。MVP 不做，记一笔供调优。
 
 ## 02-审计属性规范（sqlc/pgx 集成）
 
@@ -84,6 +140,8 @@ created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 ```
 
+> **P0 硬规则（对账 skill）**：所有时间列一律 `TIMESTAMPTZ`，**禁用** `TIMESTAMP`（without tz）和 `timestamptz(n)`（带精度）。落迁移时每张表的时间列都按此确认。
+
 **append-only 表**（request_events, audit_logs, approval_decisions）只有：
 ```sql
 occurred_at TIMESTAMPTZ NOT NULL DEFAULT now(),  -- 或 created_at
@@ -93,10 +151,21 @@ occurred_at TIMESTAMPTZ NOT NULL DEFAULT now(),  -- 或 created_at
 ```sql
 deleted_at TIMESTAMPTZ NULL,
 ```
-UNIQUE 约束含 `deleted_at` 以允许软删后重建：
-```sql
-CONSTRAINT uq_stacks_path UNIQUE (bundle_id, component, env, deleted_at)
-```
+
+> **P0 修复（对账 skill UNIQUE NULLs）**：软删除 + 唯一性用 **partial unique index**，**不用** `deleted_at` 进 UNIQUE 列。
+>
+> 旧写法（错）：`CONSTRAINT uq_stacks_path UNIQUE (bundle_id, component, env, deleted_at)` —— PG 默认允许多个 NULL，未删行（deleted_at NULL）多行共存，唯一性实际不成立。
+>
+> 正确写法（skill 软删业界标准，GitHub/Linear 同款）：
+> ```sql
+> -- 只约束未删行；删了可重建同名
+> CREATE UNIQUE INDEX uq_stacks_path_active
+>     ON stacks (bundle_id, component, env)
+>     WHERE deleted_at IS NULL;
+> ```
+> 命名约定：`uq_<table>_<cols>_active`（`_active` 后缀表明只约束未删行）。
+>
+> 若确有"全局唯一含 NULL"需求（非软删场景），用 `UNIQUE (...) NULLS NOT DISTINCT`（PG15+，skill 推荐）。本平台软删场景一律走 partial index。
 
 ### 2.2 updated_at 自动维护（trigger）
 
@@ -204,7 +273,7 @@ cloud_accounts(id, provider, account_id, name, status[active|suspended], regions
 
 #### A7. 分层（2 张，Phase 1 只 seed）
 ```
-layer_logical_refs(logical_id VARCHAR(64) PK, current_display_name, notes, created_at)
+layer_logical_refs(logical_id TEXT PK, current_display_name, notes, created_at)
 layer_rule_set_versions(version_id INT PK, layers_json, status[active|superseded|deprecated|archived],
                         is_default, created_at, created_by, superseded_at, superseded_by)
 ```
@@ -399,10 +468,10 @@ import_resources(id, import_job_id FK→import_jobs, cloud_id, tf_address,
 | 断裂 | 修复 |
 |---|---|
 | A1 PlanArtifact 三处矛盾 | 独立 `plan_artifacts` 表（不并入 executor_runs），MVP 只建这张 |
-| A2 requests 缺 cost 字段 | 补 `cost_estimate_cents` BIGINT + `cost_currency` VARCHAR(8) |
+| A2 requests 缺 cost 字段 | 补 `cost_estimate_cents` BIGINT + `cost_currency` TEXT |
 | A3 requests 缺 team_id | 补 `team_id` BIGINT FK |
-| A4 requests 缺 correlation_id | 补 `correlation_id` VARCHAR(64) |
-| A5 requests 缺 source | 补 `source` VARCHAR(32) CHECK |
+| A4 requests 缺 correlation_id | 补 `correlation_id` TEXT |
+| A5 requests 缺 source | 补 `source` TEXT CHECK |
 | A6 stacks 无 layer_logical_id | 本 change 在 B2 stacks 表设计中补 `layer_logical_id` 列（定稿），Wave 2 落迁移时直接含此列 |
 | A7 CatalogItem proto 暴露少 | 本 change 只管表结构（表有全部列）；proto 暴露字段调整是 proto change 的事 |
 | A8 module_versions 缺 dependencies | 新增 `module_dependencies` 表 |
