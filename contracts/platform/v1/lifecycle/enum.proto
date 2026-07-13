@@ -1,8 +1,0 @@
-syntax = "proto3";
-
-package aether.platform.v1.lifecycle;
-
-option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/lifecycle;lifecyclev1";
-
-// Lifecycle domain has no domain-specific enums beyond what's in common.
-// This file exists for future lifecycle-specific enums.

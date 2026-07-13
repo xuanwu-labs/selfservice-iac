@@ -2,14 +2,12 @@ syntax = "proto3";
 
 package aether.platform.v1.catalog;
 
-import "platform/v1/common/dto.proto";
-import "platform/v1/common/enum.proto";
 import "platform/v1/catalog/dto.proto";
 
 option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/catalog;catalogv1";
 
 // ============================================================
-// CatalogService — Server: browse catalog + query dependencies.
+// Server services — user-facing.
 // ============================================================
 service CatalogService {
   rpc ListItems(ListItemsRequest) returns (ListItemsResponse) {}
@@ -19,8 +17,7 @@ service CatalogService {
 }
 
 // ============================================================
-// RegistryAdminService — Admin: register and manage modules.
-// Requires admin role.
+// Admin services — operator-facing (requires admin role).
 // ============================================================
 service RegistryAdminService {
   rpc RegisterModule(RegisterModuleRequest) returns (RegisterModuleResponse) {}
@@ -29,149 +26,8 @@ service RegistryAdminService {
   rpc DeprecateModule(DeprecateModuleRequest) returns (DeprecateModuleResponse) {}
 }
 
-// ============================================================
-// CatalogAdminService — Admin: publish and manage catalog items.
-// Requires admin role.
-// ============================================================
 service CatalogAdminService {
   rpc PublishCatalogItem(PublishCatalogItemRequest) returns (PublishCatalogItemResponse) {}
   rpc UpdateCatalogItem(UpdateCatalogItemRequest) returns (UpdateCatalogItemResponse) {}
   rpc DeprecateCatalogItem(DeprecateCatalogItemRequest) returns (DeprecateCatalogItemResponse) {}
-}
-
-// ============================================================
-// CatalogService RPC Messages
-// ============================================================
-
-message ListItemsRequest {
-  int32 page_size = 1;
-  string page_token = 2;
-  aether.platform.v1.common.CatalogItemStatus status_filter = 3;
-}
-
-message ListItemsResponse {
-  repeated CatalogItem items = 1;
-  string next_page_token = 2;
-}
-
-message GetCatalogItemRequest {
-  string catalog_item_id = 1;
-}
-
-message GetCatalogItemResponse {
-  CatalogItem item = 1;
-}
-
-message ListModuleDependenciesRequest {
-  string module_id = 1;
-  string module_version = 2;
-  string env_id = 3;
-  string team_id = 4;
-}
-
-message ListModuleDependenciesResponse {
-  repeated ModuleDependencyInfo dependencies = 1;
-}
-
-message ListAvailableStacksRequest {
-  string layer = 1;
-  string module_name = 2;
-  string env_id = 3;
-  string team_id = 4;
-}
-
-message ListAvailableStacksResponse {
-  repeated AvailableStack stacks = 1;
-}
-
-// ============================================================
-// RegistryAdminService RPC Messages
-// ============================================================
-
-message RegisterModuleRequest {
-  string git_source = 1;
-  string module_path = 2;
-  string version = 3;
-  string provider = 4;
-  string name = 5;
-  string description = 6;
-}
-
-message RegisterModuleResponse {
-  Module module = 1;
-}
-
-message ListModulesRequest {
-  aether.platform.v1.common.PageRequest pagination = 1;
-  string provider_filter = 2;
-  aether.platform.v1.common.ModuleStatus status_filter = 3;
-}
-
-message ListModulesResponse {
-  repeated Module modules = 1;
-  aether.platform.v1.common.PageResponse pagination = 2;
-}
-
-message GetModuleRequest {
-  string module_id = 1;
-}
-
-message GetModuleResponse {
-  Module module = 1;
-}
-
-message DeprecateModuleRequest {
-  string module_id = 1;
-  string version = 2;
-  string reason = 3;
-}
-
-message DeprecateModuleResponse {
-  Module module = 1;
-}
-
-// ============================================================
-// CatalogAdminService RPC Messages
-// ============================================================
-
-message PublishCatalogItemRequest {
-  string module_id = 1;
-  string module_version = 2;
-  string name = 3;
-  string description = 4;
-  string category = 5;
-  aether.platform.v1.common.Cardinality cardinality = 6;
-  string instance_key = 7;
-  repeated string per_instance_fields = 8;
-  repeated string shared_fields = 9;
-  string form_schema_json = 10;
-  map<string, string> default_values = 11;
-  repeated string visible_to_teams = 12;
-  string layer_logical_id = 13;
-  map<string, string> default_tags = 14;
-}
-
-message PublishCatalogItemResponse {
-  CatalogItem item = 1;
-}
-
-message UpdateCatalogItemRequest {
-  string catalog_item_id = 1;
-  map<string, string> default_values = 2;
-  repeated string visible_to_teams = 3;
-  string form_schema_json = 4;
-  map<string, string> default_tags = 5;
-}
-
-message UpdateCatalogItemResponse {
-  CatalogItem item = 1;
-}
-
-message DeprecateCatalogItemRequest {
-  string catalog_item_id = 1;
-  string reason = 2;
-}
-
-message DeprecateCatalogItemResponse {
-  CatalogItem item = 1;
 }
