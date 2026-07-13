@@ -2,21 +2,25 @@ syntax = "proto3";
 
 package aether.platform.v1;
 
-
 option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1";
 
 // ============================================================
-// DependencyService — 依赖查询。
-// 用户提交申请时，需要选择上游依赖（如 ECS 依赖 VPC 的 vswitch_id）。
-// 此 service 查询当前可用上游 stack，供前端渲染依赖选择器。
-// 依赖关系来自 ModuleVersion.dependencies（从 variables.tf 解析）。
+// DependencyService — Dependency query.
+// When a user submits a request, they may need to select upstream
+// dependencies (e.g. ECS depends on VPC's vswitch_id). This service
+// queries available upstream stacks for the frontend dependency picker.
+// Dependency info comes from ModuleVersion.dependencies (parsed from
+// variables.tf).
 // ============================================================
 service DependencyService {
-  // 查询某个模块版本的依赖列表（前端据此渲染"选 VPC"等选择器）。
+  // List dependencies declared by a module version.
+  // Frontend uses this to render dependency selectors (e.g. "Select VPC").
   rpc ListModuleDependencies(ListModuleDependenciesRequest) returns (ListModuleDependenciesResponse) {}
 
-  // 查询某个依赖可用的上游 stack（如选了 VPC 模块，返回已有的 VPC stack 列表）。
-  // 这些 stack 的 outputs 通过 terraform_remote_state 注入到 codegen。
+  // List available upstream stacks for a dependency.
+  // e.g. if the dependency is on the VPC module in layer "global",
+  // returns all existing VPC stacks the user's team can reference.
+  // These stacks' outputs are injected via terraform_remote_state in codegen.
   rpc ListAvailableStacks(ListAvailableStacksRequest) returns (ListAvailableStacksResponse) {}
 }
 
@@ -24,16 +28,19 @@ service DependencyService {
 // Messages
 // ============================================================
 
+// ModuleDependencyInfo describes one dependency and its available upstream stacks.
 message ModuleDependencyInfo {
   string variable_name = 1;                 // e.g. "vswitch_id"
-  string description = 2;                   // e.g. "ECS 所在交换机 ID"
+  string description = 2;                   // e.g. "VSwitch ID for the ECS instance"
   string depends_on_layer = 3;              // e.g. "global"
   string depends_on_module = 4;             // e.g. "vpc"
   string output_key = 5;                    // e.g. "vswitch_id"
   bool required = 6;
-  repeated AvailableStack available_stacks = 7; // 已有的上游 stack（供用户选）
+  repeated AvailableStack available_stacks = 7; // existing upstream stacks for selection
 }
 
+// AvailableStack is an existing upstream stack the user can select as a dependency.
+// Its outputs are referenced via terraform_remote_state in the generated code.
 message AvailableStack {
   string stack_id = 1;                      // stk_<alphanum>
   string display_name = 2;                  // e.g. "dev-global-vpc"
@@ -41,8 +48,8 @@ message AvailableStack {
   string team_id = 4;
   string layer = 5;                         // e.g. "global"
   string module_name = 6;                   // e.g. "vpc"
-  map<string, string> outputs_summary = 7;  // 关键 outputs 预览（e.g. {vpc_id: "vpc-xxx", vswitch_id: "vsw-xxx"}）
-  string last_synced_at = 8;                // CMDB 最后同步时间
+  map<string, string> outputs_summary = 7;  // key output previews (e.g. {vpc_id: "vpc-xxx"})
+  string last_synced_at = 8;                // CMDB last sync time
 }
 
 // ============================================================
@@ -52,8 +59,8 @@ message AvailableStack {
 message ListModuleDependenciesRequest {
   string module_id = 1;
   string module_version = 2;
-  string env_id = 3;                        // 环境上下文（某些依赖按环境过滤）
-  string team_id = 4;                       // 团队上下文（只能选自己团队的上游 stack）
+  string env_id = 3;                        // environment context (some deps filtered by env)
+  string team_id = 4;                       // team context (can only see own team's upstream stacks)
 }
 
 message ListModuleDependenciesResponse {
@@ -61,8 +68,8 @@ message ListModuleDependenciesResponse {
 }
 
 message ListAvailableStacksRequest {
-  string layer = 1;                         // 查哪一层的 stack（e.g. "global"）
-  string module_name = 2;                   // 查哪个模块的 stack（e.g. "vpc"）
+  string layer = 1;                         // which layer's stacks (e.g. "global")
+  string module_name = 2;                   // which module's stacks (e.g. "vpc")
   string env_id = 3;
   string team_id = 4;
 }

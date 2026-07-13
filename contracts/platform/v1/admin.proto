@@ -8,34 +8,34 @@ import "platform/v1/catalog.proto";
 option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1";
 
 // ============================================================
-// ModuleRegistryService — 管理员注册原子模块（D7）。
-// 管理员从 Git 拉取 Terraform 模块，解析 variables.tf 生成
-// variables_contract_json，校验后注册到平台模块库。
-// 需要 admin 角色。
+// ModuleRegistryService — Admin: register atomic modules (D7).
+// Admins pull Terraform modules from Git, parse variables.tf to
+// generate variables_contract_json, validate, and register to the
+// platform module registry. Requires admin role.
 // ============================================================
 service ModuleRegistryService {
-  // 注册一个新模块或新版本。
+  // Register a new module or a new version.
   rpc RegisterModule(RegisterModuleRequest) returns (RegisterModuleResponse) {}
-  // 列出已注册的模块（支持按 provider/status 过滤）。
+  // List registered modules (filter by provider/status).
   rpc ListModules(ListModulesRequest) returns (ListModulesResponse) {}
-  // 查询单个模块的详情（含 variables contract）。
+  // Get module details (includes variables contract).
   rpc GetModule(GetModuleRequest) returns (GetModuleResponse) {}
-  // 废弃一个模块版本。
+  // Deprecate a module version.
   rpc DeprecateModule(DeprecateModuleRequest) returns (DeprecateModuleResponse) {}
 }
 
 // ============================================================
-// CatalogAdminService — 管理员发布/管理服务目录项（D25）。
-// 从已注册的模块版本裁剪 form_schema、设置默认值、配置可见性
-// 和 cardinality（single/list/map），发布为用户可申请的目录项。
-// 需要 admin 角色。
+// CatalogAdminService — Admin: publish and manage catalog items (D25).
+// Create user-facing catalog items from registered module versions:
+// trim form_schema, set defaults, configure visibility and
+// cardinality (single/list/map). Requires admin role.
 // ============================================================
 service CatalogAdminService {
-  // 从模块版本发布一个目录项。
+  // Publish a catalog item from a module version.
   rpc PublishCatalogItem(PublishCatalogItemRequest) returns (PublishCatalogItemResponse) {}
-  // 更新目录项（默认值/可见性/cardinality）。
+  // Update a catalog item (defaults/visibility/cardinality).
   rpc UpdateCatalogItem(UpdateCatalogItemRequest) returns (UpdateCatalogItemResponse) {}
-  // 废弃一个目录项（用户不可见，已有申请继续走）。
+  // Deprecate a catalog item (hidden from users; existing requests continue).
   rpc DeprecateCatalogItem(DeprecateCatalogItemRequest) returns (DeprecateCatalogItemResponse) {}
 }
 
@@ -59,20 +59,20 @@ message Module {
   }
   ModuleStatus status = 6;
 
-  repeated ModuleVersion versions = 7;      // 所有已注册版本
+  repeated ModuleVersion versions = 7;      // all registered versions
   string created_at = 8;                    // RFC 3339 UTC
   string updated_at = 9;
 }
 
-
-// 模块依赖声明（从 variables.tf 的 validation/description 提取）
+// ModuleDependency declares a cross-module dependency (parsed from variables.tf).
+// Example: ECS module depends on VPC module's vswitch_id output.
 message ModuleDependency {
   string variable_name = 1;                 // e.g. "vswitch_id"
-  string description = 2;                   // e.g. "ECS 所在交换机 ID（来自网络层）"
-  string depends_on_layer = 3;              // e.g. "global"（依赖哪一层）
-  string depends_on_module = 4;             // e.g. "vpc"（依赖哪个模块）
-  string output_key = 5;                    // e.g. "vswitch_id"（从上游 outputs 取哪个值）
-  bool required = 6;                        // 是否必填
+  string description = 2;                   // e.g. "VSwitch ID for the ECS instance"
+  string depends_on_layer = 3;              // e.g. "global"
+  string depends_on_module = 4;             // e.g. "vpc"
+  string output_key = 5;                    // e.g. "vswitch_id"
+  bool required = 6;                        // whether this dependency is mandatory
 }
 
 // ============================================================
@@ -80,11 +80,11 @@ message ModuleDependency {
 // ============================================================
 
 message RegisterModuleRequest {
-  string git_source = 1;                    // Git 仓库地址
-  string module_path = 2;                   // 模块在仓库内的路径（e.g. atomic/ecs）
-  string version = 3;                       // 要注册的版本（tag 或 commit）
-  string provider = 4;                      // 云提供商
-  string name = 5;                          // 模块显示名
+  string git_source = 1;                    // Git repository URL
+  string module_path = 2;                   // path within repo (e.g. atomic/ecs)
+  string version = 3;                       // tag or commit to register
+  string provider = 4;                      // cloud provider
+  string name = 5;                          // display name
   string description = 6;
 }
 
@@ -113,7 +113,7 @@ message GetModuleResponse {
 
 message DeprecateModuleRequest {
   string module_id = 1;
-  string version = 2;                       // 要废弃的具体版本
+  string version = 2;                       // specific version to deprecate
   string reason = 3;
 }
 
@@ -126,28 +126,28 @@ message DeprecateModuleResponse {
 // ============================================================
 
 message PublishCatalogItemRequest {
-  string module_id = 1;                     // 从哪个模块发布
-  string module_version = 2;                // 模块的哪个版本
-  string name = 3;                          // 目录项显示名
+  string module_id = 1;                     // source module
+  string module_version = 2;                // which version to publish
+  string name = 3;                          // catalog item display name
   string description = 4;
   string category = 5;                      // e.g. "compute" / "database" / "network"
 
   enum Cardinality {
     CARDINALITY_UNSPECIFIED = 0;
-    CARDINALITY_SINGLE = 1;                 // 单实例
+    CARDINALITY_SINGLE = 1;                 // single instance
     CARDINALITY_LIST = 2;                   // count = N
     CARDINALITY_MAP = 3;                    // for_each = tomap({...})
   }
   Cardinality cardinality = 6;
-  string instance_key = 7;                  // for_each 的 key 变量名
-  repeated string per_instance_fields = 8;  // 每实例不同的变量
-  repeated string shared_fields = 9;        // 所有实例共享的变量
+  string instance_key = 7;                  // for_each key variable name
+  repeated string per_instance_fields = 8;  // fields that differ per instance
+  repeated string shared_fields = 9;        // fields shared across instances
 
-  string form_schema_json = 10;             // 从 variables contract 裁剪的表单 schema
-  map<string, string> default_values = 11;  // 最佳实践默认值
-  repeated string visible_to_teams = 12;    // 可见性控制（空=全部可见）
-  string layer_logical_id = 13;            // 该目录项属于哪一层（global/middleware/application）
-  map<string, string> default_tags = 14;    // 平台强制 tag（D18）
+  string form_schema_json = 10;             // trimmed form schema (from variables contract)
+  map<string, string> default_values = 11;  // best-practice defaults
+  repeated string visible_to_teams = 12;    // visibility control (empty = all)
+  string layer_logical_id = 13;            // which layer (global/middleware/application)
+  map<string, string> default_tags = 14;    // platform-mandated tags (D18)
 }
 
 message PublishCatalogItemResponse {
@@ -158,7 +158,7 @@ message UpdateCatalogItemRequest {
   string catalog_item_id = 1;               // cat_<alphanum>
   map<string, string> default_values = 2;
   repeated string visible_to_teams = 3;
-  string form_schema_json = 4;              // 可更新表单 schema
+  string form_schema_json = 4;              // updated form schema
   map<string, string> default_tags = 5;
 }
 

@@ -21,15 +21,16 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// ModuleDependencyInfo describes one dependency and its available upstream stacks.
 type ModuleDependencyInfo struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	VariableName    string                 `protobuf:"bytes,1,opt,name=variable_name,json=variableName,proto3" json:"variable_name,omitempty"`            // e.g. "vswitch_id"
-	Description     string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`                                  // e.g. "ECS 所在交换机 ID"
+	Description     string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`                                  // e.g. "VSwitch ID for the ECS instance"
 	DependsOnLayer  string                 `protobuf:"bytes,3,opt,name=depends_on_layer,json=dependsOnLayer,proto3" json:"depends_on_layer,omitempty"`    // e.g. "global"
 	DependsOnModule string                 `protobuf:"bytes,4,opt,name=depends_on_module,json=dependsOnModule,proto3" json:"depends_on_module,omitempty"` // e.g. "vpc"
 	OutputKey       string                 `protobuf:"bytes,5,opt,name=output_key,json=outputKey,proto3" json:"output_key,omitempty"`                     // e.g. "vswitch_id"
 	Required        bool                   `protobuf:"varint,6,opt,name=required,proto3" json:"required,omitempty"`
-	AvailableStacks []*AvailableStack      `protobuf:"bytes,7,rep,name=available_stacks,json=availableStacks,proto3" json:"available_stacks,omitempty"` // 已有的上游 stack（供用户选）
+	AvailableStacks []*AvailableStack      `protobuf:"bytes,7,rep,name=available_stacks,json=availableStacks,proto3" json:"available_stacks,omitempty"` // existing upstream stacks for selection
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -113,6 +114,8 @@ func (x *ModuleDependencyInfo) GetAvailableStacks() []*AvailableStack {
 	return nil
 }
 
+// AvailableStack is an existing upstream stack the user can select as a dependency.
+// Its outputs are referenced via terraform_remote_state in the generated code.
 type AvailableStack struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	StackId        string                 `protobuf:"bytes,1,opt,name=stack_id,json=stackId,proto3" json:"stack_id,omitempty"`             // stk_<alphanum>
@@ -121,8 +124,8 @@ type AvailableStack struct {
 	TeamId         string                 `protobuf:"bytes,4,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"`
 	Layer          string                 `protobuf:"bytes,5,opt,name=layer,proto3" json:"layer,omitempty"`                                                                                                                   // e.g. "global"
 	ModuleName     string                 `protobuf:"bytes,6,opt,name=module_name,json=moduleName,proto3" json:"module_name,omitempty"`                                                                                       // e.g. "vpc"
-	OutputsSummary map[string]string      `protobuf:"bytes,7,rep,name=outputs_summary,json=outputsSummary,proto3" json:"outputs_summary,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // 关键 outputs 预览（e.g. {vpc_id: "vpc-xxx", vswitch_id: "vsw-xxx"}）
-	LastSyncedAt   string                 `protobuf:"bytes,8,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`                                                                               // CMDB 最后同步时间
+	OutputsSummary map[string]string      `protobuf:"bytes,7,rep,name=outputs_summary,json=outputsSummary,proto3" json:"outputs_summary,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // key output previews (e.g. {vpc_id: "vpc-xxx"})
+	LastSyncedAt   string                 `protobuf:"bytes,8,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`                                                                               // CMDB last sync time
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -217,8 +220,8 @@ type ListModuleDependenciesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ModuleId      string                 `protobuf:"bytes,1,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"`
 	ModuleVersion string                 `protobuf:"bytes,2,opt,name=module_version,json=moduleVersion,proto3" json:"module_version,omitempty"`
-	EnvId         string                 `protobuf:"bytes,3,opt,name=env_id,json=envId,proto3" json:"env_id,omitempty"`    // 环境上下文（某些依赖按环境过滤）
-	TeamId        string                 `protobuf:"bytes,4,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"` // 团队上下文（只能选自己团队的上游 stack）
+	EnvId         string                 `protobuf:"bytes,3,opt,name=env_id,json=envId,proto3" json:"env_id,omitempty"`    // environment context (some deps filtered by env)
+	TeamId        string                 `protobuf:"bytes,4,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"` // team context (can only see own team's upstream stacks)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -327,8 +330,8 @@ func (x *ListModuleDependenciesResponse) GetDependencies() []*ModuleDependencyIn
 
 type ListAvailableStacksRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Layer         string                 `protobuf:"bytes,1,opt,name=layer,proto3" json:"layer,omitempty"`                             // 查哪一层的 stack（e.g. "global"）
-	ModuleName    string                 `protobuf:"bytes,2,opt,name=module_name,json=moduleName,proto3" json:"module_name,omitempty"` // 查哪个模块的 stack（e.g. "vpc"）
+	Layer         string                 `protobuf:"bytes,1,opt,name=layer,proto3" json:"layer,omitempty"`                             // which layer's stacks (e.g. "global")
+	ModuleName    string                 `protobuf:"bytes,2,opt,name=module_name,json=moduleName,proto3" json:"module_name,omitempty"` // which module's stacks (e.g. "vpc")
 	EnvId         string                 `protobuf:"bytes,3,opt,name=env_id,json=envId,proto3" json:"env_id,omitempty"`
 	TeamId        string                 `protobuf:"bytes,4,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
