@@ -26,9 +26,9 @@ MVP 主链路：管理员注册模块 → 发布目录项 → 用户申请 → p
 | **分层** | （PathGenerator 内部） | layer_logical_refs, layer_rule_set_versions | 固定三层 seed（Phase 1 只读） |
 | **审计** | — | audit_logs, outbox_events | 审计 + 事件 outbox（Saga） |
 
-**MVP 不含**（推迟）：stacks/stack_dependencies（Wave 2 codegen 后）、drift_runs/drift_records（Wave 4）、CMDB/FinOps 表（Wave 4）、CICD/gate 表（Wave 5）、import 表（Wave 5）、stack_grouping_rules/layer_migrations（Phase 2/3）。
+**MVP 不含（但已设计定稿）**：stacks/stack_dependencies、drift、auth/identity、adapters_config、Saga 补偿、Run Hooks/运营、分层迁移、CMDB/FinOps、云凭据、环境租户、标签策略、CICD、存量导入——这些表（约 33 张）的**字段/类型/约束/FK 在本 change 全部推导定稿**（design.md §03 B1-B14），但不落迁移 SQL，等对应 Wave 实现功能时按定稿直接建表。这样后续 Wave 不用回头重新设计表结构。
 
-**MVP 表数**：约 18-20 张（初版，随实现打磨）。
+**表数**：全量初版设计 ~52 张（design.md §03 定稿）；本 change 落迁移的是 MVP 19 张（优先级 A）。
 
 ## Impact
 
@@ -41,7 +41,8 @@ MVP 主链路：管理员注册模块 → 发布目录项 → 用户申请 → p
 
 | 产物 | 位置 | 状态 |
 |---|---|---|
-| 命名/审计/约束规范基线 | `design.md` | ⏳ 本 change 产出 |
+| 命名/审计/约束规范基线 | `design.md` §01-02 | ⏳ 本 change 产出 |
+| **全量 ~52 张表初版设计定稿** | `design.md` §03 A+B | ⏳ 本 change 产出 |
 | MVP schema 迁移 SQL（重写 teams + 新增 ~18 表） | `server/cmd/migrate/migrations/` | ⏳ apply 阶段产出 |
 | sqlc 查询 + 重新生成 | `server/pkg/db/{queries,generated}/` | ⏳ apply 阶段产出 |
 | docs/04 标注修订（断裂点标记 + 指向本 change） | `docs/04-数据库设计.md` | ⏳ apply 阶段产出 |

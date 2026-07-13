@@ -62,11 +62,28 @@
 - [ ] 10.5 `make build && make test` 全绿
 - [ ] 10.6 docs/04 标注：MVP 表指向本 change 的实际 schema，断裂点标记已修复
 
-## 11-后续打磨（本 change 之后）
+## 11-非 MVP 表设计定稿（本 change 内，不落迁移）
 
-> 初版推导完成后，随 Wave 实现逐步打磨。不在本 change 范围。
+> 这些表的字段/类型/约束/FK 在本 change **推导定稿**（design.md §03 B1-B14），但不写迁移 SQL——等对应 Wave 实现功能时按定稿直接落迁移。定稿依据：docs/04 §2.1-2.16 全部读完 + proto 契约对齐 + 命名规范基线。
 
-- [ ] 11.1 stacks/stack_dependencies（Wave 2 codegen 后，补 layer_logical_id 闭合动态分层链路）
-- [ ] 11.2 drift/CMDB/FinOps/CICD/import 表（Wave 4-5）
-- [ ] 11.3 动态分层扩展：layer_rule_set CRUD + MigrationPlanner（Phase 2）
-- [ ] 11.4 docs/04 C 级规范瑕疵全量修复（随各表落地）
+- [x] 11.1 B1 执行与工作仓库表定稿（executor_runs/workspaces/workspace_checkouts）——含 executor_runs.artifact_id → plan_artifacts 修复 A1 矛盾
+- [x] 11.2 B2 stack 注册表定稿（stacks/stack_dependencies）——含 stacks.layer_logical_id 修复 A6 断裂
+- [x] 11.3 B3 漂移检测表定稿（drift_runs/drift_records）
+- [x] 11.4 B4 鉴权身份表定稿（oidc_providers/identities/sessions/role_bindings/emergency_runs/sensitive_field_blacklist）
+- [x] 11.5 B5 适配器配置表定稿（adapters_config）
+- [x] 11.6 B6 Saga 补偿表定稿（reconcile_jobs/manual_intervention_tasks）
+- [x] 11.7 B7 Run Hooks/运营表定稿（run_hooks/run_hook_results/incidents/runbook_executions/drill_results/platform_scorecards/catalog_health_checks）
+- [x] 11.8 B8 分层迁移表定稿（stack_grouping_rules/layer_migrations）
+- [x] 11.9 B9 CMDB/FinOps 表定稿（resources/cost_records/cost_budgets/finops_recommendations）
+- [x] 11.10 B10 云凭据表定稿（team_cloud_grants/cloud_credentials/catalog_items_required_permissions/iam_role_templates）
+- [x] 11.11 B11 环境租户表定稿（environments/tenants/environment_tenant_bindings）
+- [x] 11.12 B12 标签策略表定稿（tag_policies）
+- [x] 11.13 B13 CICD 表定稿（cicd_triggers/gate_subscriptions/gate_events）
+- [x] 11.14 B14 存量导入表定稿（import_jobs/import_resources）
+
+## 12-后续打磨（本 change 之后，随 Wave 实现逐步完善）
+
+- [ ] 12.1 各 Wave 落 B 级表迁移时，按 design.md §03 定稿直接建表（不重新设计）
+- [ ] 12.2 实现功能中发现字段需求变化，回头改 design.md §03 定稿 + 迁移（正常演进）
+- [ ] 12.3 docs/04 C 级规范瑕疵随各表落地时修复（docs/04 标注指向本 change 定稿为权威）
+- [ ] 12.4 动态分层扩展：layer_rule_set CRUD + MigrationPlanner（Phase 2，属 04 模块范畴）
