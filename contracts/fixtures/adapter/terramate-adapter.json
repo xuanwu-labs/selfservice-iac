@@ -1,0 +1,79 @@
+[
+  {
+    "case_id": "ADAPTER-001",
+    "description": "RunPlan: Terramate wraps terraform plan",
+    "action": "RunPlan",
+    "workdir": "/workspaces/application/platform-default/team-a/orders/ecs-prod",
+    "scope_tags": ["layer:application", "env:dev", "team:team-a", "bundle:orders"],
+    "inputs": {
+      "toolchain": {"terramate": "0.17", "terraform": "1.9"},
+      "provider_lock": "aws@~>5.0"
+    },
+    "expected_argv": ["terramate", "run", "--tags", "layer:application,env:dev", "--", "terraform", "plan", "-out=plan.tfplan"],
+    "expected_env": ["TF_PLUGIN_CACHE_DIR", "AETHER_REQUEST_ID"],
+    "expected_outputs": {
+      "exit_code": 0,
+      "artifact": "plan.tfplan",
+      "log_contains": "Plan: 1 to add"
+    },
+    "forbidden": ["terraform plan -out", "terramate run -- terraform apply"],
+    "forbidden_description": "Orchestrator MUST NOT call terraform directly; MUST go through TerramateAdapter"
+  },
+  {
+    "case_id": "ADAPTER-002",
+    "description": "RunApplySavedPlan: apply a previously saved plan (no re-plan)",
+    "action": "RunApplySavedPlan",
+    "workdir": "/worktrees/req_abc123/application/team-a/ecs-prod",
+    "scope_tags": ["layer:application", "env:dev"],
+    "inputs": {
+      "plan_path": "/tmp/artifacts/art_def456/plan.tfplan",
+      "plan_hash": "sha256:abc123...",
+      "toolchain": {"terramate": "0.17", "terraform": "1.9"}
+    },
+    "expected_argv": ["terraform", "apply", "-input=false", "/tmp/artifacts/art_def456/plan.tfplan"],
+    "expected_env": ["TF_PLUGIN_CACHE_DIR", "AETHER_REQUEST_ID"],
+    "expected_outputs": {
+      "exit_code": 0,
+      "log_contains": "Apply complete"
+    },
+    "guards": ["plan_hash MUST match before apply", "artifact MUST NOT be expired"],
+    "forbidden": ["terraform plan", "terraform apply (without saved plan path)"]
+  },
+  {
+    "case_id": "ADAPTER-003",
+    "description": "RunDriftPlan: read-only drift detection via terramate",
+    "action": "RunDriftPlan",
+    "workdir": "/workspaces/application/platform-default/team-a/orders/ecs-prod",
+    "scope_tags": ["layer:application", "env:prod"],
+    "inputs": {
+      "toolchain": {"terramate": "0.17", "terraform": "1.9"},
+      "credential_scope": "read-only"
+    },
+    "expected_argv": ["terramate", "run", "--tags", "layer:application,env:prod", "--", "terraform", "plan", "-detailed-exitcode"],
+    "expected_env": ["TF_PLUGIN_CACHE_DIR"],
+    "expected_outputs": {
+      "exit_code_0": "no drift detected",
+      "exit_code_2": "drift detected",
+      "exit_code_1": "error"
+    },
+    "forbidden": ["terraform apply", "terraform destroy"]
+  },
+  {
+    "case_id": "ADAPTER-004",
+    "description": "RunImportVerify: import existing resources and verify zero-diff",
+    "action": "RunImportVerify",
+    "workdir": "/worktrees/import-req_xyz789",
+    "scope_tags": ["layer:application", "env:dev"],
+    "inputs": {
+      "toolchain": {"terramate": "0.17", "terraform": "1.9"},
+      "import_targets": ["aws_instance.ecs_prod"]
+    },
+    "expected_argv": ["terraform", "import", "aws_instance.ecs_prod", "i-abc123", "&&", "terraform", "plan", "-detailed-exitcode"],
+    "expected_outputs": {
+      "exit_code_0": "import successful, zero diff (managed)",
+      "exit_code_2": "import successful, drift exists (needs adoption or exclusion)",
+      "diff_summary": "resources_to_add=0 expected for fully managed"
+    },
+    "forbidden": ["terraform apply", "terraform destroy"]
+  }
+]

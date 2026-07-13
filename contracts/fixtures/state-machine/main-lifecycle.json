@@ -1,0 +1,161 @@
+[
+  {
+    "case_id": "RLC-001",
+    "description": "Happy path: submitted → generating → planning → plan-ready → pending-approval → applying → reconciling → succeeded",
+    "initial_status": "submitted",
+    "event_type": "request.created",
+    "guards": [],
+    "expected_status": "generating",
+    "expected_events": ["request.created", "codegen.started"],
+    "expected_outbox": ["cmdb.ingest.requested"]
+  },
+  {
+    "case_id": "RLC-002",
+    "description": "Generating completes → planning",
+    "initial_status": "generating",
+    "event_type": "codegen.completed",
+    "guards": ["pinned_commit is set"],
+    "expected_status": "planning",
+    "expected_events": ["codegen.completed", "plan.started"]
+  },
+  {
+    "case_id": "RLC-003",
+    "description": "Planning completes → plan-ready",
+    "initial_status": "planning",
+    "event_type": "plan.ready",
+    "guards": ["plan_artifact_id is set", "plan_hash is set"],
+    "expected_status": "plan-ready",
+    "expected_events": ["plan.ready", "artifact.created"]
+  },
+  {
+    "case_id": "RLC-004",
+    "description": "Plan-ready → pending-approval (gate passed)",
+    "initial_status": "plan-ready",
+    "event_type": "gate.passed",
+    "guards": ["gate evaluation passed", "all policies satisfied"],
+    "expected_status": "pending-approval",
+    "expected_events": ["gate.passed", "approval.run_created"]
+  },
+  {
+    "case_id": "RLC-005",
+    "description": "Pending-approval → applying (approved)",
+    "initial_status": "pending-approval",
+    "event_type": "approval.decided",
+    "guards": ["decision=approved", "approval policy satisfied"],
+    "expected_status": "applying",
+    "expected_events": ["approval.decided", "apply.started"]
+  },
+  {
+    "case_id": "RLC-006",
+    "description": "Applying → reconciling",
+    "initial_status": "applying",
+    "event_type": "apply.completed",
+    "guards": ["terraform exit code = 0"],
+    "expected_status": "reconciling",
+    "expected_events": ["apply.completed", "reconcile.started"]
+  },
+  {
+    "case_id": "RLC-007",
+    "description": "Reconciling → succeeded",
+    "initial_status": "reconciling",
+    "event_type": "reconcile.completed",
+    "guards": ["CMDB ingested", "events written"],
+    "expected_status": "succeeded",
+    "expected_events": ["reconcile.completed", "request.succeeded"]
+  },
+  {
+    "case_id": "RLC-008",
+    "description": "Plan-ready → pending-approval with break-glass",
+    "initial_status": "plan-ready",
+    "event_type": "gate.break_glass",
+    "guards": ["break_glass authorized", "dual-control satisfied", "audit logged"],
+    "expected_status": "pending-approval",
+    "expected_events": ["gate.break_glass", "audit.break_glass_recorded"]
+  },
+  {
+    "case_id": "ERR-001",
+    "description": "Planning failed → failed-retryable",
+    "initial_status": "planning",
+    "event_type": "plan.failed",
+    "guards": ["error is retryable (e.g. cloud provider timeout)"],
+    "expected_status": "failed-retryable",
+    "expected_events": ["plan.failed", "request.failed_retryable"]
+  },
+  {
+    "case_id": "ERR-002",
+    "description": "Apply failed terminal → failed-terminal",
+    "initial_status": "applying",
+    "event_type": "apply.failed",
+    "guards": ["error is NOT retryable (e.g. state corruption)"],
+    "expected_status": "failed-terminal",
+    "expected_events": ["apply.failed", "request.failed_terminal"]
+  },
+  {
+    "case_id": "ERR-003",
+    "description": "Reconcile failed → reconcile-pending (not terminal)",
+    "initial_status": "reconciling",
+    "event_type": "reconcile.partial",
+    "guards": ["apply succeeded but CMDB/notify failed"],
+    "expected_status": "reconcile-pending",
+    "expected_events": ["reconcile.partial"]
+  },
+  {
+    "case_id": "ERR-004",
+    "description": "Failed → waiting-manual (intervention needed)",
+    "initial_status": "failed-retryable",
+    "event_type": "manual.task_created",
+    "guards": ["retry exhausted"],
+    "expected_status": "waiting-manual",
+    "expected_events": ["manual.task_created"],
+    "expected_manual_tasks": [{"type": "state_recovery", "owner": "platform-ops"}]
+  },
+  {
+    "case_id": "IDEMP-001",
+    "description": "Duplicate request with same Idempotency-Key → returns existing",
+    "initial_status": "submitted",
+    "event_type": "request.duplicate",
+    "guards": ["idempotency-key matches existing request"],
+    "expected_status": "submitted",
+    "expected_events": [],
+    "idempotency": "returns original request_id, no new events"
+  },
+  {
+    "case_id": "IDEMP-002",
+    "description": "Duplicate approval with same Idempotency-Key → returns existing decision",
+    "initial_status": "pending-approval",
+    "event_type": "approval.duplicate",
+    "guards": ["idempotency-key matches existing decision"],
+    "expected_status": "pending-approval",
+    "expected_events": [],
+    "idempotency": "returns original decision, no state change"
+  },
+  {
+    "case_id": "CONC-001",
+    "description": "Concurrent approval attempts → one wins, other gets ABORTED",
+    "initial_status": "pending-approval",
+    "event_type": "approval.concurrent",
+    "guards": ["two approvals with different versions"],
+    "expected_status": "applying",
+    "expected_events": ["approval.decided"],
+    "idempotency": "loser gets STATE_CONFLICT error (HTTP 409)"
+  },
+  {
+    "case_id": "CONC-002",
+    "description": "Concurrent apply attempts → one wins, other gets ABORTED",
+    "initial_status": "plan-ready",
+    "event_type": "apply.concurrent",
+    "guards": ["two applies with same plan_artifact"],
+    "expected_status": "applying",
+    "expected_events": ["apply.started"],
+    "idempotency": "loser gets STATE_CONFLICT error (HTTP 409)"
+  },
+  {
+    "case_id": "EXPR-001",
+    "description": "Approval expired → expired",
+    "initial_status": "pending-approval",
+    "event_type": "approval.timeout",
+    "guards": ["TTL exceeded"],
+    "expected_status": "expired",
+    "expected_events": ["approval.timeout", "request.expired"]
+  }
+]

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aether.platform/contracts/schemas/catalog-item.schema.json",
+  "title": "CatalogItem",
+  "description": "Service catalog item (module marketplace, specs/02)",
+  "type": "object",
+  "required": ["id", "name", "status", "module_version"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^cat_[a-z0-9]+$" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "status": { "type": "string", "enum": ["active", "deprecated"] },
+    "category": { "type": "string" },
+    "module_version": {
+      "type": "object",
+      "properties": {
+        "version": { "type": "string", "pattern": "^v\\d+\\.\\d+\\.\\d+$" },
+        "source": { "type": "string", "description": "Git registry source" },
+        "providers": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "form_schema": { "type": "object", "description": "JSON Schema 2020-12 for request form (D40)" },
+    "default_tags": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Platform tags injected by codegen (D18)"
+    }
+  }
+}

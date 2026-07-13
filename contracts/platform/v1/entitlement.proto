@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package aether.platform.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1";
+
+// ============================================================
+// EntitlementService — Cloud account entitlements.
+// HTTP: GET /api/v1/requestable-cloud-accounts
+// ============================================================
+service EntitlementService {
+  rpc ListRequestableCloudAccounts(ListRequestableCloudAccountsRequest) returns (ListRequestableCloudAccountsResponse) {
+    option (google.api.http) = {
+      get: "/v1/requestable-cloud-accounts"
+    };
+  }
+}
+
+message CloudAccount {
+  string id = 1;
+  enum CloudProvider {
+    CLOUD_PROVIDER_UNSPECIFIED = 0;
+    CLOUD_PROVIDER_AWS = 1;
+    CLOUD_PROVIDER_ALIYUN = 2;
+    CLOUD_PROVIDER_AZURE = 3;
+    CLOUD_PROVIDER_GCP = 4;
+  }
+  CloudProvider provider = 2;
+  string name = 3;
+  enum AccountStatus {
+    ACCOUNT_STATUS_UNSPECIFIED = 0;
+    ACCOUNT_STATUS_ACTIVE = 1;
+    ACCOUNT_STATUS_SUSPENDED = 2;
+  }
+  AccountStatus status = 4;
+  repeated string regions = 5;
+}
+
+message ListRequestableCloudAccountsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message ListRequestableCloudAccountsResponse {
+  repeated CloudAccount accounts = 1;
+  string next_page_token = 2;
+  string correlation_id = 3;
+}

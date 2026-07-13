@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aether.platform/contracts/schemas/api-envelope.schema.json",
+  "title": "ApiEnvelope",
+  "description": "Unified success response envelope (specs/19)",
+  "type": "object",
+  "required": ["data", "correlation_id"],
+  "properties": {
+    "data": {
+      "description": "Response payload (type depends on endpoint)"
+    },
+    "correlation_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "W3C Trace Context correlation ID"
+    }
+  },
+  "additionalProperties": false
+}

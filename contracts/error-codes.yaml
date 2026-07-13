@@ -1,0 +1,174 @@
+# Aether Platform Error Code Registry
+#
+# Phase 0 Contract Freeze (task 0.5).
+# Every error the platform can return MUST be registered here.
+# Fields: code, http_status, grpc_code, retryable, manual_required, remediation, owner
+
+errors:
+  # --- Validation ---
+  - code: SCHEMA_INVALID
+    http_status: 400
+    grpc_code: INVALID_ARGUMENT
+    retryable: false
+    manual_required: false
+    remediation: "Check form_values against the catalog item's form_schema."
+    owner: core/codegen
+
+  - code: MODULE_VERSION_NOT_FOUND
+    http_status: 400
+    grpc_code: INVALID_ARGUMENT
+    retryable: false
+    manual_required: false
+    remediation: "Verify the module version exists and is not deprecated."
+    owner: core/registry
+
+  # --- Auth ---
+  - code: UNAUTHENTICATED
+    http_status: 401
+    grpc_code: UNAUTHENTICATED
+    retryable: false
+    manual_required: false
+    remediation: "Provide a valid JWT (OIDC) or AK/SK signature."
+    owner: internal/auth
+
+  - code: PERMISSION_DENIED
+    http_status: 403
+    grpc_code: PERMISSION_DENIED
+    retryable: false
+    manual_required: false
+    remediation: "Contact your team admin to request the required role."
+    owner: internal/auth
+
+  # --- Not Found ---
+  - code: REQUEST_NOT_FOUND
+    http_status: 404
+    grpc_code: NOT_FOUND
+    retryable: false
+    manual_required: false
+    remediation: "Check the request ID."
+    owner: core/orchestrator
+
+  - code: CATALOG_ITEM_NOT_FOUND
+    http_status: 404
+    grpc_code: NOT_FOUND
+    retryable: false
+    manual_required: false
+    remediation: "Check the catalog item ID or status."
+    owner: core/catalog
+
+  - code: ARTIFACT_NOT_FOUND
+    http_status: 404
+    grpc_code: NOT_FOUND
+    retryable: false
+    manual_required: false
+    remediation: "The plan artifact may have expired. Re-trigger plan."
+    owner: core/orchestrator
+
+  # --- State / Conflict ---
+  - code: STATE_CONFLICT
+    http_status: 409
+    grpc_code: ABORTED
+    retryable: true
+    manual_required: false
+    remediation: "Retry with fresh version (optimistic lock conflict)."
+    owner: core/orchestrator
+
+  - code: ILLEGAL_STATE_TRANSITION
+    http_status: 409
+    grpc_code: FAILED_PRECONDITION
+    retryable: false
+    manual_required: false
+    remediation: "The request is not in a state that allows this action (see D21 state machine)."
+    owner: core/orchestrator
+
+  - code: IDEMPOTENCY_REPLAY
+    http_status: 200
+    grpc_code: OK
+    retryable: false
+    manual_required: false
+    remediation: "Idempotent replay — returning the original resource."
+    owner: core/orchestrator
+
+  # --- Rate Limiting ---
+  - code: RATE_LIMITED
+    http_status: 429
+    grpc_code: RESOURCE_EXHAUSTED
+    retryable: true
+    manual_required: false
+    remediation: "Wait and retry with exponential backoff."
+    owner: internal/middleware
+
+  # --- Business Rules ---
+  - code: BUDGET_EXCEEDED
+    http_status: 422
+    grpc_code: FAILED_PRECONDITION
+    retryable: false
+    manual_required: false
+    remediation: "Cost estimate exceeds budget threshold. Reduce scope or request budget increase."
+    owner: core/finops
+
+  - code: POLICY_VIOLATION
+    http_status: 422
+    grpc_code: FAILED_PRECONDITION
+    retryable: false
+    manual_required: false
+    remediation: "OPA policy check failed. See violation details."
+    owner: core/gate
+
+  - code: TAG_MISSING
+    http_status: 422
+    grpc_code: FAILED_PRECONDITION
+    retryable: false
+    manual_required: false
+    remediation: "Module output missing required platform tags (platform-team/bundle/stack/managed)."
+    owner: core/catalog
+
+  # --- Manual Intervention ---
+  - code: MANUAL_INTERVENTION_REQUIRED
+    http_status: 409
+    grpc_code: FAILED_PRECONDITION
+    retryable: false
+    manual_required: true
+    remediation: "Automated recovery failed. See manual_intervention_tasks for details."
+    owner: core/orchestrator
+
+  # --- Platform Errors ---
+  - code: PLATFORM_UNAVAILABLE
+    http_status: 503
+    grpc_code: UNAVAILABLE
+    retryable: true
+    manual_required: false
+    remediation: "Platform is temporarily unavailable. Retry."
+    owner: platform
+
+  - code: CLOUD_PROVIDER_ERROR
+    http_status: 502
+    grpc_code: UNAVAILABLE
+    retryable: true
+    manual_required: false
+    remediation: "Cloud provider API error. Retry or check cloud account health."
+    owner: core/cloudcreds
+
+  - code: GIT_OPERATION_FAILED
+    http_status: 502
+    grpc_code: UNAVAILABLE
+    retryable: true
+    manual_required: false
+    remediation: "Git clone/push failed. Check repo access and branch permissions."
+    owner: core/workspace
+
+  - code: TERRAMATE_EXECUTION_FAILED
+    http_status: 500
+    grpc_code: INTERNAL
+    retryable: false
+    manual_required: true
+    remediation: "Terramate/Terraform execution failed. Check exec logs in request events."
+    owner: core/executor
+
+  - code: INTERNAL_ERROR
+    http_status: 500
+    grpc_code: INTERNAL
+    retryable: false
+    manual_required: false
+    remediation: "Unexpected internal error. Contact platform team with correlation_id."
+    owner: platform

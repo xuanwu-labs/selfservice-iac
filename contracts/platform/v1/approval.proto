@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package aether.platform.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1";
+
+// ============================================================
+// ApprovalService — Human approval workflow.
+// HTTP: POST /api/v1/approvals/{run_id}/decide
+// ============================================================
+service ApprovalService {
+  rpc DecideApproval(DecideApprovalRequest) returns (DecideApprovalResponse) {
+    option (google.api.http) = {
+      post: "/v1/approvals/{run_id}/decide"
+      body: "*"
+    };
+  }
+}
+
+// ============================================================
+// ApplyService — Saved-plan apply execution.
+// HTTP: POST /api/v1/requests/{id}/apply
+// ============================================================
+service ApplyService {
+  rpc StartApply(StartApplyRequest) returns (StartApplyResponse) {
+    option (google.api.http) = {
+      post: "/v1/requests/{request_id}/apply"
+    };
+  }
+}
+
+// --- Messages ---
+
+message DecideApprovalRequest {
+  string run_id = 1;                // run_<alphanum>
+  enum Decision {
+    DECISION_UNSPECIFIED = 0;
+    DECISION_APPROVED = 1;
+    DECISION_REJECTED = 2;
+  }
+  Decision decision = 2;
+  string comment = 3;
+  int32 expected_run_version = 4;   // optimistic lock
+}
+
+message DecideApprovalResponse {
+  string run_id = 1;
+  enum RunStatus {
+    RUN_STATUS_UNSPECIFIED = 0;
+    RUN_STATUS_PENDING = 1;
+    RUN_STATUS_APPROVED = 2;
+    RUN_STATUS_REJECTED = 3;
+    RUN_STATUS_EXPIRED = 4;
+  }
+  RunStatus status = 2;
+  string decided_by = 3;
+  string decided_at = 4;            // RFC 3339 UTC
+  string correlation_id = 5;
+}
+
+message StartApplyRequest {
+  string request_id = 1;
+}
+
+message StartApplyResponse {
+  string correlation_id = 1;
+  // The request is now in "applying" status — poll GET /requests/{id} for updates.
+}

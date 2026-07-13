@@ -1,0 +1,145 @@
+syntax = "proto3";
+
+package aether.platform.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1";
+
+// ============================================================
+// RequestService — IaC change request lifecycle.
+// HTTP: POST /api/v1/requests, GET /api/v1/requests/{id},
+//       GET /api/v1/requests/{id}/events
+// ============================================================
+service RequestService {
+  rpc CreateRequest(CreateRequestRequest) returns (CreateRequestResponse) {
+    option (google.api.http) = {
+      post: "/v1/requests"
+      body: "*"
+    };
+  }
+  rpc GetRequest(GetRequestRequest) returns (GetRequestResponse) {
+    option (google.api.http) = {
+      get: "/v1/requests/{request_id}"
+    };
+  }
+  rpc ListRequestEvents(ListRequestEventsRequest) returns (ListRequestEventsResponse) {
+    option (google.api.http) = {
+      get: "/v1/requests/{request_id}/events"
+    };
+  }
+}
+
+// --- Enums ---
+
+enum RequestStatus {
+  REQUEST_STATUS_UNSPECIFIED = 0;
+  REQUEST_STATUS_SUBMITTED = 1;
+  REQUEST_STATUS_GENERATING = 2;
+  REQUEST_STATUS_PENDING_ADMISSION = 3;
+  REQUEST_STATUS_PLANNING = 4;
+  REQUEST_STATUS_PLAN_READY = 5;
+  REQUEST_STATUS_PENDING_APPROVAL = 6;
+  REQUEST_STATUS_APPLYING = 7;
+  REQUEST_STATUS_RECONCILING = 8;
+  REQUEST_STATUS_SUCCEEDED = 9;
+  REQUEST_STATUS_REJECTED = 10;
+  REQUEST_STATUS_CANCELLED = 11;
+  REQUEST_STATUS_EXPIRED = 12;
+  REQUEST_STATUS_FAILED_RETRYABLE = 13;
+  REQUEST_STATUS_FAILED_TERMINAL = 14;
+  REQUEST_STATUS_WAITING_MANUAL = 15;
+  REQUEST_STATUS_RECONCILE_PENDING = 16;
+}
+
+enum RequestSource {
+  REQUEST_SOURCE_UNSPECIFIED = 0;
+  REQUEST_SOURCE_WEB = 1;
+  REQUEST_SOURCE_CLI = 2;
+  REQUEST_SOURCE_CICD = 3;
+  REQUEST_SOURCE_AI = 4;
+  REQUEST_SOURCE_GATEWAY = 5;
+}
+
+// --- Messages ---
+
+message Request {
+  string id = 1;                    // req_<alphanum>
+  RequestStatus status = 2;
+  string catalog_item_id = 3;       // cat_<alphanum>
+  string env_id = 4;
+  string team_id = 5;               // team_<alphanum>
+  string tenant_id = 6;
+  string bundle_id = 7;
+  map<string, string> form_values = 8;
+  string form_hash = 9;             // sha256:<hex>
+  RequestSource source = 10;
+  string pinned_commit = 11;        // sha256:<hex>
+  string plan_artifact_id = 12;     // art_<alphanum>
+  int64 cost_estimate_cents = 13;
+  string cost_currency = 14;
+  string created_at = 15;           // RFC 3339 UTC
+  string updated_at = 16;
+  int32 version = 17;               // optimistic lock
+  string correlation_id = 18;
+}
+
+message RequestEvent {
+  string id = 1;                    // evt_<alphanum>
+  string request_id = 2;
+  string event_type = 3;
+  Actor actor = 4;
+  string occurred_at = 5;           // RFC 3339 UTC
+  string correlation_id = 6;
+}
+
+message Actor {
+  enum ActorType {
+    ACTOR_TYPE_UNSPECIFIED = 0;
+    ACTOR_TYPE_HUMAN = 1;
+    ACTOR_TYPE_AI = 2;
+    ACTOR_TYPE_SYSTEM = 3;
+  }
+  ActorType type = 1;
+  string user_id = 2;
+  string team_id = 3;
+}
+
+// --- RPC Messages ---
+
+message CreateRequestRequest {
+  string catalog_item_id = 1;
+  string env_id = 2;
+  string team_id = 3;
+  string tenant_id = 4;
+  string bundle_id = 5;
+  map<string, string> form_values = 6;
+  RequestSource source = 7;
+  map<string, string> source_context = 8;
+}
+
+message CreateRequestResponse {
+  Request request = 1;
+  string correlation_id = 2;
+}
+
+message GetRequestRequest {
+  string request_id = 1;
+}
+
+message GetRequestResponse {
+  Request request = 1;
+  string correlation_id = 2;
+}
+
+message ListRequestEventsRequest {
+  string request_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListRequestEventsResponse {
+  repeated RequestEvent events = 1;
+  string next_page_token = 2;
+  string correlation_id = 3;
+}

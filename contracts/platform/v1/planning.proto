@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package aether.platform.v1;
+
+import "google/api/annotations.proto";
+import "platform/v1/request.proto";
+
+option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1";
+
+// ============================================================
+// PlanningService — Terraform plan generation.
+// HTTP: POST /api/v1/requests/{id}/plan
+// ============================================================
+service PlanningService {
+  rpc StartPlan(StartPlanRequest) returns (StartPlanResponse) {
+    option (google.api.http) = {
+      post: "/v1/requests/{request_id}/plan"
+    };
+  }
+}
+
+// ============================================================
+// ArtifactService — Plan artifact metadata.
+// HTTP: GET /api/v1/artifacts/{artifact_id}
+// ============================================================
+service ArtifactService {
+  rpc GetArtifact(GetArtifactRequest) returns (GetArtifactResponse) {
+    option (google.api.http) = {
+      get: "/v1/artifacts/{artifact_id}"
+    };
+  }
+}
+
+// --- Messages ---
+
+message PlanArtifact {
+  string id = 1;                    // art_<alphanum>
+  string request_id = 2;
+  enum ArtifactStatus {
+    ARTIFACT_STATUS_UNSPECIFIED = 0;
+    ARTIFACT_STATUS_READY = 1;
+    ARTIFACT_STATUS_EXPIRED = 2;
+    ARTIFACT_STATUS_CONSUMED = 3;
+  }
+  ArtifactStatus status = 3;
+  string plan_hash = 4;             // sha256:<hex>
+  PlanSummary summary = 5;
+  int64 cost_estimate_cents = 6;
+  string storage_uri = 7;
+  string expires_at = 8;            // RFC 3339 UTC
+  string created_at = 9;
+}
+
+message PlanSummary {
+  int32 resources_to_add = 1;
+  int32 resources_to_change = 2;
+  int32 resources_to_destroy = 3;
+}
+
+// --- RPC Messages ---
+
+message StartPlanRequest {
+  string request_id = 1;
+}
+
+message StartPlanResponse {
+  Request request = 1;              // updated request with status=planning
+  string correlation_id = 2;
+}
+
+message GetArtifactRequest {
+  string artifact_id = 1;
+}
+
+message GetArtifactResponse {
+  PlanArtifact artifact = 1;
+  string correlation_id = 2;
+}
