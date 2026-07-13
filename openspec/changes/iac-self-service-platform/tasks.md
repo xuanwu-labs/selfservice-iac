@@ -52,22 +52,24 @@
 ## 00c-Phase 0 Contract Freeze（已拆分到独立 change）
 
 > **已拆分**：Phase 0 契约冻结独立为 `openspec/changes/platform-contract-freeze/` change。
-> 本节保留作为索引，实际 task 0.1-0.12 在独立 change 中执行。
-> 分支：`feat/phase0-contracts`。
-> 原始设计参考：`docs/00-工程契约.md`、`docs/00a-contract-artifacts-plan.md`、`docs/12a-状态机测试矩阵.md`、`specs/19-API与Schema契约.md`。
+> 本节保留作为索引，实际 task 在独立 change 中执行并归档。
+> 分支：`feat/phase0-contracts`（已合并）+ `feat/contract-fixup`（契约文档对齐）。
+> 原始设计参考：`docs/00-工程契约.md`、`docs/12a-状态机测试矩阵.md`。
+>
+> **契约范式变更（D1 Connect-native）**：原 0.1/0.3/0.4 设想的 openapi.yaml / protocol-mapping.md / schemas/*.schema.json 已废弃——proto 是唯一契约源，Connect-RPC 原生覆盖 gRPC/gRPC-Web/Connect-JSON。下面任务编号保留以便回溯，但产出物以独立 change 实际交付为准。
 
-- [ ] 0.1 产出 `contracts/openapi.yaml`：覆盖 request、planning、approval、apply、catalog、artifact、events、webhook 最小 HTTP API
-- [ ] 0.2 产出 `contracts/proto/platform/v1/*.proto`：覆盖与 HTTP 等价的 gRPC service、message、enum、error metadata
-- [ ] 0.3 产出 `contracts/protocol-mapping.md`：冻结 HTTP/gRPC path、method、status/code、metadata、error、idempotency、pagination、actor 映射；明确 Dubbo/OA/ITSM/Legacy 由未来 Go Gateway 转换
-- [ ] 0.4 产出 `contracts/schemas/*.schema.json`：冻结 `ApiEnvelope`、`ApiError`、`RequestCreate`、`Request`、`RequestEvent`、`CatalogItem`、`ModuleVersion`、`ResolvedParams`、`PathGeneratorOutput`、`PlanArtifact`、`ApprovalDecision`
-- [ ] 0.5 产出 `contracts/error-codes.yaml`：冻结错误码、HTTP status、gRPC code、retryable、manual_required、remediation、owner
-- [ ] 0.6 产出 `contracts/fixtures/state-machine/*.json`：把 `docs/12a` 的 RLC/IDEMP/CONC 测试 ID 转成可执行 fixture，补齐 `plan-ready → pending-approval`、saved-plan apply、break-glass、dependency seed 缺失测试
-- [ ] 0.7 产出 `contracts/fixtures/adapter/*.json`：冻结 `TerramateAdapter` plan / saved-plan apply / drift-plan / import-verify golden cases，明确 forbidden command，禁止 Orchestrator 绕过 Terramate 直接调用 Terraform
-- [ ] 0.8 产出 `contracts/fixtures/walking-skeleton/*.json`：准备 tenant/env/team/bundle/catalog/module/cloud grant/toolchain/path/approval/plan artifact seed data
-- [ ] 0.9 完成首云账号 bootstrap 演练：secret store、OIDC trust、execution role、`team_cloud_grants`
-- [ ] 0.10 完成 Day-1 资源栈 bootstrap：Global VPC seed stack、outputs 校验、dependency seed 或 `environment_tenant_bindings`
-- [ ] 0.11 选择一个 golden catalog item，跑通 walking skeleton：Request → Codegen → Git → Plan → Approval → Apply → Reconcile
-- [ ] 0.12 验收：没有通过 0.1-0.11，不进入大规模模块开发
+- [x] 0.1 ~~产出 `contracts/openapi.yaml`~~ → **改为 Connect-native**：proto 是唯一契约源，不手写 openapi.yaml（D1）。若未来需要 REST 文档，用 `protoc-gen-openapi` 从 proto 自动生成
+- [x] 0.2 产出 `contracts/platform/v1/{common,lifecycle,catalog,cloud}/{srv,dto}.proto`（域目录 × srv/dto/enum 分离；6 service / 21 RPC）
+- [x] 0.3 ~~产出 `contracts/protocol-mapping.md`~~ → **废弃**：Connect-RPC 单 handler 原生覆盖三协议，无需手写映射文档
+- [x] 0.4 ~~产出 `contracts/schemas/*.schema.json`~~ → **废弃**：消息定义即 proto message，前端用 connect-es 自带类型，无需手写 JSON Schema
+- [x] 0.5 产出 `contracts/error-codes.yaml`：冻结错误码、HTTP status、gRPC code、retryable、manual_required、remediation、owner
+- [x] 0.6 产出 `contracts/fixtures/state-machine/main-lifecycle.json`：17 test cases（RLC/ERR/IDEMP/CONC/EXPR）
+- [x] 0.7 产出 `contracts/fixtures/adapter/terramate-adapter.json`：4 golden cases（plan/saved-plan apply/drift/import），明确 forbidden command，禁止 Orchestrator 绕过 Terramate
+- [x] 0.8 产出 `contracts/fixtures/walking-skeleton/seed-data.json`：tenant/env/team/bundle/catalog/module/cloud grant/toolchain/path/approval/plan artifact seed
+- [ ] 0.9 完成首云账号 bootstrap 演练：secret store、OIDC trust、execution role、`team_cloud_grants` → **推迟到 Wave 5（依赖 19 云凭据）**
+- [ ] 0.10 完成 Day-1 资源栈 bootstrap：Global VPC seed stack、outputs 校验 → **推迟到 Wave 5（依赖 03 + 06）**
+- [ ] 0.11 跑通 walking skeleton：Request → Codegen → Git → Plan → Approval → Apply → Reconcile → **推迟到 Wave 5 主干闭环验证**
+- [ ] 0.12 验收：契约层（0.1-0.8）已在本 change 完成；运行时验收（0.9-0.11）推迟到 Wave 5
 
 ## 01-平台骨架与适配器接口
 
