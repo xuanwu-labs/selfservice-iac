@@ -102,11 +102,11 @@ func (r *Registry) New(code string, format string, a ...any) error {
 		Reason: e.Code,
 		Domain: "aether.platform",
 		Metadata: map[string]string{
-			"http_status":      strconv.Itoa(e.HTTPStatus),
-			"retryable":        strconv.FormatBool(e.Retryable),
-			"manual_required":  strconv.FormatBool(e.ManualRequired),
-			"remediation":      e.Remediation,
-			"owner":            e.Owner,
+			"http_status":     strconv.Itoa(e.HTTPStatus),
+			"retryable":       strconv.FormatBool(e.Retryable),
+			"manual_required": strconv.FormatBool(e.ManualRequired),
+			"remediation":     e.Remediation,
+			"owner":           e.Owner,
 		},
 	})
 	if err != nil {

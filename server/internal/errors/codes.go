@@ -17,38 +17,38 @@ package errors
 // add a code to the YAML, add the constant here too.
 const (
 	// Validation
-	CodeSchemaInvalid = "SCHEMA_INVALID"
+	CodeSchemaInvalid         = "SCHEMA_INVALID"
 	CodeModuleVersionNotFound = "MODULE_VERSION_NOT_FOUND"
 
 	// Auth
-	CodeUnauthenticated = "UNAUTHENTICATED"
+	CodeUnauthenticated  = "UNAUTHENTICATED"
 	CodePermissionDenied = "PERMISSION_DENIED"
 
 	// Not Found
-	CodeRequestNotFound = "REQUEST_NOT_FOUND"
+	CodeRequestNotFound     = "REQUEST_NOT_FOUND"
 	CodeCatalogItemNotFound = "CATALOG_ITEM_NOT_FOUND"
-	CodeArtifactNotFound = "ARTIFACT_NOT_FOUND"
+	CodeArtifactNotFound    = "ARTIFACT_NOT_FOUND"
 
 	// State / Conflict
-	CodeStateConflict = "STATE_CONFLICT"
+	CodeStateConflict          = "STATE_CONFLICT"
 	CodeIllegalStateTransition = "ILLEGAL_STATE_TRANSITION"
-	CodeIdempotencyReplay = "IDEMPOTENCY_REPLAY"
+	CodeIdempotencyReplay      = "IDEMPOTENCY_REPLAY"
 
 	// Rate Limiting
 	CodeRateLimited = "RATE_LIMITED"
 
 	// Business Rules
-	CodeBudgetExceeded = "BUDGET_EXCEEDED"
+	CodeBudgetExceeded  = "BUDGET_EXCEEDED"
 	CodePolicyViolation = "POLICY_VIOLATION"
-	CodeTagMissing = "TAG_MISSING"
+	CodeTagMissing      = "TAG_MISSING"
 
 	// Manual Intervention
 	CodeManualInterventionRequired = "MANUAL_INTERVENTION_REQUIRED"
 
 	// Platform Errors
-	CodePlatformUnavailable = "PLATFORM_UNAVAILABLE"
-	CodeCloudProviderError = "CLOUD_PROVIDER_ERROR"
-	CodeGitOperationFailed = "GIT_OPERATION_FAILED"
+	CodePlatformUnavailable      = "PLATFORM_UNAVAILABLE"
+	CodeCloudProviderError       = "CLOUD_PROVIDER_ERROR"
+	CodeGitOperationFailed       = "GIT_OPERATION_FAILED"
 	CodeTerramateExecutionFailed = "TERRAMATE_EXECUTION_FAILED"
-	CodeInternalError = "INTERNAL_ERROR"
+	CodeInternalError            = "INTERNAL_ERROR"
 )

@@ -7,18 +7,24 @@ import (
 )
 
 // WrapInterceptor returns a Connect interceptor that catches raw Go errors
-// (not already a *connect.Error from the registry) and wraps them as a
-// structured INTERNAL_ERROR. This is the safety net: if a handler forgets to
-// use reg.New and returns a bare error, clients never see an unstructured
-// 500 with a leaked internal message — they get a registered INTERNAL_ERROR
-// carrying the standard remediation/owner metadata.
+// (not already a *connect.Error) and wraps them as a structured INTERNAL_ERROR.
+// This is the safety net: if a handler forgets to use reg.New and returns a
+// bare error, clients never see an unstructured 500 with a leaked internal
+// message — they get a registered INTERNAL_ERROR carrying the standard
+// remediation/owner metadata.
 //
-// Errors already structured by the registry (IsConnectError == true) pass
-// through unchanged so their original code/details are preserved.
+// Known limitation (Phase 1): the check is IsConnectError, which is true for
+// ANY *connect.Error — including ones a handler built directly via
+// connect.NewError without going through the registry. Such errors pass
+// through without retryable/remediation/owner metadata. Enforcing "every
+// connect.NewError must go through the registry" requires either a lint rule
+// or a custom error type distinguishable from plain *connect.Error; both are
+// deferred. The spec (specs/03 "错误码不得硬编码") calls this out as a
+// MUST NOT, enforced by review until the tooling exists.
 //
 // Place this AFTER business interceptors in the chain so it sees the final
-// handler error. It only wraps on the response path (Invoke/Streaming...
-// return the handler's error); it never short-circuits the request.
+// handler error. It only wraps on the response path; it never short-circuits
+// the request.
 func WrapInterceptor(reg *Registry) connect.Interceptor {
 	return &wrapInterceptor{reg: reg}
 }
