@@ -8,20 +8,26 @@ option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/prot
 
 // ============================================================
 // PlanningService — Terraform plan generation.
-// HTTP: POST /api/v1/requests/{id}/plan
+// Triggered after codegen completes; produces a saved plan artifact.
 // ============================================================
 service PlanningService {
-  rpc StartPlan(StartPlanRequest) returns (StartPlanResponse) {
-  }
+  rpc StartPlan(StartPlanRequest) returns (StartPlanResponse) {}
 }
 
 // ============================================================
 // ArtifactService — Plan artifact metadata.
-// HTTP: GET /api/v1/artifacts/{artifact_id}
 // ============================================================
 service ArtifactService {
-  rpc GetArtifact(GetArtifactRequest) returns (GetArtifactResponse) {
-  }
+  rpc GetArtifact(GetArtifactRequest) returns (GetArtifactResponse) {}
+}
+
+// ============================================================
+// GateService — Admission gate evaluation.
+// Runs OPA policies, budget checks, tag validation between plan-ready
+// and pending-approval (D16/D18/D22).
+// ============================================================
+service GateService {
+  rpc EvaluateGate(EvaluateGateRequest) returns (EvaluateGateResponse) {}
 }
 
 // --- Messages ---
@@ -68,4 +74,31 @@ message GetArtifactRequest {
 message GetArtifactResponse {
   PlanArtifact artifact = 1;
   string correlation_id = 2;
+}
+
+// --- Gate ---
+
+message EvaluateGateRequest {
+  string request_id = 1;
+}
+
+message EvaluateGateResponse {
+  string request_id = 1;
+  bool passed = 2;
+  repeated GateResult gates = 3;
+  string correlation_id = 4;
+}
+
+message GateResult {
+  string gate_id = 1;
+  bool passed = 2;
+
+  enum Severity {
+    SEVERITY_UNSPECIFIED = 0;
+    SEVERITY_ERROR = 1;
+    SEVERITY_WARNING = 2;
+  }
+  string policy = 3;
+  string message = 4;
+  Severity severity = 5;
 }

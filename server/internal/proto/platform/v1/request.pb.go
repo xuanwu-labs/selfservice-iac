@@ -914,6 +914,118 @@ func (x *ListRequestEventsResponse) GetCorrelationId() string {
 	return ""
 }
 
+type CancelRequestRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	RequestId       string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	ExpectedVersion int32                  `protobuf:"varint,2,opt,name=expected_version,json=expectedVersion,proto3" json:"expected_version,omitempty"` // optimistic lock
+	Reason          string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *CancelRequestRequest) Reset() {
+	*x = CancelRequestRequest{}
+	mi := &file_platform_v1_request_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CancelRequestRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CancelRequestRequest) ProtoMessage() {}
+
+func (x *CancelRequestRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_request_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CancelRequestRequest.ProtoReflect.Descriptor instead.
+func (*CancelRequestRequest) Descriptor() ([]byte, []int) {
+	return file_platform_v1_request_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *CancelRequestRequest) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *CancelRequestRequest) GetExpectedVersion() int32 {
+	if x != nil {
+		return x.ExpectedVersion
+	}
+	return 0
+}
+
+func (x *CancelRequestRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type CancelRequestResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Request       *Request               `protobuf:"bytes,1,opt,name=request,proto3" json:"request,omitempty"` // status will be "cancelled"
+	CorrelationId string                 `protobuf:"bytes,2,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CancelRequestResponse) Reset() {
+	*x = CancelRequestResponse{}
+	mi := &file_platform_v1_request_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CancelRequestResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CancelRequestResponse) ProtoMessage() {}
+
+func (x *CancelRequestResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_request_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CancelRequestResponse.ProtoReflect.Descriptor instead.
+func (*CancelRequestResponse) Descriptor() ([]byte, []int) {
+	return file_platform_v1_request_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *CancelRequestResponse) GetRequest() *Request {
+	if x != nil {
+		return x.Request
+	}
+	return nil
+}
+
+func (x *CancelRequestResponse) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
 var File_platform_v1_request_proto protoreflect.FileDescriptor
 
 const file_platform_v1_request_proto_rawDesc = "" +
@@ -998,7 +1110,15 @@ const file_platform_v1_request_proto_rawDesc = "" +
 	"\x19ListRequestEventsResponse\x128\n" +
 	"\x06events\x18\x01 \x03(\v2 .aether.platform.v1.RequestEventR\x06events\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12%\n" +
-	"\x0ecorrelation_id\x18\x03 \x01(\tR\rcorrelationId*\xb7\x04\n" +
+	"\x0ecorrelation_id\x18\x03 \x01(\tR\rcorrelationId\"x\n" +
+	"\x14CancelRequestRequest\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12)\n" +
+	"\x10expected_version\x18\x02 \x01(\x05R\x0fexpectedVersion\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"u\n" +
+	"\x15CancelRequestResponse\x125\n" +
+	"\arequest\x18\x01 \x01(\v2\x1b.aether.platform.v1.RequestR\arequest\x12%\n" +
+	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId*\xb7\x04\n" +
 	"\rRequestStatus\x12\x1e\n" +
 	"\x1aREQUEST_STATUS_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18REQUEST_STATUS_SUBMITTED\x10\x01\x12\x1d\n" +
@@ -1024,12 +1144,13 @@ const file_platform_v1_request_proto_rawDesc = "" +
 	"\x12REQUEST_SOURCE_CLI\x10\x02\x12\x17\n" +
 	"\x13REQUEST_SOURCE_CICD\x10\x03\x12\x15\n" +
 	"\x11REQUEST_SOURCE_AI\x10\x04\x12\x1a\n" +
-	"\x16REQUEST_SOURCE_GATEWAY\x10\x052\xcb\x02\n" +
+	"\x16REQUEST_SOURCE_GATEWAY\x10\x052\xb3\x03\n" +
 	"\x0eRequestService\x12f\n" +
 	"\rCreateRequest\x12(.aether.platform.v1.CreateRequestRequest\x1a).aether.platform.v1.CreateRequestResponse\"\x00\x12]\n" +
 	"\n" +
 	"GetRequest\x12%.aether.platform.v1.GetRequestRequest\x1a&.aether.platform.v1.GetRequestResponse\"\x00\x12r\n" +
-	"\x11ListRequestEvents\x12,.aether.platform.v1.ListRequestEventsRequest\x1a-.aether.platform.v1.ListRequestEventsResponse\"\x00BUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
+	"\x11ListRequestEvents\x12,.aether.platform.v1.ListRequestEventsRequest\x1a-.aether.platform.v1.ListRequestEventsResponse\"\x00\x12f\n" +
+	"\rCancelRequest\x12(.aether.platform.v1.CancelRequestRequest\x1a).aether.platform.v1.CancelRequestResponse\"\x00BUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
 
 var (
 	file_platform_v1_request_proto_rawDescOnce sync.Once
@@ -1044,7 +1165,7 @@ func file_platform_v1_request_proto_rawDescGZIP() []byte {
 }
 
 var file_platform_v1_request_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_platform_v1_request_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_platform_v1_request_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_platform_v1_request_proto_goTypes = []any{
 	(RequestStatus)(0),                // 0: aether.platform.v1.RequestStatus
 	(RequestSource)(0),                // 1: aether.platform.v1.RequestSource
@@ -1058,33 +1179,38 @@ var file_platform_v1_request_proto_goTypes = []any{
 	(*GetRequestResponse)(nil),        // 9: aether.platform.v1.GetRequestResponse
 	(*ListRequestEventsRequest)(nil),  // 10: aether.platform.v1.ListRequestEventsRequest
 	(*ListRequestEventsResponse)(nil), // 11: aether.platform.v1.ListRequestEventsResponse
-	nil,                               // 12: aether.platform.v1.Request.FormValuesEntry
-	nil,                               // 13: aether.platform.v1.CreateRequestRequest.FormValuesEntry
-	nil,                               // 14: aether.platform.v1.CreateRequestRequest.SourceContextEntry
+	(*CancelRequestRequest)(nil),      // 12: aether.platform.v1.CancelRequestRequest
+	(*CancelRequestResponse)(nil),     // 13: aether.platform.v1.CancelRequestResponse
+	nil,                               // 14: aether.platform.v1.Request.FormValuesEntry
+	nil,                               // 15: aether.platform.v1.CreateRequestRequest.FormValuesEntry
+	nil,                               // 16: aether.platform.v1.CreateRequestRequest.SourceContextEntry
 }
 var file_platform_v1_request_proto_depIdxs = []int32{
 	0,  // 0: aether.platform.v1.Request.status:type_name -> aether.platform.v1.RequestStatus
-	12, // 1: aether.platform.v1.Request.form_values:type_name -> aether.platform.v1.Request.FormValuesEntry
+	14, // 1: aether.platform.v1.Request.form_values:type_name -> aether.platform.v1.Request.FormValuesEntry
 	1,  // 2: aether.platform.v1.Request.source:type_name -> aether.platform.v1.RequestSource
 	5,  // 3: aether.platform.v1.RequestEvent.actor:type_name -> aether.platform.v1.Actor
 	2,  // 4: aether.platform.v1.Actor.type:type_name -> aether.platform.v1.Actor.ActorType
-	13, // 5: aether.platform.v1.CreateRequestRequest.form_values:type_name -> aether.platform.v1.CreateRequestRequest.FormValuesEntry
+	15, // 5: aether.platform.v1.CreateRequestRequest.form_values:type_name -> aether.platform.v1.CreateRequestRequest.FormValuesEntry
 	1,  // 6: aether.platform.v1.CreateRequestRequest.source:type_name -> aether.platform.v1.RequestSource
-	14, // 7: aether.platform.v1.CreateRequestRequest.source_context:type_name -> aether.platform.v1.CreateRequestRequest.SourceContextEntry
+	16, // 7: aether.platform.v1.CreateRequestRequest.source_context:type_name -> aether.platform.v1.CreateRequestRequest.SourceContextEntry
 	3,  // 8: aether.platform.v1.CreateRequestResponse.request:type_name -> aether.platform.v1.Request
 	3,  // 9: aether.platform.v1.GetRequestResponse.request:type_name -> aether.platform.v1.Request
 	4,  // 10: aether.platform.v1.ListRequestEventsResponse.events:type_name -> aether.platform.v1.RequestEvent
-	6,  // 11: aether.platform.v1.RequestService.CreateRequest:input_type -> aether.platform.v1.CreateRequestRequest
-	8,  // 12: aether.platform.v1.RequestService.GetRequest:input_type -> aether.platform.v1.GetRequestRequest
-	10, // 13: aether.platform.v1.RequestService.ListRequestEvents:input_type -> aether.platform.v1.ListRequestEventsRequest
-	7,  // 14: aether.platform.v1.RequestService.CreateRequest:output_type -> aether.platform.v1.CreateRequestResponse
-	9,  // 15: aether.platform.v1.RequestService.GetRequest:output_type -> aether.platform.v1.GetRequestResponse
-	11, // 16: aether.platform.v1.RequestService.ListRequestEvents:output_type -> aether.platform.v1.ListRequestEventsResponse
-	14, // [14:17] is the sub-list for method output_type
-	11, // [11:14] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	3,  // 11: aether.platform.v1.CancelRequestResponse.request:type_name -> aether.platform.v1.Request
+	6,  // 12: aether.platform.v1.RequestService.CreateRequest:input_type -> aether.platform.v1.CreateRequestRequest
+	8,  // 13: aether.platform.v1.RequestService.GetRequest:input_type -> aether.platform.v1.GetRequestRequest
+	10, // 14: aether.platform.v1.RequestService.ListRequestEvents:input_type -> aether.platform.v1.ListRequestEventsRequest
+	12, // 15: aether.platform.v1.RequestService.CancelRequest:input_type -> aether.platform.v1.CancelRequestRequest
+	7,  // 16: aether.platform.v1.RequestService.CreateRequest:output_type -> aether.platform.v1.CreateRequestResponse
+	9,  // 17: aether.platform.v1.RequestService.GetRequest:output_type -> aether.platform.v1.GetRequestResponse
+	11, // 18: aether.platform.v1.RequestService.ListRequestEvents:output_type -> aether.platform.v1.ListRequestEventsResponse
+	13, // 19: aether.platform.v1.RequestService.CancelRequest:output_type -> aether.platform.v1.CancelRequestResponse
+	16, // [16:20] is the sub-list for method output_type
+	12, // [12:16] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_platform_v1_request_proto_init() }
@@ -1098,7 +1224,7 @@ func file_platform_v1_request_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_request_proto_rawDesc), len(file_platform_v1_request_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

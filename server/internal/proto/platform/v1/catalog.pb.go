@@ -21,126 +21,72 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type ListItemsRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Maximum number of items to return. 0 = server default.
-	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// Opaque cursor from a previous response; empty for the first page.
-	PageToken     string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
+type CatalogItem_CatalogItemStatus int32
 
-func (x *ListItemsRequest) Reset() {
-	*x = ListItemsRequest{}
-	mi := &file_platform_v1_catalog_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
+const (
+	CatalogItem_CATALOG_ITEM_STATUS_UNSPECIFIED CatalogItem_CatalogItemStatus = 0
+	CatalogItem_CATALOG_ITEM_STATUS_ACTIVE      CatalogItem_CatalogItemStatus = 1
+	CatalogItem_CATALOG_ITEM_STATUS_DEPRECATED  CatalogItem_CatalogItemStatus = 2
+)
 
-func (x *ListItemsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListItemsRequest) ProtoMessage() {}
-
-func (x *ListItemsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_catalog_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+// Enum value maps for CatalogItem_CatalogItemStatus.
+var (
+	CatalogItem_CatalogItemStatus_name = map[int32]string{
+		0: "CATALOG_ITEM_STATUS_UNSPECIFIED",
+		1: "CATALOG_ITEM_STATUS_ACTIVE",
+		2: "CATALOG_ITEM_STATUS_DEPRECATED",
 	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListItemsRequest.ProtoReflect.Descriptor instead.
-func (*ListItemsRequest) Descriptor() ([]byte, []int) {
-	return file_platform_v1_catalog_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *ListItemsRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
+	CatalogItem_CatalogItemStatus_value = map[string]int32{
+		"CATALOG_ITEM_STATUS_UNSPECIFIED": 0,
+		"CATALOG_ITEM_STATUS_ACTIVE":      1,
+		"CATALOG_ITEM_STATUS_DEPRECATED":  2,
 	}
-	return 0
+)
+
+func (x CatalogItem_CatalogItemStatus) Enum() *CatalogItem_CatalogItemStatus {
+	p := new(CatalogItem_CatalogItemStatus)
+	*p = x
+	return p
 }
 
-func (x *ListItemsRequest) GetPageToken() string {
-	if x != nil {
-		return x.PageToken
-	}
-	return ""
+func (x CatalogItem_CatalogItemStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-type ListItemsResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Items []*CatalogItem         `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
-	// Cursor for the next page; empty if no more items.
-	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+func (CatalogItem_CatalogItemStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_platform_v1_catalog_proto_enumTypes[0].Descriptor()
 }
 
-func (x *ListItemsResponse) Reset() {
-	*x = ListItemsResponse{}
-	mi := &file_platform_v1_catalog_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
+func (CatalogItem_CatalogItemStatus) Type() protoreflect.EnumType {
+	return &file_platform_v1_catalog_proto_enumTypes[0]
 }
 
-func (x *ListItemsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
+func (x CatalogItem_CatalogItemStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
 }
 
-func (*ListItemsResponse) ProtoMessage() {}
-
-func (x *ListItemsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_catalog_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListItemsResponse.ProtoReflect.Descriptor instead.
-func (*ListItemsResponse) Descriptor() ([]byte, []int) {
-	return file_platform_v1_catalog_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *ListItemsResponse) GetItems() []*CatalogItem {
-	if x != nil {
-		return x.Items
-	}
-	return nil
-}
-
-func (x *ListItemsResponse) GetNextPageToken() string {
-	if x != nil {
-		return x.NextPageToken
-	}
-	return ""
+// Deprecated: Use CatalogItem_CatalogItemStatus.Descriptor instead.
+func (CatalogItem_CatalogItemStatus) EnumDescriptor() ([]byte, []int) {
+	return file_platform_v1_catalog_proto_rawDescGZIP(), []int{0, 0}
 }
 
 type CatalogItem struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Stable identifier (slug).
-	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState        `protogen:"open.v1"`
+	Id             string                        `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // cat_<alphanum>
+	Name           string                        `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description    string                        `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	Category       string                        `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`
+	Status         CatalogItem_CatalogItemStatus `protobuf:"varint,5,opt,name=status,proto3,enum=aether.platform.v1.CatalogItem_CatalogItemStatus" json:"status,omitempty"`
+	ModuleVersion  *ModuleVersion                `protobuf:"bytes,6,opt,name=module_version,json=moduleVersion,proto3" json:"module_version,omitempty"`
+	FormSchemaJson string                        `protobuf:"bytes,7,opt,name=form_schema_json,json=formSchemaJson,proto3" json:"form_schema_json,omitempty"`                                                                // JSON Schema 2020-12 for request form (D40)
+	DefaultTags    map[string]string             `protobuf:"bytes,8,rep,name=default_tags,json=defaultTags,proto3" json:"default_tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Platform tags injected by codegen (D18)
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CatalogItem) Reset() {
 	*x = CatalogItem{}
-	mi := &file_platform_v1_catalog_proto_msgTypes[2]
+	mi := &file_platform_v1_catalog_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -152,7 +98,7 @@ func (x *CatalogItem) String() string {
 func (*CatalogItem) ProtoMessage() {}
 
 func (x *CatalogItem) ProtoReflect() protoreflect.Message {
-	mi := &file_platform_v1_catalog_proto_msgTypes[2]
+	mi := &file_platform_v1_catalog_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -165,7 +111,7 @@ func (x *CatalogItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CatalogItem.ProtoReflect.Descriptor instead.
 func (*CatalogItem) Descriptor() ([]byte, []int) {
-	return file_platform_v1_catalog_proto_rawDescGZIP(), []int{2}
+	return file_platform_v1_catalog_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *CatalogItem) GetId() string {
@@ -189,24 +135,351 @@ func (x *CatalogItem) GetDescription() string {
 	return ""
 }
 
+func (x *CatalogItem) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *CatalogItem) GetStatus() CatalogItem_CatalogItemStatus {
+	if x != nil {
+		return x.Status
+	}
+	return CatalogItem_CATALOG_ITEM_STATUS_UNSPECIFIED
+}
+
+func (x *CatalogItem) GetModuleVersion() *ModuleVersion {
+	if x != nil {
+		return x.ModuleVersion
+	}
+	return nil
+}
+
+func (x *CatalogItem) GetFormSchemaJson() string {
+	if x != nil {
+		return x.FormSchemaJson
+	}
+	return ""
+}
+
+func (x *CatalogItem) GetDefaultTags() map[string]string {
+	if x != nil {
+		return x.DefaultTags
+	}
+	return nil
+}
+
+type ModuleVersion struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Version       string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`                      // semver e.g. v1.2.0
+	Source        string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`                        // git registry source
+	CommitSha     string                 `protobuf:"bytes,3,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"` // sha256:<hex>
+	Providers     []string               `protobuf:"bytes,4,rep,name=providers,proto3" json:"providers,omitempty"`                  // e.g. ["aws", "alicloud"]
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ModuleVersion) Reset() {
+	*x = ModuleVersion{}
+	mi := &file_platform_v1_catalog_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ModuleVersion) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModuleVersion) ProtoMessage() {}
+
+func (x *ModuleVersion) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_catalog_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModuleVersion.ProtoReflect.Descriptor instead.
+func (*ModuleVersion) Descriptor() ([]byte, []int) {
+	return file_platform_v1_catalog_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ModuleVersion) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *ModuleVersion) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *ModuleVersion) GetCommitSha() string {
+	if x != nil {
+		return x.CommitSha
+	}
+	return ""
+}
+
+func (x *ModuleVersion) GetProviders() []string {
+	if x != nil {
+		return x.Providers
+	}
+	return nil
+}
+
+type ListItemsRequest struct {
+	state         protoimpl.MessageState        `protogen:"open.v1"`
+	PageSize      int32                         `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                        `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	StatusFilter  CatalogItem_CatalogItemStatus `protobuf:"varint,3,opt,name=status_filter,json=statusFilter,proto3,enum=aether.platform.v1.CatalogItem_CatalogItemStatus" json:"status_filter,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListItemsRequest) Reset() {
+	*x = ListItemsRequest{}
+	mi := &file_platform_v1_catalog_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListItemsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListItemsRequest) ProtoMessage() {}
+
+func (x *ListItemsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_catalog_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListItemsRequest.ProtoReflect.Descriptor instead.
+func (*ListItemsRequest) Descriptor() ([]byte, []int) {
+	return file_platform_v1_catalog_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ListItemsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListItemsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListItemsRequest) GetStatusFilter() CatalogItem_CatalogItemStatus {
+	if x != nil {
+		return x.StatusFilter
+	}
+	return CatalogItem_CATALOG_ITEM_STATUS_UNSPECIFIED
+}
+
+type ListItemsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Items         []*CatalogItem         `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListItemsResponse) Reset() {
+	*x = ListItemsResponse{}
+	mi := &file_platform_v1_catalog_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListItemsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListItemsResponse) ProtoMessage() {}
+
+func (x *ListItemsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_catalog_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListItemsResponse.ProtoReflect.Descriptor instead.
+func (*ListItemsResponse) Descriptor() ([]byte, []int) {
+	return file_platform_v1_catalog_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ListItemsResponse) GetItems() []*CatalogItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+func (x *ListItemsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type GetCatalogItemRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CatalogItemId string                 `protobuf:"bytes,1,opt,name=catalog_item_id,json=catalogItemId,proto3" json:"catalog_item_id,omitempty"` // cat_<alphanum>
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCatalogItemRequest) Reset() {
+	*x = GetCatalogItemRequest{}
+	mi := &file_platform_v1_catalog_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCatalogItemRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCatalogItemRequest) ProtoMessage() {}
+
+func (x *GetCatalogItemRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_catalog_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCatalogItemRequest.ProtoReflect.Descriptor instead.
+func (*GetCatalogItemRequest) Descriptor() ([]byte, []int) {
+	return file_platform_v1_catalog_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetCatalogItemRequest) GetCatalogItemId() string {
+	if x != nil {
+		return x.CatalogItemId
+	}
+	return ""
+}
+
+type GetCatalogItemResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Item          *CatalogItem           `protobuf:"bytes,1,opt,name=item,proto3" json:"item,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCatalogItemResponse) Reset() {
+	*x = GetCatalogItemResponse{}
+	mi := &file_platform_v1_catalog_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCatalogItemResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCatalogItemResponse) ProtoMessage() {}
+
+func (x *GetCatalogItemResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_catalog_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCatalogItemResponse.ProtoReflect.Descriptor instead.
+func (*GetCatalogItemResponse) Descriptor() ([]byte, []int) {
+	return file_platform_v1_catalog_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetCatalogItemResponse) GetItem() *CatalogItem {
+	if x != nil {
+		return x.Item
+	}
+	return nil
+}
+
 var File_platform_v1_catalog_proto protoreflect.FileDescriptor
 
 const file_platform_v1_catalog_proto_rawDesc = "" +
 	"\n" +
-	"\x19platform/v1/catalog.proto\x12\x12aether.platform.v1\"N\n" +
-	"\x10ListItemsRequest\x12\x1b\n" +
-	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
-	"\n" +
-	"page_token\x18\x02 \x01(\tR\tpageToken\"r\n" +
-	"\x11ListItemsResponse\x125\n" +
-	"\x05items\x18\x01 \x03(\v2\x1f.aether.platform.v1.CatalogItemR\x05items\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"S\n" +
+	"\x19platform/v1/catalog.proto\x12\x12aether.platform.v1\"\xc1\x04\n" +
 	"\vCatalogItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription2l\n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x1a\n" +
+	"\bcategory\x18\x04 \x01(\tR\bcategory\x12I\n" +
+	"\x06status\x18\x05 \x01(\x0e21.aether.platform.v1.CatalogItem.CatalogItemStatusR\x06status\x12H\n" +
+	"\x0emodule_version\x18\x06 \x01(\v2!.aether.platform.v1.ModuleVersionR\rmoduleVersion\x12(\n" +
+	"\x10form_schema_json\x18\a \x01(\tR\x0eformSchemaJson\x12S\n" +
+	"\fdefault_tags\x18\b \x03(\v20.aether.platform.v1.CatalogItem.DefaultTagsEntryR\vdefaultTags\x1a>\n" +
+	"\x10DefaultTagsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"|\n" +
+	"\x11CatalogItemStatus\x12#\n" +
+	"\x1fCATALOG_ITEM_STATUS_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aCATALOG_ITEM_STATUS_ACTIVE\x10\x01\x12\"\n" +
+	"\x1eCATALOG_ITEM_STATUS_DEPRECATED\x10\x02\"~\n" +
+	"\rModuleVersion\x12\x18\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\x12\x16\n" +
+	"\x06source\x18\x02 \x01(\tR\x06source\x12\x1d\n" +
+	"\n" +
+	"commit_sha\x18\x03 \x01(\tR\tcommitSha\x12\x1c\n" +
+	"\tproviders\x18\x04 \x03(\tR\tproviders\"\xa6\x01\n" +
+	"\x10ListItemsRequest\x12\x1b\n" +
+	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tR\tpageToken\x12V\n" +
+	"\rstatus_filter\x18\x03 \x01(\x0e21.aether.platform.v1.CatalogItem.CatalogItemStatusR\fstatusFilter\"r\n" +
+	"\x11ListItemsResponse\x125\n" +
+	"\x05items\x18\x01 \x03(\v2\x1f.aether.platform.v1.CatalogItemR\x05items\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"?\n" +
+	"\x15GetCatalogItemRequest\x12&\n" +
+	"\x0fcatalog_item_id\x18\x01 \x01(\tR\rcatalogItemId\"M\n" +
+	"\x16GetCatalogItemResponse\x123\n" +
+	"\x04item\x18\x01 \x01(\v2\x1f.aether.platform.v1.CatalogItemR\x04item2\xd7\x01\n" +
 	"\x0eCatalogService\x12Z\n" +
-	"\tListItems\x12$.aether.platform.v1.ListItemsRequest\x1a%.aether.platform.v1.ListItemsResponse\"\x00BUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
+	"\tListItems\x12$.aether.platform.v1.ListItemsRequest\x1a%.aether.platform.v1.ListItemsResponse\"\x00\x12i\n" +
+	"\x0eGetCatalogItem\x12).aether.platform.v1.GetCatalogItemRequest\x1a*.aether.platform.v1.GetCatalogItemResponse\"\x00BUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
 
 var (
 	file_platform_v1_catalog_proto_rawDescOnce sync.Once
@@ -220,21 +493,34 @@ func file_platform_v1_catalog_proto_rawDescGZIP() []byte {
 	return file_platform_v1_catalog_proto_rawDescData
 }
 
-var file_platform_v1_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_platform_v1_catalog_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_platform_v1_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_platform_v1_catalog_proto_goTypes = []any{
-	(*ListItemsRequest)(nil),  // 0: aether.platform.v1.ListItemsRequest
-	(*ListItemsResponse)(nil), // 1: aether.platform.v1.ListItemsResponse
-	(*CatalogItem)(nil),       // 2: aether.platform.v1.CatalogItem
+	(CatalogItem_CatalogItemStatus)(0), // 0: aether.platform.v1.CatalogItem.CatalogItemStatus
+	(*CatalogItem)(nil),                // 1: aether.platform.v1.CatalogItem
+	(*ModuleVersion)(nil),              // 2: aether.platform.v1.ModuleVersion
+	(*ListItemsRequest)(nil),           // 3: aether.platform.v1.ListItemsRequest
+	(*ListItemsResponse)(nil),          // 4: aether.platform.v1.ListItemsResponse
+	(*GetCatalogItemRequest)(nil),      // 5: aether.platform.v1.GetCatalogItemRequest
+	(*GetCatalogItemResponse)(nil),     // 6: aether.platform.v1.GetCatalogItemResponse
+	nil,                                // 7: aether.platform.v1.CatalogItem.DefaultTagsEntry
 }
 var file_platform_v1_catalog_proto_depIdxs = []int32{
-	2, // 0: aether.platform.v1.ListItemsResponse.items:type_name -> aether.platform.v1.CatalogItem
-	0, // 1: aether.platform.v1.CatalogService.ListItems:input_type -> aether.platform.v1.ListItemsRequest
-	1, // 2: aether.platform.v1.CatalogService.ListItems:output_type -> aether.platform.v1.ListItemsResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0, // 0: aether.platform.v1.CatalogItem.status:type_name -> aether.platform.v1.CatalogItem.CatalogItemStatus
+	2, // 1: aether.platform.v1.CatalogItem.module_version:type_name -> aether.platform.v1.ModuleVersion
+	7, // 2: aether.platform.v1.CatalogItem.default_tags:type_name -> aether.platform.v1.CatalogItem.DefaultTagsEntry
+	0, // 3: aether.platform.v1.ListItemsRequest.status_filter:type_name -> aether.platform.v1.CatalogItem.CatalogItemStatus
+	1, // 4: aether.platform.v1.ListItemsResponse.items:type_name -> aether.platform.v1.CatalogItem
+	1, // 5: aether.platform.v1.GetCatalogItemResponse.item:type_name -> aether.platform.v1.CatalogItem
+	3, // 6: aether.platform.v1.CatalogService.ListItems:input_type -> aether.platform.v1.ListItemsRequest
+	5, // 7: aether.platform.v1.CatalogService.GetCatalogItem:input_type -> aether.platform.v1.GetCatalogItemRequest
+	4, // 8: aether.platform.v1.CatalogService.ListItems:output_type -> aether.platform.v1.ListItemsResponse
+	6, // 9: aether.platform.v1.CatalogService.GetCatalogItem:output_type -> aether.platform.v1.GetCatalogItemResponse
+	8, // [8:10] is the sub-list for method output_type
+	6, // [6:8] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_platform_v1_catalog_proto_init() }
@@ -247,13 +533,14 @@ func file_platform_v1_catalog_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_catalog_proto_rawDesc), len(file_platform_v1_catalog_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   3,
+			NumEnums:      1,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_platform_v1_catalog_proto_goTypes,
 		DependencyIndexes: file_platform_v1_catalog_proto_depIdxs,
+		EnumInfos:         file_platform_v1_catalog_proto_enumTypes,
 		MessageInfos:      file_platform_v1_catalog_proto_msgTypes,
 	}.Build()
 	File_platform_v1_catalog_proto = out.File

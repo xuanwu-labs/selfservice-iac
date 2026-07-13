@@ -1,33 +1,62 @@
 syntax = "proto3";
 
 package aether.platform.v1;
+
 option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1";
 
-// CatalogService is the service catalog API — lists catalog items that drive
-// the request form (D25). This first RPC demonstrates the Connect-RPC + buf
-// pipeline; full catalog logic lands in iac-self-service-platform.
+// ============================================================
+// CatalogService — Service catalog (module marketplace).
+// Users browse catalog items to find what to request.
+// ============================================================
 service CatalogService {
-  // ListItems returns the available catalog items.
-  rpc ListItems(ListItemsRequest) returns (ListItemsResponse) {
-  }
+  rpc ListItems(ListItemsRequest) returns (ListItemsResponse) {}
+  rpc GetCatalogItem(GetCatalogItemRequest) returns (GetCatalogItemResponse) {}
 }
 
+// --- Messages ---
+
+message CatalogItem {
+  string id = 1;                        // cat_<alphanum>
+  string name = 2;
+  string description = 3;
+  string category = 4;
+
+  enum CatalogItemStatus {
+    CATALOG_ITEM_STATUS_UNSPECIFIED = 0;
+    CATALOG_ITEM_STATUS_ACTIVE = 1;
+    CATALOG_ITEM_STATUS_DEPRECATED = 2;
+  }
+  CatalogItemStatus status = 5;
+
+  ModuleVersion module_version = 6;
+  string form_schema_json = 7;          // JSON Schema 2020-12 for request form (D40)
+  map<string, string> default_tags = 8; // Platform tags injected by codegen (D18)
+}
+
+message ModuleVersion {
+  string version = 1;                   // semver e.g. v1.2.0
+  string source = 2;                    // git registry source
+  string commit_sha = 3;               // sha256:<hex>
+  repeated string providers = 4;        // e.g. ["aws", "alicloud"]
+}
+
+// --- RPC Messages ---
+
 message ListItemsRequest {
-  // Maximum number of items to return. 0 = server default.
   int32 page_size = 1;
-  // Opaque cursor from a previous response; empty for the first page.
   string page_token = 2;
+  CatalogItem.CatalogItemStatus status_filter = 3;
 }
 
 message ListItemsResponse {
   repeated CatalogItem items = 1;
-  // Cursor for the next page; empty if no more items.
   string next_page_token = 2;
 }
 
-message CatalogItem {
-  // Stable identifier (slug).
-  string id = 1;
-  string name = 2;
-  string description = 3;
+message GetCatalogItemRequest {
+  string catalog_item_id = 1;           // cat_<alphanum>
+}
+
+message GetCatalogItemResponse {
+  CatalogItem item = 1;
 }

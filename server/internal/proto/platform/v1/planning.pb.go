@@ -73,6 +73,55 @@ func (PlanArtifact_ArtifactStatus) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_planning_proto_rawDescGZIP(), []int{0, 0}
 }
 
+type GateResult_Severity int32
+
+const (
+	GateResult_SEVERITY_UNSPECIFIED GateResult_Severity = 0
+	GateResult_SEVERITY_ERROR       GateResult_Severity = 1
+	GateResult_SEVERITY_WARNING     GateResult_Severity = 2
+)
+
+// Enum value maps for GateResult_Severity.
+var (
+	GateResult_Severity_name = map[int32]string{
+		0: "SEVERITY_UNSPECIFIED",
+		1: "SEVERITY_ERROR",
+		2: "SEVERITY_WARNING",
+	}
+	GateResult_Severity_value = map[string]int32{
+		"SEVERITY_UNSPECIFIED": 0,
+		"SEVERITY_ERROR":       1,
+		"SEVERITY_WARNING":     2,
+	}
+)
+
+func (x GateResult_Severity) Enum() *GateResult_Severity {
+	p := new(GateResult_Severity)
+	*p = x
+	return p
+}
+
+func (x GateResult_Severity) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (GateResult_Severity) Descriptor() protoreflect.EnumDescriptor {
+	return file_platform_v1_planning_proto_enumTypes[1].Descriptor()
+}
+
+func (GateResult_Severity) Type() protoreflect.EnumType {
+	return &file_platform_v1_planning_proto_enumTypes[1]
+}
+
+func (x GateResult_Severity) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use GateResult_Severity.Descriptor instead.
+func (GateResult_Severity) EnumDescriptor() ([]byte, []int) {
+	return file_platform_v1_planning_proto_rawDescGZIP(), []int{8, 0}
+}
+
 type PlanArtifact struct {
 	state             protoimpl.MessageState      `protogen:"open.v1"`
 	Id                string                      `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // art_<alphanum>
@@ -433,6 +482,194 @@ func (x *GetArtifactResponse) GetCorrelationId() string {
 	return ""
 }
 
+type EvaluateGateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RequestId     string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EvaluateGateRequest) Reset() {
+	*x = EvaluateGateRequest{}
+	mi := &file_platform_v1_planning_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvaluateGateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvaluateGateRequest) ProtoMessage() {}
+
+func (x *EvaluateGateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_planning_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvaluateGateRequest.ProtoReflect.Descriptor instead.
+func (*EvaluateGateRequest) Descriptor() ([]byte, []int) {
+	return file_platform_v1_planning_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *EvaluateGateRequest) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+type EvaluateGateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RequestId     string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Passed        bool                   `protobuf:"varint,2,opt,name=passed,proto3" json:"passed,omitempty"`
+	Gates         []*GateResult          `protobuf:"bytes,3,rep,name=gates,proto3" json:"gates,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,4,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EvaluateGateResponse) Reset() {
+	*x = EvaluateGateResponse{}
+	mi := &file_platform_v1_planning_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvaluateGateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvaluateGateResponse) ProtoMessage() {}
+
+func (x *EvaluateGateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_planning_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvaluateGateResponse.ProtoReflect.Descriptor instead.
+func (*EvaluateGateResponse) Descriptor() ([]byte, []int) {
+	return file_platform_v1_planning_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *EvaluateGateResponse) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *EvaluateGateResponse) GetPassed() bool {
+	if x != nil {
+		return x.Passed
+	}
+	return false
+}
+
+func (x *EvaluateGateResponse) GetGates() []*GateResult {
+	if x != nil {
+		return x.Gates
+	}
+	return nil
+}
+
+func (x *EvaluateGateResponse) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+type GateResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GateId        string                 `protobuf:"bytes,1,opt,name=gate_id,json=gateId,proto3" json:"gate_id,omitempty"`
+	Passed        bool                   `protobuf:"varint,2,opt,name=passed,proto3" json:"passed,omitempty"`
+	Policy        string                 `protobuf:"bytes,3,opt,name=policy,proto3" json:"policy,omitempty"`
+	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	Severity      GateResult_Severity    `protobuf:"varint,5,opt,name=severity,proto3,enum=aether.platform.v1.GateResult_Severity" json:"severity,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GateResult) Reset() {
+	*x = GateResult{}
+	mi := &file_platform_v1_planning_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GateResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GateResult) ProtoMessage() {}
+
+func (x *GateResult) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_planning_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GateResult.ProtoReflect.Descriptor instead.
+func (*GateResult) Descriptor() ([]byte, []int) {
+	return file_platform_v1_planning_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GateResult) GetGateId() string {
+	if x != nil {
+		return x.GateId
+	}
+	return ""
+}
+
+func (x *GateResult) GetPassed() bool {
+	if x != nil {
+		return x.Passed
+	}
+	return false
+}
+
+func (x *GateResult) GetPolicy() string {
+	if x != nil {
+		return x.Policy
+	}
+	return ""
+}
+
+func (x *GateResult) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *GateResult) GetSeverity() GateResult_Severity {
+	if x != nil {
+		return x.Severity
+	}
+	return GateResult_SEVERITY_UNSPECIFIED
+}
+
 var File_platform_v1_planning_proto protoreflect.FileDescriptor
 
 const file_platform_v1_planning_proto_rawDesc = "" +
@@ -472,11 +709,33 @@ const file_platform_v1_planning_proto_rawDesc = "" +
 	"artifactId\"z\n" +
 	"\x13GetArtifactResponse\x12<\n" +
 	"\bartifact\x18\x01 \x01(\v2 .aether.platform.v1.PlanArtifactR\bartifact\x12%\n" +
-	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId2m\n" +
+	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\"4\n" +
+	"\x13EvaluateGateRequest\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\"\xaa\x01\n" +
+	"\x14EvaluateGateResponse\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12\x16\n" +
+	"\x06passed\x18\x02 \x01(\bR\x06passed\x124\n" +
+	"\x05gates\x18\x03 \x03(\v2\x1e.aether.platform.v1.GateResultR\x05gates\x12%\n" +
+	"\x0ecorrelation_id\x18\x04 \x01(\tR\rcorrelationId\"\x84\x02\n" +
+	"\n" +
+	"GateResult\x12\x17\n" +
+	"\agate_id\x18\x01 \x01(\tR\x06gateId\x12\x16\n" +
+	"\x06passed\x18\x02 \x01(\bR\x06passed\x12\x16\n" +
+	"\x06policy\x18\x03 \x01(\tR\x06policy\x12\x18\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage\x12C\n" +
+	"\bseverity\x18\x05 \x01(\x0e2'.aether.platform.v1.GateResult.SeverityR\bseverity\"N\n" +
+	"\bSeverity\x12\x18\n" +
+	"\x14SEVERITY_UNSPECIFIED\x10\x00\x12\x12\n" +
+	"\x0eSEVERITY_ERROR\x10\x01\x12\x14\n" +
+	"\x10SEVERITY_WARNING\x10\x022m\n" +
 	"\x0fPlanningService\x12Z\n" +
 	"\tStartPlan\x12$.aether.platform.v1.StartPlanRequest\x1a%.aether.platform.v1.StartPlanResponse\"\x002s\n" +
 	"\x0fArtifactService\x12`\n" +
-	"\vGetArtifact\x12&.aether.platform.v1.GetArtifactRequest\x1a'.aether.platform.v1.GetArtifactResponse\"\x00BUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
+	"\vGetArtifact\x12&.aether.platform.v1.GetArtifactRequest\x1a'.aether.platform.v1.GetArtifactResponse\"\x002r\n" +
+	"\vGateService\x12c\n" +
+	"\fEvaluateGate\x12'.aether.platform.v1.EvaluateGateRequest\x1a(.aether.platform.v1.EvaluateGateResponse\"\x00BUZSgithub.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1;platformv1b\x06proto3"
 
 var (
 	file_platform_v1_planning_proto_rawDescOnce sync.Once
@@ -490,32 +749,40 @@ func file_platform_v1_planning_proto_rawDescGZIP() []byte {
 	return file_platform_v1_planning_proto_rawDescData
 }
 
-var file_platform_v1_planning_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_platform_v1_planning_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_platform_v1_planning_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_platform_v1_planning_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_platform_v1_planning_proto_goTypes = []any{
 	(PlanArtifact_ArtifactStatus)(0), // 0: aether.platform.v1.PlanArtifact.ArtifactStatus
-	(*PlanArtifact)(nil),             // 1: aether.platform.v1.PlanArtifact
-	(*PlanSummary)(nil),              // 2: aether.platform.v1.PlanSummary
-	(*StartPlanRequest)(nil),         // 3: aether.platform.v1.StartPlanRequest
-	(*StartPlanResponse)(nil),        // 4: aether.platform.v1.StartPlanResponse
-	(*GetArtifactRequest)(nil),       // 5: aether.platform.v1.GetArtifactRequest
-	(*GetArtifactResponse)(nil),      // 6: aether.platform.v1.GetArtifactResponse
-	(*Request)(nil),                  // 7: aether.platform.v1.Request
+	(GateResult_Severity)(0),         // 1: aether.platform.v1.GateResult.Severity
+	(*PlanArtifact)(nil),             // 2: aether.platform.v1.PlanArtifact
+	(*PlanSummary)(nil),              // 3: aether.platform.v1.PlanSummary
+	(*StartPlanRequest)(nil),         // 4: aether.platform.v1.StartPlanRequest
+	(*StartPlanResponse)(nil),        // 5: aether.platform.v1.StartPlanResponse
+	(*GetArtifactRequest)(nil),       // 6: aether.platform.v1.GetArtifactRequest
+	(*GetArtifactResponse)(nil),      // 7: aether.platform.v1.GetArtifactResponse
+	(*EvaluateGateRequest)(nil),      // 8: aether.platform.v1.EvaluateGateRequest
+	(*EvaluateGateResponse)(nil),     // 9: aether.platform.v1.EvaluateGateResponse
+	(*GateResult)(nil),               // 10: aether.platform.v1.GateResult
+	(*Request)(nil),                  // 11: aether.platform.v1.Request
 }
 var file_platform_v1_planning_proto_depIdxs = []int32{
-	0, // 0: aether.platform.v1.PlanArtifact.status:type_name -> aether.platform.v1.PlanArtifact.ArtifactStatus
-	2, // 1: aether.platform.v1.PlanArtifact.summary:type_name -> aether.platform.v1.PlanSummary
-	7, // 2: aether.platform.v1.StartPlanResponse.request:type_name -> aether.platform.v1.Request
-	1, // 3: aether.platform.v1.GetArtifactResponse.artifact:type_name -> aether.platform.v1.PlanArtifact
-	3, // 4: aether.platform.v1.PlanningService.StartPlan:input_type -> aether.platform.v1.StartPlanRequest
-	5, // 5: aether.platform.v1.ArtifactService.GetArtifact:input_type -> aether.platform.v1.GetArtifactRequest
-	4, // 6: aether.platform.v1.PlanningService.StartPlan:output_type -> aether.platform.v1.StartPlanResponse
-	6, // 7: aether.platform.v1.ArtifactService.GetArtifact:output_type -> aether.platform.v1.GetArtifactResponse
-	6, // [6:8] is the sub-list for method output_type
-	4, // [4:6] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0,  // 0: aether.platform.v1.PlanArtifact.status:type_name -> aether.platform.v1.PlanArtifact.ArtifactStatus
+	3,  // 1: aether.platform.v1.PlanArtifact.summary:type_name -> aether.platform.v1.PlanSummary
+	11, // 2: aether.platform.v1.StartPlanResponse.request:type_name -> aether.platform.v1.Request
+	2,  // 3: aether.platform.v1.GetArtifactResponse.artifact:type_name -> aether.platform.v1.PlanArtifact
+	10, // 4: aether.platform.v1.EvaluateGateResponse.gates:type_name -> aether.platform.v1.GateResult
+	1,  // 5: aether.platform.v1.GateResult.severity:type_name -> aether.platform.v1.GateResult.Severity
+	4,  // 6: aether.platform.v1.PlanningService.StartPlan:input_type -> aether.platform.v1.StartPlanRequest
+	6,  // 7: aether.platform.v1.ArtifactService.GetArtifact:input_type -> aether.platform.v1.GetArtifactRequest
+	8,  // 8: aether.platform.v1.GateService.EvaluateGate:input_type -> aether.platform.v1.EvaluateGateRequest
+	5,  // 9: aether.platform.v1.PlanningService.StartPlan:output_type -> aether.platform.v1.StartPlanResponse
+	7,  // 10: aether.platform.v1.ArtifactService.GetArtifact:output_type -> aether.platform.v1.GetArtifactResponse
+	9,  // 11: aether.platform.v1.GateService.EvaluateGate:output_type -> aether.platform.v1.EvaluateGateResponse
+	9,  // [9:12] is the sub-list for method output_type
+	6,  // [6:9] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_platform_v1_planning_proto_init() }
@@ -529,10 +796,10 @@ func file_platform_v1_planning_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_planning_proto_rawDesc), len(file_platform_v1_planning_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   6,
+			NumEnums:      2,
+			NumMessages:   9,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   3,
 		},
 		GoTypes:           file_platform_v1_planning_proto_goTypes,
 		DependencyIndexes: file_platform_v1_planning_proto_depIdxs,

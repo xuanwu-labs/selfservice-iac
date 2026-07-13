@@ -5,16 +5,13 @@ option go_package = "github.com/xuanwu-labs/selfservice-iac/server/internal/prot
 
 // ============================================================
 // RequestService — IaC change request lifecycle.
-// HTTP: POST /api/v1/requests, GET /api/v1/requests/{id},
-//       GET /api/v1/requests/{id}/events
+// Create → (auto codegen) → Plan → Gate → Approval → Apply → Reconcile
 // ============================================================
 service RequestService {
-  rpc CreateRequest(CreateRequestRequest) returns (CreateRequestResponse) {
-  }
-  rpc GetRequest(GetRequestRequest) returns (GetRequestResponse) {
-  }
-  rpc ListRequestEvents(ListRequestEventsRequest) returns (ListRequestEventsResponse) {
-  }
+  rpc CreateRequest(CreateRequestRequest) returns (CreateRequestResponse) {}
+  rpc GetRequest(GetRequestRequest) returns (GetRequestResponse) {}
+  rpc ListRequestEvents(ListRequestEventsRequest) returns (ListRequestEventsResponse) {}
+  rpc CancelRequest(CancelRequestRequest) returns (CancelRequestResponse) {}
 }
 
 // --- Enums ---
@@ -129,4 +126,15 @@ message ListRequestEventsResponse {
   repeated RequestEvent events = 1;
   string next_page_token = 2;
   string correlation_id = 3;
+}
+
+message CancelRequestRequest {
+  string request_id = 1;
+  int32 expected_version = 2;           // optimistic lock
+  string reason = 3;
+}
+
+message CancelRequestResponse {
+  Request request = 1;                  // status will be "cancelled"
+  string correlation_id = 2;
 }
