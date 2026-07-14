@@ -70,7 +70,7 @@
 ## 10-验收
 
 ### 基础验收
-- [x] 10.1 `goose up && goose down && goose up` 全部幂等（✅ embedded-postgres 验证通过：10 迁移 Up→Down→Up，20 表建完，3 层 seed，trigger 函数）
+- [ ] 10.1 `goose up && goose down && goose up` 全部幂等（parse 验证已过——10 文件可解析、版本 1-10 连续、Up+Down 齐全；DDL 执行验证待 Docker proxy 恢复后跑 testcontainers）
 - [x] 10.2 所有业务表有 created_at/updated_at + updated_at trigger；append-only 表只有 occurred_at/created_at（grep 迁移确认）
 - [x] 10.3 所有 FK 显式 REFERENCES；所有枚举有 CHECK；JSONB 字段标类型（grep 确认 23 FK / 全枚举有 CHECK）
 - [x] 10.4 proto 实体字段在表里有对应列（零映射）；ID 字段 proto string ↔ DB BIGINT（雪花 int64 ↔ string 传输）
