@@ -228,9 +228,9 @@ bundles(id, name, project_id FK→projects, layer_logical_id FK→layer_logical_
 
 #### A2. 模块注册（3 张）
 ```
-modules(id, name, git_source, provider, layer, owner_team_id FK→teams,
+modules(id, name, git_source, module_path, provider, layer, owner_team_id FK→teams,
   status TEXT CHECK(status IN ('pending_validation','validated','validation_failed','deprecated')),
-  description, created_at, updated_at)
+  description, created_at, updated_at, deleted_at)
   -- FK 索引: ix_modules_owner_team_id
 module_versions(id, module_id FK→modules, version, commit_sha, providers_json,
   variables_contract_json,   -- 纯 scalar 契约（D25 零侵入），S1 管道输入
@@ -245,7 +245,7 @@ module_dependencies(id, module_version_id FK→module_versions, variable_name,
 #### A3. 服务目录（1 张）
 ```
 catalog_items(id, module_version_id FK→module_versions, display_name, description, category,
-  status TEXT CHECK(status IN ('draft','active','deprecated','archived','blocked')),  -- doc 19 §1 五态
+  status TEXT CHECK(status IN ('draft','active','deprecated','archived','blocked')),  -- proto CatalogItemStatus
   form_schema_json, defaults_json,   -- defaults_json = S2 catalog defaults（doc 08）
   cardinality TEXT CHECK(cardinality IN ('single','list','map')),   -- D25
   instance_key, per_instance_fields_json, shared_fields_json,
@@ -266,84 +266,61 @@ catalog_items(id, module_version_id FK→module_versions, display_name, descript
 requests(
   id, catalog_item_id FK→catalog_items, bundle_id FK→bundles nullable,
   env_id, tenant_id, team_id FK→teams, requester_id,
-  kind TEXT CHECK(kind IN ('standard','drift-remediation','legacy-import','maintenance-apply')),
-  source TEXT CHECK(source IN ('web','cli','cicd','ai')),
+  kind TEXT CHECK(kind IN ('standard','drift_remediation','legacy_import','maintenance_apply')),
+  source TEXT CHECK(source IN ('web','cli','cicd','ai','gateway')),
   status TEXT CHECK(status IN (
-    'submitted','generating','pending-admission','planning','plan-ready',
-    'pending-approval','applying','reconciling','succeeded','reconcile-pending',
-    'rejected','cancelled','expired','failed-retryable','failed-terminal',
-    'waiting-manual','blocked-policy','blocked-state-health','paused-drift')),  -- 19 值（doc 00 §5 + doc 12a）
-  current_stage, form_values_json, form_hash, resolved_params_json,  -- resolved_params: doc 08 provenance
+    'submitted','generating','pending_admission','planning','plan_ready',
+    'pending_approval','applying','reconciling','succeeded','reconcile_pending',
+    'rejected','cancelled','expired','failed_retryable','failed_terminal',
+    'waiting_manual','blocked_policy','blocked_state_health','paused_drift')),  -- 19 值对齐 proto RequestStatus
+  current_stage, form_values_json, form_hash, resolved_params_json, source_context_json,
   idempotency_key,   -- sha256(actor+catalog+form_hash+24h_window)，UNIQUE
   pinned_commit, plan_artifact_id FK→plan_artifacts nullable,
   cost_estimate_cents, cost_currency, correlation_id,
-  retry_count INT DEFAULT 0,   -- doc 12 reject.terminal 判据（≥3 → terminal）
-  version INT NOT NULL DEFAULT 0,   -- doc 00 §5 乐观锁
+  retry_count INT DEFAULT 0, version INT NOT NULL DEFAULT 0,
   layer_rule_set_version_id FK→layer_rule_set_versions,
   created_at, updated_at)
-  -- FK 索引: ix_requests_catalog_item_id, ix_requests_bundle_id, ix_requests_team_id,
-  --          ix_requests_plan_artifact_id, ix_requests_layer_rule_set_version_id
-  -- 唯一: uq_requests_idempotency_key ON (idempotency_key)
-  -- 注：doc 12 列 20 值含 reconcile-pending（已在主路径）+ blocked-state-health/paused-drift/blocked-policy（异常）
-  -- MVP 边界（悬挂字符串，Wave 落表后加 FK）：
-  --   requester_id TEXT —— identities 表属 B4（非 MVP Wave 2-3），MVP 是外部 SSO subject 字符串，鉴权在网关层。
-  --     同理影响 request_events.actor_id / approval_decisions.approver_id / audit_logs.actor_id。
-  --   env_id/tenant_id TEXT —— environments/tenants 属 B11（非 MVP Wave 6），Phase 1 tenant 恒为 'platform-default'（doc 07）。
-  --   这些列 MVP 不加 FK（无目标表），Wave 落对应表后回加 FK。详见 audit-link-completeness.md L-边界-1/2。
-request_events(id, request_id FK→requests, event_type TEXT CHECK(event_type IN
-               ('state_transition','log','error','approval','hook')),
-               stage, from_status, to_status, actor_id, actor_type TEXT CHECK(actor_type IN
-               ('human','ai','system')), message, correlation_id, occurred_at)  -- append-only
-  -- FK 索引: ix_request_events_request_id
+request_events(id, request_id FK→requests, event_type, stage, from_status, to_status,
+  actor_id, actor_team_id, actor_type TEXT CHECK(actor_type IN ('unspecified','human','ai','system')),
+  message, correlation_id, occurred_at)  -- append-only
 plan_artifacts(id, request_id FK→requests,
-  status TEXT CHECK(status IN ('active','superseded','expired','orphan')),
+  status TEXT CHECK(status IN ('ready','expired','consumed','superseded')),  -- proto ArtifactStatus
   plan_hash, storage_uri, sha256, size_bytes,
   pinned_commit, toolchain_profile_hash, provider_lock_hash, tf_version_sha256,
-  stack_id, state_key,   -- PathGenerator 输出（doc 09 §5.2）
-  resources_to_add, resources_to_change, resources_to_destroy,   -- plan summary
+  stack_id, state_key, resources_to_add, resources_to_change, resources_to_destroy,
   cost_estimate_cents, expires_at, created_at)
-  -- FK 索引: ix_plan_artifacts_request_id
-  -- 对账 doc 09 §5.2 + doc 12 invariant 0：plan/apply 版本一致性校验全字段
 gate_results(id, request_id FK→requests, gate_id, passed BOOL, policy, message,
-  severity TEXT CHECK(severity IN ('info','warning','error','critical')), evaluated_at)
-  -- FK 索引: ix_gate_results_request_id
+  severity TEXT CHECK(severity IN ('unspecified','error','warning')), evaluated_at)
 ```
-**修复 A 级断裂**：
-- requests 补 kind（doc 13/15 工单判别）/source（doc 00 §4.1）/resolved_params_json（doc 08 provenance）/retry_count（doc 12 reject.terminal）/全 19 值 status CHECK。
-- plan_artifacts 补全 plan/apply 版本一致性字段（pinned_commit/toolchain_profile_hash/provider_lock_hash/tf_version_sha256/stack_id/state_key/sha256/size_bytes）—— D21 plan/apply 解耦安全前提。
-- status 19 值覆盖 doc 00 §5 主路径 9 + 异常 10（reconcile-pending 计主路径，故 19 非 20）。
-- gate_status 是 requests.status 的投影，独立枚举（doc 16 §3.1.1），不混入 requests.status。
+> **枚举值域以 proto enum.proto 为准**（剥前缀 lowercase + snake_case）。docs（doc 04/12）的枚举值是设计草稿，proto 是冻结契约唯一源（D45）。
 
 #### A5. 审批（4 张）
 ```
 approval_flows(id, name, trigger, dsl_yaml, version INT, active BOOL,
-               created_at, updated_at)   -- doc 12 §6 审批流定义（DSL YAML 持久化）
+               created_at, updated_at)
 approval_runs(id, request_id FK→requests, flow_id FK→approval_flows,
-  gate TEXT CHECK(gate IN ('pre-plan','pre-apply','break-glass-retroactive')),  -- D21 双门禁判别
-  current_node, status TEXT CHECK(status IN ('pending','approved','rejected','timeout','cancelled')),
-  decided_by, decided_at, started_at, finished_at, expires_at)
-  -- FK 索引: ix_approval_runs_request_id, ix_approval_runs_flow_id
-  -- 唯一: uq_approval_runs_req_gate_active WHERE status='pending'
-  --   doc 12 §3：一个 request 每个 gate 至多一个 pending run（防并发双 pre-apply race）；
-  --   partial（只约束 pending）允许历史 completed run 共存
+  gate TEXT CHECK(gate IN ('pre_plan','pre_apply','break_glass_retroactive')),  -- proto ApprovalGate
+  current_node, status TEXT CHECK(status IN ('pending','approved','rejected','expired')),  -- proto ApprovalRunStatus
+  decided_by, decided_at, started_at, finished_at, expires_at, version INT)
+  -- 唯一: uq_approval_runs_req_gate_pending WHERE status='pending'
 approval_node_runs(id, run_id FK→approval_runs, node_id,
-  mode TEXT CHECK(mode IN ('any','all','majority','count>=N')),  -- doc 12 §2.3 权威
-  decided_count INT, required_count INT, status TEXT CHECK(status IN
-  ('pending','approved','rejected','timeout')), timeout_at)
-  -- FK 索引: ix_approval_node_runs_run_id
+  mode TEXT CHECK(mode IN ('any','all','majority','quorum')),  -- proto ApprovalNodeMode（quorum+N=Count>=N）
+  decided_count INT, required_count INT,
+  status TEXT CHECK(status IN ('pending','approved','rejected','skipped','timeout')),  -- proto ApprovalNodeStatus
+  timeout_at)
 approval_decisions(id, node_run_id FK→approval_node_runs, approver_id,
-  decision TEXT CHECK(decision IN ('approve','reject','abstain')),
+  decision TEXT CHECK(decision IN ('approved','rejected')),  -- proto ApprovalDecision
   comment, decided_at)  -- append-only
-  -- FK 索引: ix_approval_decisions_node_run_id
+  -- 唯一: uq_approval_decisions_node_approver ON (node_run_id, approver_id)（IDEMP-004）
 ```
-**修复 B 级断裂**：新增 approval_flows（doc 12 §6 硬要求，DSL 持久化）；approval_runs 补 gate 列（D21 双门禁）+ 全枚举 CHECK；node_runs.mode 对齐 doc 12 §2.3 权威（any/all/majority/count>=N，非 doc 04 的 single/countersign/conditional）。
+**对齐 proto**：gate/mode/status/decision 全部对齐 proto enum（剥前缀 lowercase + snake_case）。mode 用 `any/all/majority/quorum`（决策聚合语义），`count>=N` 用 `quorum` + `required_count=N` 表达，conditional 路由靠 DSL 不进 enum。
 
 #### A6. 云账号（1 张）
 ```
 cloud_accounts(id,
-  provider TEXT CHECK(provider IN ('alicloud','aws','azure')),
+  provider TEXT CHECK(provider IN ('aws','aliyun','azure','gcp')),  -- proto CloudProvider
   account_id, alias, display_name,
-  status TEXT CHECK(status IN ('active','suspended','deprecating','deprecated')),  -- doc 07c §14 cascade
+  status TEXT CHECK(status IN ('active','suspended')),  -- proto CloudAccountStatus（deprecating/deprecated 延后）
   default_region, regions_json, credentials_ref, billing_enabled BOOL,
   default_team_id FK→teams nullable, tags_json,
   bootstrap_status TEXT CHECK(bootstrap_status IN ('ok','rotate','none')),
@@ -362,7 +339,7 @@ Phase 1 出厂 seed：3 条 layer_logical_refs（global/middleware/application�
 
 #### A8. 审计/事件（2 张）
 ```
-audit_logs(id, actor_id, actor_type TEXT CHECK(actor_type IN ('human','ai','system')),
+audit_logs(id, actor_id, actor_team_id, actor_type TEXT CHECK(actor_type IN ('unspecified','human','ai','system')),
   action, target_type, target_id, before_json, after_json,
   ai_metadata_json,   -- nullable，仅 actor_type=ai 时填（doc 17 §9.2: prompt_hash/skill_name/llm_model/tool_calls_json/confidence_score）
   correlation_id, occurred_at)  -- append-only
@@ -738,7 +715,7 @@ skills(id, name, description, trigger_patterns_json, steps_yaml, output_contract
 |---|---|---|
 | B1 cloud_accounts 字段不全 | 对齐 doc 04 §2.12 权威（alias/display_name/billing_enabled/default_team_id/tags_json）| A6 |
 | B2 catalog_items.status 缺 blocked | 5 值 CHECK（doc 19 §1）| A3 |
-| B3 approval_node_runs.mode 漂移 | 对齐 doc 12 §2.3（any/all/majority/count>=N）| A5 |
+| B3 approval_node_runs.mode 漂移 | 对齐 proto ApprovalNodeMode（any/all/majority/quorum；quorum+N 表达 count>=N）| A5 |
 | B4 audit_logs 缺 ai_metadata_json | 补列（doc 17 §9.2）| A8 |
 | B5 resources 缺 tenant_id/status | 补列 + 新增 resource_relations（doc 07 §7 + doc 14 §2）| B9 |
 | B6 finops_recommendations 缺 confidence | 补 confidence_score + 4 支撑字段（doc 14 §4.5）| B9 |
