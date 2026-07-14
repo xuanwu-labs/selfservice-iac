@@ -86,7 +86,7 @@
 - [x] 10.12 JSONB 高频过滤列（visibility_json/user_allowed_tag_keys_json）有 GIN 索引（MVP 范围）
 
 ### docs 全量对账（audit-docs-sweep.md）
-- [x] 10.13 **requests.status CHECK 覆盖 19 值**（迁移 005 确认，含 blocked-policy/blocked-state-health/paused-drift/reconcile-pending）
+- [x] 10.13 **requests.status CHECK 覆盖 19 值**（迁移 005 确认，含 blocked_policy/blocked_state_health/paused_drift/reconcile_pending，对齐 proto snake_case）
 - [x] 10.14 **plan_artifacts 含版本校验全字段**（迁移 006 确认 8 字段全在）
 - [x] 10.15 **approval_flows 表已建**（迁移 007）；approval_runs.gate CHECK 3 值
 - [x] 10.16 **outbox_events.status CHECK 5 值**（迁移 009 确认）+ event_id UNIQUE
@@ -108,7 +108,7 @@
 - [x] 10.30 import_jobs.created_stack_id（design.md B14 定稿）
 - [x] 10.31 MVP requester_id/env_id/tenant_id 标注为悬挂字符串（迁移 005 + design.md A4 注释）
 
-> **未勾选项**（10.1 + 各域测试 2.2/3.3/4.3/5.5/6.2/7.2/8.3 + 10.7）需 Docker（testcontainers）跑迁移幂等 + CRUD 测试，或 docs/04 标注。代码侧已就绪，待 CI/Docker 环境执行。
+> **未勾选项**（各域 CRUD 测试 2.2/3.3/4.3/5.5/6.2/7.2/8.3 + 10.7 docs/04 标注）需各 Wave 实现 handler 时补 CRUD 测试 + docs 标注。迁移幂等已通过（10.1 ✅ testcontainers）。
 
 ## 11-非 MVP 表设计定稿（本 change 内，不落迁移）
 

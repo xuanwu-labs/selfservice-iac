@@ -52,8 +52,8 @@ MVP 主链路：管理员注册模块 → 发布目录项 → 用户申请 → p
 | sqlc schema + queries + 重新生成 | `server/pkg/db/{queries,generated}/` | ✅ 已完成（20 表 model + teams 查询）|
 | proto enum 修订（5 个 enum 加值/改值）| `contracts/platform/v1/common/enum.proto` | ✅ 已完成 |
 | proto message 字段补全（4 个 message）| `contracts/platform/v1/lifecycle/dto.proto` | ✅ 已完成 |
-| 迁移 DDL 幂等验证 | `server/cmd/migrate/migration_ddl_test.go` | ✅ 已完成（embedded-postgres）|
-| 审计报告（6 份） | `audits/` | ✅ 已完成 |
+| 迁移 DDL 幂等验证 | `server/cmd/migrate/main_test.go` | ✅ 已完成（testcontainers PG，Up→Down→Up）|
+| 审计报告（8 份） | `audits/` | ✅ 已完成 |
 | docs/04 标注修订 | `docs/04-数据库设计.md` | ⏳ 待标注 |
 | 非 MVP 表迁移 SQL（~48 张） | 随各 Wave 落 | ⏳ 各 Wave 实现 |
 

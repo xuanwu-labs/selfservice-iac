@@ -205,7 +205,7 @@ CREATE TRIGGER trg_<table>_updated_at
 
 sqlc 生成的 struct 自动含 created_at/updated_at（timestamptz → `time.Time` / `*time.Time`），与 proto 的 `string`（RFC3339）在 mapping 层转换（`internal/mapping/`）。
 
-## 03-全量表清单（初版设计全部 ~52 张，分优先级实现）
+## 03-全量表清单（初版设计全部 ~68 张，分优先级实现）
 
 > **原则**：所有表都在本 change **推导初版**（字段/类型/约束/FK 全规范化），不是只设计 MVP 子集。区别只在实现顺序——MVP 表先落迁移 SQL + sqlc 查询，非 MVP 表设计已就绪、迁移 SQL 随对应 Wave 实现时再落。这样后续 Wave 不用回头重新设计表结构，只需按已定稿的 schema 落迁移。
 
