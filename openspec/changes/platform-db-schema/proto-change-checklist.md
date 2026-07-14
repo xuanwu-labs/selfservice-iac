@@ -1,8 +1,8 @@
-# Proto Change 清单：message 字段补全（需用户发起）
+# Proto Change 清单：message 字段补全（已完成）
 
-> 架构审计发现 proto dto.proto 的 4 个 message 缺字段（DB 有列但 proto 不暴露），导致 RPC 响应不完整、乐观锁无法工作。proto 已冻结（D45），修改需用户发起 proto change。
+> 架构审计发现 proto dto.proto 的 4 个 message 缺字段（DB 有列但 proto 不暴露），导致 RPC 响应不完整、乐观锁无法工作。
 >
-> **现在改成本为零**（proto 未生成 Go 代码）；开工后改成本指数级上升。
+> **状态：已全部完成**——4 个 message 字段已补充到 dto.proto，buf generate 成功，build+vet 全绿。这是纯 append（不改变现有字段编号），向后兼容。
 
 ## 变更 1：LifecycleEvent 加状态轨迹字段
 
