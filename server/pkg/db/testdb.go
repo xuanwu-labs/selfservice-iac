@@ -28,6 +28,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"embed"
 	"fmt"
 	"os"
 	"testing"
@@ -36,6 +37,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/moby/moby/api/types/container"
 	"github.com/peterldowns/pgtestdb"
+	"github.com/pressly/goose/v3"
 	"github.com/testcontainers/testcontainers-go"
 	tcpg "github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -45,30 +47,26 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-// schemaSQL mirrors server/cmd/migrate/migrations/001_init.sql (teams table).
-// Kept inline to avoid a cross-package embed dependency at test time. If
-// migrations grow, switch to embedding cmd/migrate/migrations and update the
-// migrator (or wire a gooseMigrator).
-const schemaSQL = `
-CREATE TABLE IF NOT EXISTS teams (
-    id         BIGSERIAL    PRIMARY KEY,
-    name       VARCHAR(128) NOT NULL,
-    slug       VARCHAR(64)  NOT NULL,
-    created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    CONSTRAINT teams_slug_uk UNIQUE (slug)
-);
-CREATE INDEX IF NOT EXISTS teams_name_idx ON teams (name);
-`
+// gooseMigrator runs real goose migrations from the embedded migrations/
+// directory. This replaces the old inline schemaSQL (which was a stale copy
+// of 001_init.sql). By using the real migrations, the test DB always matches
+// production schema — no drift.
+//
+//go:embed migrations/*.sql
+var migrationFS embed.FS
 
-// schemaMigrator implements pgtestdb.Migrator by running schemaSQL verbatim.
-type schemaMigrator struct{}
+type gooseMigrator struct{}
 
-func (schemaMigrator) Hash() (string, error) { return "teams-v1", nil }
+func (gooseMigrator) Hash() (string, error) { return "goose-migrations-v1", nil }
 
-func (schemaMigrator) Migrate(ctx context.Context, db *sql.DB, _ pgtestdb.Config) error {
-	if _, err := db.ExecContext(ctx, schemaSQL); err != nil {
-		return fmt.Errorf("apply test schema: %w", err)
+func (gooseMigrator) Migrate(ctx context.Context, db *sql.DB, _ pgtestdb.Config) error {
+	goose.SetBaseFS(migrationFS)
+	defer goose.SetBaseFS(nil)
+	if err := goose.SetDialect("postgres"); err != nil {
+		return fmt.Errorf("set goose dialect: %w", err)
+	}
+	if err := goose.Up(db, "migrations"); err != nil {
+		return fmt.Errorf("goose up: %w", err)
 	}
 	return nil
 }
@@ -158,41 +156,7 @@ func NewDSN(t testing.TB) string {
 		Database:   tc.Database,
 		Port:       port,
 		Options:    "sslmode=disable",
-	}, schemaMigrator{})
-	return conf.URL()
-}
-
-// noOpMigrator is a pgtestdb.Migrator that does nothing — used by NewRawDSN
-// to hand the caller an EMPTY database (no schema) so the caller can run its
-// own migrations (e.g. goose) from scratch. The hash is stable so pgtestdb
-// caches the empty template.
-type noOpMigrator struct{}
-
-func (noOpMigrator) Hash() (string, error) { return "empty-v1", nil }
-func (noOpMigrator) Migrate(_ context.Context, _ *sql.DB, _ pgtestdb.Config) error {
-	return nil
-}
-
-// NewRawDSN returns the connection string of a fresh, EMPTY test database
-// (no schema applied). Use this when the test runs its own migrations
-// (e.g. goose Up/Down tests) and needs a clean slate. Each call gets an
-// isolated DB.
-func NewRawDSN(t testing.TB) string {
-	t.Helper()
-	if testing.Short() {
-		t.Skip("skipping DB test in -short mode")
-	}
-	host, port := startContainer(t)
-	tc := loadTestContainerConfig()
-	conf := pgtestdb.Custom(t, pgtestdb.Config{
-		DriverName: "pgx",
-		Host:       host,
-		User:       tc.User,
-		Password:   tc.Password,
-		Database:   tc.Database,
-		Port:       port,
-		Options:    "sslmode=disable",
-	}, noOpMigrator{})
+	}, gooseMigrator{})
 	return conf.URL()
 }
 
@@ -220,7 +184,7 @@ func New(t testing.TB) *pgxpool.Pool {
 		Database:   tc.Database,
 		Port:       port,
 		Options:    "sslmode=disable",
-	}, schemaMigrator{})
+	}, gooseMigrator{})
 
 	pool, err := pgxpool.New(ctx, conf.URL())
 	if err != nil {

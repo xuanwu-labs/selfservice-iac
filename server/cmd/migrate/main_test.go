@@ -14,12 +14,13 @@ import (
 	testdb "github.com/xuanwu-labs/selfservice-iac/server/pkg/db"
 )
 
-// testDSN returns a fresh EMPTY test database DSN (testcontainers PG, no schema).
-// Goose tests run migrations from scratch against it. No cleanSlate needed —
-// each call gets an isolated empty DB (pgtestdb clones an empty template).
+// testDSN returns a fresh, goose-migrated test database DSN (testcontainers PG).
+// pgtestdb now uses gooseMigrator which runs real migrations, so the DB has
+// all 20 MVP tables + layer seed. For up/down/up idempotency tests, the test
+// runs goose Down then Up again on this already-migrated DB.
 func testDSN(t *testing.T) string {
 	t.Helper()
-	return testdb.NewRawDSN(t)
+	return testdb.NewDSN(t)
 }
 
 // cleanSlate is no longer needed — NewRawDSN hands an empty DB. Kept as a
@@ -46,27 +47,23 @@ func TestMigrationUpDownUpIdempotent(t *testing.T) {
 		return p
 	}
 
-	cleanSlate(t, db)
+	// DB is already goose-migrated by testdb.NewDSN (gooseMigrator runs
+	// real migrations). Verify the migrated state, then test Down→Up idempotency.
 
-	// Step 1: Up — all migrations apply cleanly in dependency order.
-	p := newProvider()
-	results, err := p.Up(ctx)
-	require.NoError(t, err, "Up should succeed")
-	assert.Len(t, results, expectedMigrationCount, "should apply all migrations")
-
+	// Step 1: Verify migrated state (tables exist + seed landed).
 	var exists bool
 	err = db.QueryRowContext(ctx,
 		"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'teams')").Scan(&exists)
 	require.NoError(t, err)
-	assert.True(t, exists, "teams table should exist after Up")
+	assert.True(t, exists, "teams table should exist after initial migration")
 
-	// Verify the layer seed landed (D24 Phase 1 fixed 3-layer).
 	var layerCount int
 	err = db.QueryRowContext(ctx, "SELECT COUNT(*) FROM layer_logical_refs").Scan(&layerCount)
 	require.NoError(t, err)
 	assert.Equal(t, 3, layerCount, "Phase 1 should seed 3 layer_logical_refs")
 
 	// Step 2: Down — roll back all migrations in reverse.
+	p := newProvider()
 	for i := 0; i < expectedMigrationCount; i++ {
 		_, err := p.Down(ctx)
 		require.NoError(t, err, "Down step %d should succeed", i)
@@ -77,8 +74,8 @@ func TestMigrationUpDownUpIdempotent(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, exists, "teams table should be gone after full Down")
 
-	// Step 3: Up again (idempotent re-application).
-	results, err = p.Up(ctx)
+	// Step 3: Up again (idempotent re-application — the core idempotency test).
+	results, err := p.Up(ctx)
 	require.NoError(t, err, "Up after Down should succeed")
 	assert.Len(t, results, expectedMigrationCount, "should re-apply all migrations")
 
