@@ -9,7 +9,9 @@ CREATE TABLE IF NOT EXISTS modules (
     git_source      TEXT         NOT NULL,
     module_path     TEXT         NOT NULL DEFAULT '',  -- proto RegisterModuleRequest.module_path (subdir within git repo)
     provider        TEXT         NOT NULL,
-    layer           TEXT         NOT NULL,
+    layer           TEXT         NOT NULL DEFAULT '',  -- informational; authoritative layer = catalog_items.layer_logical_id
+    module_type     TEXT         NOT NULL DEFAULT 'atomic'
+                    CHECK (module_type IN ('atomic', 'control', 'declarative')),  -- three-layer architecture
     owner_team_id   BIGINT       NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,
     status          TEXT         NOT NULL DEFAULT 'pending_validation'
                     CHECK (status IN ('pending_validation', 'validated', 'validation_failed', 'deprecated')),
@@ -31,8 +33,9 @@ CREATE TABLE IF NOT EXISTS module_versions (
     module_id               BIGINT       NOT NULL REFERENCES modules(id) ON DELETE RESTRICT,
     version                 TEXT         NOT NULL,
     commit_sha              TEXT         NOT NULL,
-    providers_json          JSONB        NOT NULL DEFAULT '{}',
+    required_providers_json JSONB        NOT NULL DEFAULT '[]',  -- e.g. ["alicloud","null","random"]
     variables_contract_json JSONB        NOT NULL DEFAULT '{}',  -- pure scalar contract (D25), S1 pipeline input
+    outputs_contract_json   JSONB        NOT NULL DEFAULT '{}',  -- outputs.tf extracted: cross-layer dep validation
     is_current              BOOLEAN      NOT NULL DEFAULT FALSE,
     registered_at           TIMESTAMPTZ  NOT NULL DEFAULT now(),
     created_at              TIMESTAMPTZ  NOT NULL DEFAULT now()

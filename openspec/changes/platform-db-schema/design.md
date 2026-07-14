@@ -228,13 +228,16 @@ bundles(id, name, project_id FK→projects, layer_logical_id FK→layer_logical_
 
 #### A2. 模块注册（3 张）
 ```
-modules(id, name, git_source, module_path, provider, layer, owner_team_id FK→teams,
-  status TEXT CHECK(status IN ('pending_validation','validated','validation_failed','deprecated')),
+modules(id, name, git_source, module_path, provider, layer DEFAULT '', module_type CHECK(atomic|control|declarative),
+  owner_team_id FK→teams, status CHECK(pending_validation|validated|validation_failed|deprecated),
   description, created_at, updated_at, deleted_at)
-  -- FK 索引: ix_modules_owner_team_id
-module_versions(id, module_id FK→modules, version, commit_sha, providers_json,
-  variables_contract_json,   -- 纯 scalar 契约（D25 零侵入），S1 管道输入
+  -- module_type: 三层架构（atomic 原子/control 编排/declarative 声明）
+  -- layer: 信息性字段，权威层归属看 catalog_items.layer_logical_id
+module_versions(id, module_id FK→modules, version, commit_sha,
+  required_providers_json, variables_contract_json, outputs_contract_json,
   is_current BOOL, registered_at, created_at)
+  -- variables_contract_json: 纯 scalar 契约（D25），S1 管道输入
+  -- outputs_contract_json: outputs.tf 提取，跨层依赖校验（module_dependencies.output_key 引用上游 output）
   -- FK 索引: ix_module_versions_module_id
 module_dependencies(id, module_version_id FK→module_versions, variable_name,
   depends_on_layer, depends_on_module, output_key, required BOOL, description, created_at)
