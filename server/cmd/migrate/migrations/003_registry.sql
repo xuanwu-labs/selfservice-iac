@@ -4,21 +4,21 @@
 
 -- +goose Up
 CREATE TABLE IF NOT EXISTS modules (
-    id              BIGINT       PRIMARY KEY,
-    name            TEXT         NOT NULL,
-    git_source      TEXT         NOT NULL,
-    module_path     TEXT         NOT NULL DEFAULT '',  -- proto RegisterModuleRequest.module_path (subdir within git repo)
-    provider        TEXT         NOT NULL,
-    layer           TEXT         NOT NULL DEFAULT '',  -- informational; authoritative layer = catalog_items.layer_logical_id
+    id              BIGINT       PRIMARY KEY,                          -- snowflake ID
+    name            TEXT         NOT NULL,                              -- module name (e.g. "rds", "vpc", "ecs")
+    git_source      TEXT         NOT NULL,                              -- git repo URL (e.g. github.com/org/modules)
+    module_path     TEXT         NOT NULL DEFAULT '',                   -- subdir within repo (e.g. "atomic/rds")
+    provider        TEXT         NOT NULL,                              -- cloud provider (e.g. "aliyun", "aws", "azure")
+    layer           TEXT         NOT NULL DEFAULT '',                   -- informational layer; authoritative = catalog_items.layer_logical_id
     module_type     TEXT         NOT NULL DEFAULT 'atomic'
                     CHECK (module_type IN ('atomic', 'control', 'declarative')),  -- three-layer architecture
-    owner_team_id   BIGINT       NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,
+    owner_team_id   BIGINT       NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,  -- team responsible for this module
     status          TEXT         NOT NULL DEFAULT 'pending_validation'
                     CHECK (status IN ('pending_validation', 'validated', 'validation_failed', 'deprecated')),
-    description     TEXT         NOT NULL DEFAULT '',
+    description     TEXT         NOT NULL DEFAULT '',                   -- human-readable description
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    deleted_at      TIMESTAMPTZ  NULL
+    deleted_at      TIMESTAMPTZ  NULL                                   -- soft delete
 );
 CREATE INDEX IF NOT EXISTS ix_modules_owner_team_id ON modules(owner_team_id);
 CREATE INDEX IF NOT EXISTS ix_modules_provider ON modules(provider);
@@ -31,12 +31,12 @@ CREATE TRIGGER trg_modules_updated_at
 CREATE TABLE IF NOT EXISTS module_versions (
     id                      BIGINT       PRIMARY KEY,
     module_id               BIGINT       NOT NULL REFERENCES modules(id) ON DELETE RESTRICT,
-    version                 TEXT         NOT NULL,
-    commit_sha              TEXT         NOT NULL,
-    required_providers_json JSONB        NOT NULL DEFAULT '[]',  -- e.g. ["alicloud","null","random"]
-    variables_contract_json JSONB        NOT NULL DEFAULT '{}',  -- pure scalar contract (D25), S1 pipeline input
-    outputs_contract_json   JSONB        NOT NULL DEFAULT '{}',  -- outputs.tf extracted: cross-layer dep validation
-    is_current              BOOLEAN      NOT NULL DEFAULT FALSE,
+    version                 TEXT         NOT NULL,                              -- semantic version (e.g. "v1.0.0")
+    commit_sha              TEXT         NOT NULL,                              -- git commit hash (immutable pin)
+    required_providers_json JSONB        NOT NULL DEFAULT '[]',                 -- from versions.tf: [{"name":"alicloud","version":">=1.280.0"}]
+    variables_contract_json JSONB        NOT NULL DEFAULT '{}',                 -- from variables.tf: {name: {type,description,default,sensitive,required}}
+    outputs_contract_json   JSONB        NOT NULL DEFAULT '{}',                 -- from outputs.tf: {name: {type,description}}
+    is_current              BOOLEAN      NOT NULL DEFAULT FALSE,                -- marks the active version
     registered_at           TIMESTAMPTZ  NOT NULL DEFAULT now(),
     created_at              TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
@@ -47,11 +47,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_module_versions_module_version
 CREATE TABLE IF NOT EXISTS module_dependencies (
     id                  BIGINT       PRIMARY KEY,
     module_version_id   BIGINT       NOT NULL REFERENCES module_versions(id) ON DELETE CASCADE,
-    variable_name       TEXT         NOT NULL,
-    depends_on_layer    TEXT         NOT NULL,
-    depends_on_module   TEXT         NOT NULL,
-    output_key          TEXT         NOT NULL,
-    required            BOOLEAN      NOT NULL DEFAULT FALSE,
+    variable_name       TEXT         NOT NULL,    -- this module's variable that needs upstream output (e.g. "vswitch_id")
+    depends_on_layer    TEXT         NOT NULL,    -- upstream layer (e.g. "global")
+    depends_on_module   TEXT         NOT NULL,    -- upstream module name (e.g. "vpc")
+    output_key          TEXT         NOT NULL,    -- upstream module's output key (e.g. "vswitch_id"), validated against outputs_contract_json
+    required            BOOLEAN      NOT NULL DEFAULT FALSE,  -- if true, codegen rejects when upstream not available
     description         TEXT         NOT NULL DEFAULT '',
     created_at          TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
