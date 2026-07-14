@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS cloud_accounts (
     provider                TEXT         NOT NULL
                             CHECK (provider IN ('aws', 'aliyun', 'azure', 'gcp')),  -- proto CloudProvider
     account_id              TEXT         NOT NULL,
+    name                    TEXT         NOT NULL DEFAULT '',  -- proto CloudAccount.name
     alias                   TEXT         NOT NULL DEFAULT '',
     display_name            TEXT         NOT NULL DEFAULT '',
     status                  TEXT         NOT NULL DEFAULT 'active'

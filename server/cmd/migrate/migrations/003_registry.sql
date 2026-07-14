@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS modules (
     id              BIGINT       PRIMARY KEY,
     name            TEXT         NOT NULL,
     git_source      TEXT         NOT NULL,
+    module_path     TEXT         NOT NULL DEFAULT '',  -- proto RegisterModuleRequest.module_path (subdir within git repo)
     provider        TEXT         NOT NULL,
     layer           TEXT         NOT NULL,
     owner_team_id   BIGINT       NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,
@@ -17,6 +18,8 @@ CREATE TABLE IF NOT EXISTS modules (
     updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS ix_modules_owner_team_id ON modules(owner_team_id);
+CREATE INDEX IF NOT EXISTS ix_modules_provider ON modules(provider);
+CREATE INDEX IF NOT EXISTS ix_modules_status ON modules(status);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_modules_name_source
     ON modules(name, git_source);
 CREATE TRIGGER trg_modules_updated_at

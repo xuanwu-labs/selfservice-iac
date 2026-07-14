@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS approval_runs (
     decided_at      TIMESTAMPTZ  NULL,
     started_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
     finished_at     TIMESTAMPTZ  NULL,
-    expires_at      TIMESTAMPTZ  NULL
+    expires_at      TIMESTAMPTZ  NULL,
+    version         INTEGER      NOT NULL DEFAULT 0  -- optimistic lock (DecideApproval expected_run_version)
 );
 CREATE INDEX IF NOT EXISTS ix_approval_runs_request_id ON approval_runs(request_id);
 CREATE INDEX IF NOT EXISTS ix_approval_runs_flow_id ON approval_runs(flow_id);

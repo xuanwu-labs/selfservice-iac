@@ -44,6 +44,7 @@ CREATE INDEX IF NOT EXISTS ix_requests_team_id ON requests(team_id);
 CREATE INDEX IF NOT EXISTS ix_requests_plan_artifact_id ON requests(plan_artifact_id);
 CREATE INDEX IF NOT EXISTS ix_requests_layer_rule_set_version_id ON requests(layer_rule_set_version_id);
 CREATE INDEX IF NOT EXISTS ix_requests_status ON requests(status);
+CREATE INDEX IF NOT EXISTS ix_requests_requester_id ON requests(requester_id);  -- ListRequests filter
 CREATE UNIQUE INDEX IF NOT EXISTS uq_requests_idempotency_key ON requests(idempotency_key);
 CREATE TRIGGER trg_requests_updated_at
     BEFORE UPDATE ON requests FOR EACH ROW EXECUTE FUNCTION set_updated_at();
