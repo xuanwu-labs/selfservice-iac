@@ -28,8 +28,7 @@ CREATE TABLE IF NOT EXISTS catalog_items (
     visibility_json             JSONB        NOT NULL DEFAULT '[]',           -- team_ids array
     created_at                  TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at                  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    deleted_at                  TIMESTAMPTZ  NULL,
-    CONSTRAINT pk_catalog_items PRIMARY KEY (id)
+    deleted_at                  TIMESTAMPTZ  NULL
 );
 CREATE INDEX IF NOT EXISTS ix_catalog_items_module_version_id ON catalog_items(module_version_id);
 CREATE INDEX IF NOT EXISTS ix_catalog_items_layer_logical_id ON catalog_items(layer_logical_id);

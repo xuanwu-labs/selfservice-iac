@@ -36,8 +36,7 @@ CREATE TABLE IF NOT EXISTS requests (
     version                     INTEGER      NOT NULL DEFAULT 0,               -- doc 00 §5 optimistic lock
     layer_rule_set_version_id   INTEGER      NULL,                             -- FK added by 010_layers
     created_at                  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    updated_at                  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    CONSTRAINT pk_requests PRIMARY KEY (id)
+    updated_at                  TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS ix_requests_catalog_item_id ON requests(catalog_item_id);
 CREATE INDEX IF NOT EXISTS ix_requests_bundle_id ON requests(bundle_id);
@@ -64,8 +63,7 @@ CREATE TABLE IF NOT EXISTS request_events (
                     CHECK (actor_type IN ('human', 'ai', 'system')),
     message         TEXT         NOT NULL DEFAULT '',
     correlation_id  TEXT         NOT NULL DEFAULT '',
-    occurred_at     TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    CONSTRAINT pk_request_events PRIMARY KEY (id)
+    occurred_at     TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS ix_request_events_request_id ON request_events(request_id);
 CREATE INDEX IF NOT EXISTS ix_request_events_occurred_at ON request_events(occurred_at);

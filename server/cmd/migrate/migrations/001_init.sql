@@ -13,6 +13,22 @@
 --   - Soft-delete unique via partial index WHERE deleted_at IS NULL
 
 -- +goose Up
+-- Shared trigger function for updated_at auto-maintenance (was 000_utils.sql;
+-- goose skips version 0, so merged here). Every business table with updated_at
+-- attaches this via:
+--   CREATE TRIGGER trg_<table>_updated_at BEFORE UPDATE ON <table>
+--     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+-- See design.md §2.2. sqlc does not manage audit columns.
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+-- +goose StatementEnd
+
 CREATE TABLE IF NOT EXISTS teams (
     id          BIGINT       PRIMARY KEY,
     name        TEXT         NOT NULL,
@@ -23,8 +39,7 @@ CREATE TABLE IF NOT EXISTS teams (
     policy_json JSONB        NOT NULL DEFAULT '{}',
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    deleted_at  TIMESTAMPTZ  NULL,
-    CONSTRAINT pk_teams PRIMARY KEY (id)
+    deleted_at  TIMESTAMPTZ  NULL
 );
 
 -- Soft-delete-aware uniqueness: only one active team per slug; deleted rows
@@ -47,3 +62,4 @@ DROP TRIGGER IF EXISTS trg_teams_updated_at ON teams;
 DROP INDEX IF EXISTS ix_teams_kind;
 DROP INDEX IF EXISTS uq_teams_slug_active;
 DROP TABLE IF EXISTS teams;
+DROP FUNCTION IF EXISTS set_updated_at();

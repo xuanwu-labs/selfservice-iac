@@ -14,8 +14,7 @@ CREATE TABLE IF NOT EXISTS modules (
                     CHECK (status IN ('pending_validation', 'validated', 'validation_failed', 'deprecated')),
     description     TEXT         NOT NULL DEFAULT '',
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    CONSTRAINT pk_modules PRIMARY KEY (id)
+    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS ix_modules_owner_team_id ON modules(owner_team_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_modules_name_source
@@ -32,8 +31,7 @@ CREATE TABLE IF NOT EXISTS module_versions (
     variables_contract_json JSONB        NOT NULL DEFAULT '{}',  -- pure scalar contract (D25), S1 pipeline input
     is_current              BOOLEAN      NOT NULL DEFAULT FALSE,
     registered_at           TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    created_at              TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    CONSTRAINT pk_module_versions PRIMARY KEY (id)
+    created_at              TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS ix_module_versions_module_id ON module_versions(module_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_module_versions_module_version
@@ -48,8 +46,7 @@ CREATE TABLE IF NOT EXISTS module_dependencies (
     output_key          TEXT         NOT NULL,
     required            BOOLEAN      NOT NULL DEFAULT FALSE,
     description         TEXT         NOT NULL DEFAULT '',
-    created_at          TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    CONSTRAINT pk_module_dependencies PRIMARY KEY (id)
+    created_at          TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS ix_module_dependencies_module_version_id ON module_dependencies(module_version_id);
 

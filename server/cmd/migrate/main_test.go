@@ -14,43 +14,21 @@ import (
 	testdb "github.com/xuanwu-labs/selfservice-iac/server/pkg/db"
 )
 
-// testDSN returns a fresh test database DSN (testcontainers PG). Each call
-// gets an isolated DB; cleanSlate resets it so goose tests start from empty.
+// testDSN returns a fresh EMPTY test database DSN (testcontainers PG, no schema).
+// Goose tests run migrations from scratch against it. No cleanSlate needed —
+// each call gets an isolated empty DB (pgtestdb clones an empty template).
 func testDSN(t *testing.T) string {
 	t.Helper()
-	return testdb.NewDSN(t)
+	return testdb.NewRawDSN(t)
 }
 
-// cleanSlate drops all MVP tables + goose_db_version so goose sees a fresh DB.
-// Order matters: child tables before parents (FK RESTRICT). We drop CASCADE
-// on each to be safe against any lingering dependency.
-func cleanSlate(t *testing.T, db *sql.DB) {
-	t.Helper()
-	ctx := context.Background()
-	// Drop in reverse-dependency order. CASCADE handles any missed edge.
-	tables := []string{
-		"approval_decisions", "approval_node_runs", "approval_runs", "approval_flows",
-		"gate_results", "plan_artifacts",
-		"request_events", "requests",
-		"catalog_items",
-		"module_dependencies", "module_versions", "modules",
-		"bundles", "projects",
-		"cloud_accounts",
-		"audit_logs", "outbox_events",
-		"layer_rule_set_versions", "layer_logical_refs",
-		"teams",
-	}
-	for _, tbl := range tables {
-		_, _ = db.ExecContext(ctx, "DROP TABLE IF EXISTS "+tbl+" CASCADE")
-	}
-	// Goose bookkeeping + the shared trigger function (lives outside any table).
-	_, _ = db.ExecContext(ctx, "DROP TABLE IF EXISTS goose_db_version CASCADE")
-	_, _ = db.ExecContext(ctx, "DROP FUNCTION IF EXISTS set_updated_at()")
-}
+// cleanSlate is no longer needed — NewRawDSN hands an empty DB. Kept as a
+// no-op stub for any future test that might reuse a non-empty template.
+func cleanSlate(_ *testing.T, _ *sql.DB) {}
 
 // expectedMigrationCount is the number of .sql migration files applied by Up.
 // Update this when adding a new migration file.
-const expectedMigrationCount = 11 // 000_utils through 010_layers
+const expectedMigrationCount = 10 // 001_init through 010_layers (000 merged into 001: goose skips v0)
 
 func TestMigrationUpDownUpIdempotent(t *testing.T) {
 	if testing.Short() {

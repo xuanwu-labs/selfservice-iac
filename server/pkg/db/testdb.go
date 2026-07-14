@@ -162,6 +162,40 @@ func NewDSN(t testing.TB) string {
 	return conf.URL()
 }
 
+// noOpMigrator is a pgtestdb.Migrator that does nothing — used by NewRawDSN
+// to hand the caller an EMPTY database (no schema) so the caller can run its
+// own migrations (e.g. goose) from scratch. The hash is stable so pgtestdb
+// caches the empty template.
+type noOpMigrator struct{}
+
+func (noOpMigrator) Hash() (string, error) { return "empty-v1", nil }
+func (noOpMigrator) Migrate(_ context.Context, _ *sql.DB, _ pgtestdb.Config) error {
+	return nil
+}
+
+// NewRawDSN returns the connection string of a fresh, EMPTY test database
+// (no schema applied). Use this when the test runs its own migrations
+// (e.g. goose Up/Down tests) and needs a clean slate. Each call gets an
+// isolated DB.
+func NewRawDSN(t testing.TB) string {
+	t.Helper()
+	if testing.Short() {
+		t.Skip("skipping DB test in -short mode")
+	}
+	host, port := startContainer(t)
+	tc := loadTestContainerConfig()
+	conf := pgtestdb.Custom(t, pgtestdb.Config{
+		DriverName: "pgx",
+		Host:       host,
+		User:       tc.User,
+		Password:   tc.Password,
+		Database:   tc.Database,
+		Port:       port,
+		Options:    "sslmode=disable",
+	}, noOpMigrator{})
+	return conf.URL()
+}
+
 // New returns a *pgxpool.Pool connected to a fresh, fully-migrated test database.
 // Each call gets its own cloned DB (isolated from other tests), torn down via
 // t.Cleanup. The underlying PG container is shared across calls in the process.

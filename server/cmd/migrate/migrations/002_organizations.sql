@@ -9,8 +9,7 @@ CREATE TABLE IF NOT EXISTS projects (
     team_id     BIGINT       NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    deleted_at  TIMESTAMPTZ  NULL,
-    CONSTRAINT pk_projects PRIMARY KEY (id)
+    deleted_at  TIMESTAMPTZ  NULL
 );
 CREATE INDEX IF NOT EXISTS ix_projects_team_id ON projects(team_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_projects_team_name_active
@@ -33,8 +32,7 @@ CREATE TABLE IF NOT EXISTS bundles (
     tags_json   JSONB        NOT NULL DEFAULT '{}',
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    deleted_at  TIMESTAMPTZ  NULL,
-    CONSTRAINT pk_bundles PRIMARY KEY (id)
+    deleted_at  TIMESTAMPTZ  NULL
 );
 CREATE INDEX IF NOT EXISTS ix_bundles_project_id ON bundles(project_id);
 CREATE INDEX IF NOT EXISTS ix_bundles_layer_logical_id ON bundles(layer_logical_id);

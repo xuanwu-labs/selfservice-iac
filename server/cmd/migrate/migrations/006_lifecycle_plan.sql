@@ -25,8 +25,7 @@ CREATE TABLE IF NOT EXISTS plan_artifacts (
     resources_to_destroy      INTEGER      NOT NULL DEFAULT 0,
     cost_estimate_cents       BIGINT       NOT NULL DEFAULT 0,
     expires_at                TIMESTAMPTZ  NULL,                                -- TTL: apply must verify now < expires_at (doc 12)
-    created_at                TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    CONSTRAINT pk_plan_artifacts PRIMARY KEY (id)
+    created_at                TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS ix_plan_artifacts_request_id ON plan_artifacts(request_id);
 
@@ -52,8 +51,7 @@ CREATE TABLE IF NOT EXISTS gate_results (
     message         TEXT         NOT NULL DEFAULT '',
     severity        TEXT         NOT NULL DEFAULT 'info'
                     CHECK (severity IN ('info', 'warning', 'error', 'critical')),
-    evaluated_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    CONSTRAINT pk_gate_results PRIMARY KEY (id)
+    evaluated_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS ix_gate_results_request_id ON gate_results(request_id);
 

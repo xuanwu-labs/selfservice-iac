@@ -18,8 +18,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     after_json          JSONB        NULL,
     ai_metadata_json    JSONB        NULL,   -- only when actor_type=ai (doc 17 §9.2)
     correlation_id      TEXT         NOT NULL DEFAULT '',
-    occurred_at         TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    CONSTRAINT pk_audit_logs PRIMARY KEY (id)
+    occurred_at         TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS ix_audit_logs_target ON audit_logs(target_type, target_id);
 CREATE INDEX IF NOT EXISTS ix_audit_logs_correlation_id ON audit_logs(correlation_id);
@@ -40,8 +39,7 @@ CREATE TABLE IF NOT EXISTS outbox_events (
     correlation_id  TEXT         NOT NULL DEFAULT '',
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    processed_at    TIMESTAMPTZ  NULL,
-    CONSTRAINT pk_outbox_events PRIMARY KEY (id)
+    processed_at    TIMESTAMPTZ  NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_outbox_events_event_id ON outbox_events(event_id);
 CREATE INDEX IF NOT EXISTS ix_outbox_events_status ON outbox_events(status);

@@ -22,8 +22,7 @@ CREATE TABLE IF NOT EXISTS cloud_accounts (
                             CHECK (bootstrap_status IN ('ok', 'rotate', 'none')),
     oidc_trust_configured   BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at              TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    updated_at              TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    CONSTRAINT pk_cloud_accounts PRIMARY KEY (id)
+    updated_at              TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS ix_cloud_accounts_default_team_id ON cloud_accounts(default_team_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_cloud_accounts_provider_account

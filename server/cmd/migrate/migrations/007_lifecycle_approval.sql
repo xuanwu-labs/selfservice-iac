@@ -13,8 +13,7 @@ CREATE TABLE IF NOT EXISTS approval_flows (
     version     INTEGER      NOT NULL DEFAULT 1,
     active      BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    CONSTRAINT pk_approval_flows PRIMARY KEY (id)
+    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_approval_flows_name_version
     ON approval_flows(name, version);
@@ -34,8 +33,7 @@ CREATE TABLE IF NOT EXISTS approval_runs (
     decided_at      TIMESTAMPTZ  NULL,
     started_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
     finished_at     TIMESTAMPTZ  NULL,
-    expires_at      TIMESTAMPTZ  NULL,
-    CONSTRAINT pk_approval_runs PRIMARY KEY (id)
+    expires_at      TIMESTAMPTZ  NULL
 );
 CREATE INDEX IF NOT EXISTS ix_approval_runs_request_id ON approval_runs(request_id);
 CREATE INDEX IF NOT EXISTS ix_approval_runs_flow_id ON approval_runs(flow_id);
@@ -54,8 +52,7 @@ CREATE TABLE IF NOT EXISTS approval_node_runs (
     required_count  INTEGER      NOT NULL DEFAULT 1,
     status          TEXT         NOT NULL DEFAULT 'pending'
                     CHECK (status IN ('pending', 'approved', 'rejected', 'timeout')),
-    timeout_at      TIMESTAMPTZ  NULL,
-    CONSTRAINT pk_approval_node_runs PRIMARY KEY (id)
+    timeout_at      TIMESTAMPTZ  NULL
 );
 CREATE INDEX IF NOT EXISTS ix_approval_node_runs_run_id ON approval_node_runs(run_id);
 
@@ -67,8 +64,7 @@ CREATE TABLE IF NOT EXISTS approval_decisions (
     decision        TEXT         NOT NULL
                     CHECK (decision IN ('approve', 'reject', 'abstain')),
     comment         TEXT         NOT NULL DEFAULT '',
-    decided_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    CONSTRAINT pk_approval_decisions PRIMARY KEY (id)
+    decided_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS ix_approval_decisions_node_run_id ON approval_decisions(node_run_id);
 

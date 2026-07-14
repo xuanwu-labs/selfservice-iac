@@ -9,8 +9,7 @@ CREATE TABLE IF NOT EXISTS layer_logical_refs (
     logical_id              TEXT         PRIMARY KEY,
     current_display_name    TEXT         NOT NULL DEFAULT '',
     notes                   TEXT         NOT NULL DEFAULT '',
-    created_at              TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    CONSTRAINT pk_layer_logical_refs PRIMARY KEY (logical_id)
+    created_at              TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS layer_rule_set_versions (
@@ -22,8 +21,7 @@ CREATE TABLE IF NOT EXISTS layer_rule_set_versions (
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
     created_by      TEXT         NOT NULL DEFAULT '',
     superseded_at   TIMESTAMPTZ  NULL,
-    superseded_by   INTEGER      NULL REFERENCES layer_rule_set_versions(version_id),
-    CONSTRAINT pk_layer_rule_set_versions PRIMARY KEY (version_id)
+    superseded_by   INTEGER      NULL REFERENCES layer_rule_set_versions(version_id)
 );
 
 -- Back-fill deferred FKs now that the layer tables exist.
