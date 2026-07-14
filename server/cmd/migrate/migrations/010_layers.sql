@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS layer_rule_set_versions (
 CREATE INDEX IF NOT EXISTS ix_layer_rule_set_versions_superseded_by ON layer_rule_set_versions(superseded_by);
 
 -- Back-fill deferred FKs now that the layer tables exist.
+-- +goose StatementBegin
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_bundles_layer_logical_id') THEN
@@ -41,6 +42,7 @@ BEGIN
             FOREIGN KEY (layer_rule_set_version_id) REFERENCES layer_rule_set_versions(version_id) ON DELETE RESTRICT;
     END IF;
 END $$;
+-- +goose StatementEnd
 
 -- Phase 1 seed: 3 layers + 1 active rule-set v1.
 -- Idempotent via ON CONFLICT (re-running migrations won't duplicate).

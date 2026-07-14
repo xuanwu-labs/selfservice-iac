@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS plan_artifacts (
 CREATE INDEX IF NOT EXISTS ix_plan_artifacts_request_id ON plan_artifacts(request_id);
 
 -- Back-fill the FK from requests to plan_artifacts (column added in 005).
+-- +goose StatementBegin
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -40,6 +41,7 @@ BEGIN
             FOREIGN KEY (plan_artifact_id) REFERENCES plan_artifacts(id) ON DELETE SET NULL;
     END IF;
 END $$;
+-- +goose StatementEnd
 
 -- gate_results: policy/OPA evaluation outcomes per request (proto GateResult).
 CREATE TABLE IF NOT EXISTS gate_results (
