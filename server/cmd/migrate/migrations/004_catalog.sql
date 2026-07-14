@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS catalog_items (
     display_name                TEXT         NOT NULL,
     description                 TEXT         NOT NULL DEFAULT '',
     category                    TEXT         NOT NULL DEFAULT '',
-    status                      TEXT         NOT NULL DEFAULT 'active'
-                                CHECK (status IN ('active', 'deprecated')),  -- proto CatalogItemStatus (draft/archived/blocked are doc 19 ops states, not in proto yet)
+    status                      TEXT         NOT NULL DEFAULT 'draft'
+                                CHECK (status IN ('draft', 'active', 'deprecated', 'archived', 'blocked')),  -- proto CatalogItemStatus
     form_schema_json            JSONB        NOT NULL DEFAULT '{}',
     defaults_json               JSONB        NOT NULL DEFAULT '{}',           -- S2 catalog defaults (doc 08)
     cardinality                 TEXT         NOT NULL DEFAULT 'single'

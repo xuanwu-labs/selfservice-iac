@@ -33,6 +33,12 @@ enum RequestStatus {
   REQUEST_STATUS_FAILED_TERMINAL = 14;
   REQUEST_STATUS_WAITING_MANUAL = 15;
   REQUEST_STATUS_RECONCILE_PENDING = 16;
+  // Health/policy blocked states (doc 12a RLC-111/112/115, Phase 1 acceptance).
+  // External-system-caused blocks that auto-resume on recovery (unlike
+  // waiting_manual which needs human action).
+  REQUEST_STATUS_BLOCKED_POLICY = 17;
+  REQUEST_STATUS_BLOCKED_STATE_HEALTH = 18;
+  REQUEST_STATUS_PAUSED_DRIFT = 19;
 }
 
 enum RequestSource {
@@ -63,6 +69,9 @@ enum ArtifactStatus {
   ARTIFACT_STATUS_READY = 1;
   ARTIFACT_STATUS_EXPIRED = 2;
   ARTIFACT_STATUS_CONSUMED = 3;
+  // Plan was superseded by a newer plan (drift guard re-plan, or approval
+  // reject followed by re-plan). Kept for audit, not applyable (doc 12 §3.5).
+  ARTIFACT_STATUS_SUPERSEDED = 4;
 }
 
 enum GateSeverity {
@@ -81,8 +90,13 @@ enum ModuleStatus {
 
 enum CatalogItemStatus {
   CATALOG_ITEM_STATUS_UNSPECIFIED = 0;
-  CATALOG_ITEM_STATUS_ACTIVE = 1;
-  CATALOG_ITEM_STATUS_DEPRECATED = 2;
+  // Lifecycle: draft → active → deprecated → archived (doc 19 §1).
+  // blocked = security/compliance/toolchain issue (doc 19 §1).
+  CATALOG_ITEM_STATUS_DRAFT = 1;
+  CATALOG_ITEM_STATUS_ACTIVE = 2;
+  CATALOG_ITEM_STATUS_DEPRECATED = 3;
+  CATALOG_ITEM_STATUS_ARCHIVED = 4;
+  CATALOG_ITEM_STATUS_BLOCKED = 5;
 }
 
 enum Cardinality {
@@ -113,15 +127,26 @@ enum ApprovalGate {
   APPROVAL_GATE_UNSPECIFIED = 0;
   APPROVAL_GATE_PRE_PLAN = 1;
   APPROVAL_GATE_PRE_APPLY = 2;
+  // Retroactive approval for break-glass runs (D30). Marks a run created
+  // after an emergency apply to satisfy the 24h retroactive-approval window.
+  APPROVAL_GATE_BREAK_GLASS_RETROACTIVE = 3;
 }
 
-// ApprovalNodeMode is the countersign mode of an approval node, as
-// declared in the approval flow DSL (docs/12 §2.3).
+// ApprovalNodeMode is the decision semantics of an approval node, as
+// declared in the approval flow DSL (docs/12 §2.3). The engine uses mode +
+// required_count to determine if a node is satisfied:
+//   any      = at least 1 approver (required_count ignored, treated as 1)
+//   all      = all assigned approvers (required_count = total assignees)
+//   majority = >50% of assignees (required_count = ceil(N/2))
+//   quorum   = at least required_count approvers (count>=N expressed as quorum+N)
+// Conditional routing (next_node based on outcome) is handled in the DSL,
+// not in this enum — mode is purely the decision-aggregation rule.
 enum ApprovalNodeMode {
   APPROVAL_NODE_MODE_UNSPECIFIED = 0;
-  APPROVAL_NODE_MODE_SINGLE = 1;
-  APPROVAL_NODE_MODE_COUNTERSIGN = 2;
-  APPROVAL_NODE_MODE_CONDITIONAL = 3;
+  APPROVAL_NODE_MODE_ANY = 1;
+  APPROVAL_NODE_MODE_ALL = 2;
+  APPROVAL_NODE_MODE_MAJORITY = 3;
+  APPROVAL_NODE_MODE_QUORUM = 4;
 }
 
 // ApprovalNodeStatus is the runtime status of a single approval node

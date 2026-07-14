@@ -21,11 +21,13 @@ CREATE TABLE IF NOT EXISTS requests (
                                     'submitted', 'generating', 'pending_admission', 'planning', 'plan_ready',
                                     'pending_approval', 'applying', 'reconciling', 'succeeded', 'reconcile_pending',
                                     'rejected', 'cancelled', 'expired', 'failed_retryable', 'failed_terminal',
-                                    'waiting_manual')),  -- 16 values aligned to proto RequestStatus (doc 12a health/policy states not in proto yet)
+                                    'waiting_manual',
+                                    'blocked_policy', 'blocked_state_health', 'paused_drift')),  -- 19 values aligned to proto RequestStatus
     current_stage               TEXT         NOT NULL DEFAULT '',
     form_values_json            JSONB        NOT NULL DEFAULT '{}',
     form_hash                   TEXT         NOT NULL,
     resolved_params_json        JSONB        NULL,                              -- doc 08 provenance (per-var source/rank)
+    source_context_json         JSONB        NOT NULL DEFAULT '{}',            -- proto CreateRequestRequest.source_context
     idempotency_key             TEXT         NOT NULL,                          -- sha256(actor+catalog+form_hash+24h_window)
     pinned_commit               TEXT         NULL,
     plan_artifact_id            BIGINT       NULL,                              -- FK added by 006
@@ -60,6 +62,7 @@ CREATE TABLE IF NOT EXISTS request_events (
     from_status     TEXT         NULL,
     to_status       TEXT         NULL,
     actor_id        TEXT         NOT NULL DEFAULT '',
+    actor_team_id   TEXT         NOT NULL DEFAULT '',  -- proto Actor.team_id
     actor_type      TEXT         NOT NULL DEFAULT 'system'
                     CHECK (actor_type IN ('unspecified', 'human', 'ai', 'system')),  -- proto ActorType
     message         TEXT         NOT NULL DEFAULT '',

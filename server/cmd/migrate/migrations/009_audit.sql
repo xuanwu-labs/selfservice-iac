@@ -9,6 +9,7 @@
 CREATE TABLE IF NOT EXISTS audit_logs (
     id                  BIGINT       PRIMARY KEY,
     actor_id            TEXT         NOT NULL DEFAULT '',
+    actor_team_id       TEXT         NOT NULL DEFAULT '',  -- proto Actor.team_id
     actor_type          TEXT         NOT NULL DEFAULT 'system'
                         CHECK (actor_type IN ('unspecified', 'human', 'ai', 'system')),  -- proto ActorType
     action              TEXT         NOT NULL,

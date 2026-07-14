@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS plan_artifacts (
     id                        BIGINT       PRIMARY KEY,
     request_id                BIGINT       NOT NULL REFERENCES requests(id) ON DELETE RESTRICT,
     status                    TEXT         NOT NULL DEFAULT 'ready'
-                              CHECK (status IN ('ready', 'expired', 'consumed')),  -- proto ArtifactStatus
+                              CHECK (status IN ('ready', 'expired', 'consumed', 'superseded')),  -- proto ArtifactStatus
     plan_hash                 TEXT         NOT NULL,
     storage_uri               TEXT         NOT NULL,
     sha256                    TEXT         NOT NULL,

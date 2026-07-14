@@ -15,13 +15,14 @@ CREATE TABLE IF NOT EXISTS modules (
                     CHECK (status IN ('pending_validation', 'validated', 'validation_failed', 'deprecated')),
     description     TEXT         NOT NULL DEFAULT '',
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
+    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    deleted_at      TIMESTAMPTZ  NULL
 );
 CREATE INDEX IF NOT EXISTS ix_modules_owner_team_id ON modules(owner_team_id);
 CREATE INDEX IF NOT EXISTS ix_modules_provider ON modules(provider);
 CREATE INDEX IF NOT EXISTS ix_modules_status ON modules(status);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_modules_name_source
-    ON modules(name, git_source);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_modules_name_source_active
+    ON modules(name, git_source) WHERE deleted_at IS NULL;
 CREATE TRIGGER trg_modules_updated_at
     BEFORE UPDATE ON modules FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
@@ -60,6 +61,6 @@ DROP INDEX IF EXISTS uq_module_versions_module_version;
 DROP INDEX IF EXISTS ix_module_versions_module_id;
 DROP TABLE IF EXISTS module_versions;
 DROP TRIGGER IF EXISTS trg_modules_updated_at ON modules;
-DROP INDEX IF EXISTS uq_modules_name_source;
+DROP INDEX IF EXISTS uq_modules_name_source_active;
 DROP INDEX IF EXISTS ix_modules_owner_team_id;
 DROP TABLE IF EXISTS modules;

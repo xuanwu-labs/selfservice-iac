@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS approval_runs (
     request_id      BIGINT       NOT NULL REFERENCES requests(id) ON DELETE RESTRICT,
     flow_id         BIGINT       NOT NULL REFERENCES approval_flows(id) ON DELETE RESTRICT,
     gate            TEXT         NOT NULL
-                    CHECK (gate IN ('pre_plan', 'pre_apply')),  -- proto ApprovalGate (break-glass-retroactive not in proto yet)
+                    CHECK (gate IN ('pre_plan', 'pre_apply', 'break_glass_retroactive')),  -- proto ApprovalGate
     current_node    TEXT         NOT NULL DEFAULT '',
     status          TEXT         NOT NULL DEFAULT 'pending'
                     CHECK (status IN ('pending', 'approved', 'rejected', 'expired')),  -- proto ApprovalRunStatus
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS approval_node_runs (
     run_id          BIGINT       NOT NULL REFERENCES approval_runs(id) ON DELETE CASCADE,
     node_id         TEXT         NOT NULL,
     mode            TEXT         NOT NULL
-                    CHECK (mode IN ('single', 'countersign', 'conditional')),  -- proto ApprovalNodeMode
+                    CHECK (mode IN ('any', 'all', 'majority', 'quorum')),  -- proto ApprovalNodeMode (quorum + required_count = count>=N)
     decided_count   INTEGER      NOT NULL DEFAULT 0,
     required_count  INTEGER      NOT NULL DEFAULT 1,
     status          TEXT         NOT NULL DEFAULT 'pending'
@@ -68,8 +68,12 @@ CREATE TABLE IF NOT EXISTS approval_decisions (
     decided_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS ix_approval_decisions_node_run_id ON approval_decisions(node_run_id);
+-- IDEMP-004: same approver can't decide twice on the same node.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_approval_decisions_node_approver
+    ON approval_decisions(node_run_id, approver_id);
 
 -- +goose Down
+DROP INDEX IF EXISTS uq_approval_decisions_node_approver;
 DROP INDEX IF EXISTS ix_approval_decisions_node_run_id;
 DROP TABLE IF EXISTS approval_decisions;
 DROP INDEX IF EXISTS ix_approval_node_runs_run_id;

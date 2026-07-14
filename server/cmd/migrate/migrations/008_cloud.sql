@@ -1,6 +1,7 @@
 -- 008_cloud.sql: cloud_accounts (design.md §03 A6).
--- Aligned to doc 04 §2.12 (authoritative; doc 06 footnotes defer). Status
--- includes deprecating/deprecated to support the doc 07c §14 cascade.
+-- Aligned to proto CloudAccountStatus (active/suspended). The doc 07c §14
+-- cascade (deprecating/deprecated) is an ops lifecycle not in proto —
+-- deferred to a future proto change when cascade is implemented.
 
 -- +goose Up
 CREATE TABLE IF NOT EXISTS cloud_accounts (
