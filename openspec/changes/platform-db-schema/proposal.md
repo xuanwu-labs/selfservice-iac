@@ -1,6 +1,6 @@
 # Proposal: platform-db-schema
 
-## What
+## What Changes
 
 构建平台控制面 PostgreSQL 表结构，围绕 MVP 主链路推导初版 schema，对齐已冻结的 proto 契约，并建立全库统一的命名/审计/约束规范基线。这是 W1 模块 02（元数据存储）的前置依赖——schema 先冻结，再落迁移。
 
@@ -32,11 +32,11 @@ MVP 主链路：管理员注册模块 → 发布目录项 → 用户申请 → p
 
 **MVP 不含（但已设计定稿）**：stacks/stack_dependencies、drift、auth/identity、adapters_config、Saga 补偿、Run Hooks/运营、分层迁移、CMDB/FinOps、云凭据、环境租户、标签策略、CICD、存量导入——这些表（约 33 张）的**字段/类型/约束/FK 在本 change 全部推导定稿**（design.md §03 B1-B14），但不落迁移 SQL，等对应 Wave 实现功能时按定稿直接建表。这样后续 Wave 不用回头重新设计表结构。
 
-**表数**：全量初版设计 ~52 张（design.md §03 定稿）；本 change 落迁移的是 MVP 19 张（优先级 A）。
+**表数**：全量初版设计 ~68 张（design.md §03 定稿，docs 全量通读后补全）；本 change 落迁移的是 MVP 20 张（优先级 A）。
 
 ## Impact
 
-- **影响层级**：数据层（server/data + server/pkg/db + server/cmd/migrate/migrations）
+- **影响层级**：数据层（server/data + server/pkg/db + server/cmd/migrate/migrations）+ proto 契约（contracts/platform/v1/common/enum.proto + lifecycle/dto.proto）
 - **兼容性**：不破坏现有——当前仅 teams 1 张表落地，本 change 重写 teams 对齐新规范 + 新增 MVP 表
 - **依赖**：proto 契约已冻结（contracts/platform/v1/）；sqlc/pgx 基建已就位（server/pkg/db/）
 - **被消费方**：W1 的 02/03/04 模块按此 schema 落迁移 + sqlc 查询；后续 Wave 按规范增量加表
@@ -45,11 +45,28 @@ MVP 主链路：管理员注册模块 → 发布目录项 → 用户申请 → p
 
 | 产物 | 位置 | 状态 |
 |---|---|---|
-| 命名/审计/约束规范基线 | `design.md` §01-02 | ⏳ 本 change 产出 |
-| **全量 ~52 张表初版设计定稿** | `design.md` §03 A+B | ⏳ 本 change 产出 |
-| MVP schema 迁移 SQL（重写 teams + 新增 ~18 表） | `server/cmd/migrate/migrations/` | ⏳ apply 阶段产出 |
-| sqlc 查询 + 重新生成 | `server/pkg/db/{queries,generated}/` | ⏳ apply 阶段产出 |
-| docs/04 标注修订（断裂点标记 + 指向本 change） | `docs/04-数据库设计.md` | ⏳ apply 阶段产出 |
+| 命名/审计/约束规范基线 | `design.md` §01-02 | ✅ 已完成 |
+| **全量 ~68 张表初版设计定稿** | `design.md` §03 A+B | ✅ 已完成 |
+| MVP schema 迁移 SQL（10 文件，20 表） | `server/cmd/migrate/migrations/001-010_*.sql` | ✅ 已完成 |
+| snowflake ID 工具类 + config + 单测 | `server/internal/utils/snowflake.go` | ✅ 已完成 |
+| sqlc schema + queries + 重新生成 | `server/pkg/db/{queries,generated}/` | ✅ 已完成（20 表 model + teams 查询）|
+| proto enum 修订（5 个 enum 加值/改值）| `contracts/platform/v1/common/enum.proto` | ✅ 已完成 |
+| proto message 字段补全（4 个 message）| `contracts/platform/v1/lifecycle/dto.proto` | ✅ 已完成 |
+| 迁移 DDL 幂等验证 | `server/cmd/migrate/migration_ddl_test.go` | ✅ 已完成（embedded-postgres）|
+| 审计报告（6 份） | `audits/` | ✅ 已完成 |
+| docs/04 标注修订 | `docs/04-数据库设计.md` | ⏳ 待标注 |
+| 非 MVP 表迁移 SQL（~48 张） | 随各 Wave 落 | ⏳ 各 Wave 实现 |
+
+## 审计与修复记录
+
+本 change 经历了 5 轮审计（详见 `audits/` 目录）：
+1. **postgresql-table-design skill 对账**（5 P0 + 4 P1）→ 全修复
+2. **docs 全量通读**（6 MVP 致命 + 4 非MVP 致命 + 11 丢失表）→ 全修复
+3. **跨表链路完整性**（4 断裂 + 2 MVP 边界）→ 全修复
+4. **proto enum vs DB CHECK 对账**（7 处不一致）→ 全修复
+5. **架构 agent 三向对齐审计**（4 BLOCKER + 9 RISK）→ 全修复
+
+修复汇总：proto 5 个 enum 修订 + 4 个 message 加字段；DB 10 个迁移文件对齐 proto；design.md §03 反向同步。全部验证通过（build/vet/buf lint/sqlc/DDL 幂等）。
 
 ## 原则
 

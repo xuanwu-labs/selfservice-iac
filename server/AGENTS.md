@@ -143,6 +143,69 @@ config.yaml                   ← 非敏感默认值(端口, 日志级别, OTel 
 | `AETHER_OTEL_ENDPOINT` | OTLP collector 地址(空=noop) |
 | `AETHER_CONNECT_ENABLED` | Connect 开关(false=纯 HTTP) |
 | `DOCKER_HOST` | testcontainers Docker 地址(测试用) |
+| `TESTCONTAINERS_RYUK_DISABLED` | 禁用 ryuk reaper(远程 Docker 必设) |
+
+## 远程 Docker 测试环境操作流程
+
+测试依赖 testcontainers-go 启动 PG 容器,需要 Docker daemon。本地无 Docker 时,
+通过远程 Docker daemon (socat TCP proxy) 运行。
+
+### 环境变量(在 `server/.env` 或 shell 中设置)
+
+```bash
+# 远程 Docker daemon 的 socat TCP proxy 地址
+export DOCKER_HOST=tcp://192.168.31.33:23750
+# 远程 Docker 无法拉取 ryuk 镜像时必须禁用
+export TESTCONTAINERS_RYUK_DISABLED=true
+```
+
+`.env.example` 已包含这两个变量的模板。`.env` 文件被 gitignore,需手动创建。
+
+### socat proxy 部署(在远程 Docker 主机上执行一次)
+
+远程 Docker daemon 默认只监听 Unix socket (`/var/run/docker.sock`),不暴露 TCP。
+需要一个 socat 容器把 Unix socket 转成 TCP 端口:
+
+```bash
+# 在远程主机(如 192.168.31.33)上执行:
+docker run -d --name docker-api-proxy --restart unless-stopped \
+  -p 23750:2375 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  alpine/socat -d -d TCP-LISTEN:2375,fork,reuseaddr UNIX-CONNECT:/var/run/docker.sock
+```
+
+- `--restart unless-stopped`: 主机重启后自动恢复
+- 端口 23750 是约定(避免与 Docker TLS 2376 冲突)
+
+### 验证连通性
+
+```bash
+# 检查端口可达
+curl -s http://192.168.31.33:23750/_ping  # 应返回 OK
+
+# 跑迁移测试
+cd server
+go test -v -count=1 -timeout=180s ./cmd/migrate/...
+```
+
+### 注意事项
+
+1. **不要误删 socat proxy 容器**: 清理测试容器时排除 `docker-api-proxy`:
+   ```bash
+   # 只删 postgres 测试容器,不删 proxy
+   curl -s "http://192.168.31.33:23750/containers/json?all=true" | \
+     grep -v "docker-api-proxy" | ...
+   ```
+2. **磁盘空间**: 远程 Docker 主机磁盘有限,测试容器积累会占满。定期清理:
+   ```bash
+   # 在远程主机上执行
+   docker container prune -f
+   docker image prune -f
+   ```
+3. **embedded-postgres 替代方案**: 不依赖 Docker 的 DDL 验证可用 embedded-postgres
+   (纯 Go 嵌入式 PG),见 `cmd/migrate/migration_ddl_test.go`。适合 CI 无 Docker 环境。
+4. **CentOS 7 seccomp**: PG 16 的 initdb 用了 CentOS 7 默认 seccomp 拒绝的 syscall,
+   `testdb.go` 已设 `seccomp=unconfined` 绕过。
 
 ## Connect 服务扩展指南
 
