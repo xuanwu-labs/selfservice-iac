@@ -40,6 +40,36 @@ CREATE TABLE IF NOT EXISTS requests (
     created_at                  TIMESTAMPTZ  NOT NULL DEFAULT now(),            -- row creation time
     updated_at                  TIMESTAMPTZ  NOT NULL DEFAULT now()             -- last update time (trigger-maintained)
 );
+
+-- DB-level column comments (visible in psql \d, DataGrip, DBeaver).
+COMMENT ON TABLE requests IS 'Lifecycle request state machine (19 statuses, doc 00 §5 + doc 12a). The central entity for provisioning.';
+COMMENT ON COLUMN requests.id IS 'Snowflake ID (app-generated BIGINT, no DB autoincrement).';
+COMMENT ON COLUMN requests.catalog_item_id IS 'What is being requested. FK catalog_items(id) ON DELETE RESTRICT.';
+COMMENT ON COLUMN requests.bundle_id IS 'Request grouping (nullable for single item). FK bundles(id) ON DELETE RESTRICT.';
+COMMENT ON COLUMN requests.env_id IS 'MVP dangling string (envs table is B11).';
+COMMENT ON COLUMN requests.tenant_id IS 'MVP dangling string (tenants table is B11).';
+COMMENT ON COLUMN requests.team_id IS 'Owning team. FK teams(id) ON DELETE RESTRICT.';
+COMMENT ON COLUMN requests.requester_id IS 'MVP dangling string (identities table is B4).';
+COMMENT ON COLUMN requests.kind IS 'proto RequestKind: standard|drift_remediation|legacy_import|maintenance_apply.';
+COMMENT ON COLUMN requests.source IS 'proto RequestSource: web|cli|cicd|ai|gateway.';
+COMMENT ON COLUMN requests.status IS 'Lifecycle state (proto RequestStatus). 19 values incl. blocked_policy/blocked_state_health/paused_drift.';
+COMMENT ON COLUMN requests.current_stage IS 'Human-readable current pipeline stage label.';
+COMMENT ON COLUMN requests.form_values_json IS 'Submitted form values keyed by field id.';
+COMMENT ON COLUMN requests.form_hash IS 'sha256 of form_values_json - deterministic input identity.';
+COMMENT ON COLUMN requests.resolved_params_json IS 'doc 08 provenance: per-variable source/rank.';
+COMMENT ON COLUMN requests.source_context_json IS 'proto CreateRequestRequest.source_context.';
+COMMENT ON COLUMN requests.idempotency_key IS 'sha256(actor+catalog+form_hash+24h_window). UNIQUE.';
+COMMENT ON COLUMN requests.pinned_commit IS 'Git commit sha the request is pinned to.';
+COMMENT ON COLUMN requests.plan_artifact_id IS 'FK added by 006 (plan_artifacts).';
+COMMENT ON COLUMN requests.cost_estimate_cents IS 'Estimated cost in cents (plan output).';
+COMMENT ON COLUMN requests.cost_currency IS 'ISO 4217 currency code for cost_estimate_cents.';
+COMMENT ON COLUMN requests.correlation_id IS 'Trace / distributed correlation id.';
+COMMENT ON COLUMN requests.retry_count IS 'doc 12 reject.terminal counter (terminal when >=3).';
+COMMENT ON COLUMN requests.version IS 'doc 00 §5 optimistic lock.';
+COMMENT ON COLUMN requests.layer_rule_set_version_id IS 'FK added by 010_layers (layer_rule_set_versions).';
+COMMENT ON COLUMN requests.created_at IS 'Row creation time.';
+COMMENT ON COLUMN requests.updated_at IS 'Last update time (trigger-maintained).';
+
 CREATE INDEX IF NOT EXISTS ix_requests_catalog_item_id ON requests(catalog_item_id);
 CREATE INDEX IF NOT EXISTS ix_requests_bundle_id ON requests(bundle_id);
 CREATE INDEX IF NOT EXISTS ix_requests_team_id ON requests(team_id);
@@ -69,6 +99,22 @@ CREATE TABLE IF NOT EXISTS request_events (
     correlation_id  TEXT         NOT NULL DEFAULT '',                  -- trace / distributed correlation id
     occurred_at     TIMESTAMPTZ  NOT NULL DEFAULT now()                -- when the event happened (immutable)
 );
+
+-- DB-level column comments (visible in psql \d, DataGrip, DBeaver).
+COMMENT ON TABLE request_events IS 'Append-only event trail (state machine trajectory). Rows are never modified after insert.';
+COMMENT ON COLUMN request_events.id IS 'Snowflake ID (app-generated BIGINT, no DB autoincrement).';
+COMMENT ON COLUMN request_events.request_id IS 'Parent request. FK requests(id) ON DELETE RESTRICT.';
+COMMENT ON COLUMN request_events.event_type IS 'proto RequestEvent.event_type: state_transition|log|error|approval|hook.';
+COMMENT ON COLUMN request_events.stage IS 'Pipeline stage at event time.';
+COMMENT ON COLUMN request_events.from_status IS 'Previous status (state_transition only).';
+COMMENT ON COLUMN request_events.to_status IS 'New status (state_transition only).';
+COMMENT ON COLUMN request_events.actor_id IS 'Who/what triggered the event.';
+COMMENT ON COLUMN request_events.actor_team_id IS 'proto Actor.team_id.';
+COMMENT ON COLUMN request_events.actor_type IS 'proto ActorType: unspecified|human|ai|system.';
+COMMENT ON COLUMN request_events.message IS 'Human-readable event detail.';
+COMMENT ON COLUMN request_events.correlation_id IS 'Trace / distributed correlation id.';
+COMMENT ON COLUMN request_events.occurred_at IS 'When the event happened (immutable).';
+
 CREATE INDEX IF NOT EXISTS ix_request_events_request_id ON request_events(request_id);
 CREATE INDEX IF NOT EXISTS ix_request_events_occurred_at ON request_events(occurred_at);
 

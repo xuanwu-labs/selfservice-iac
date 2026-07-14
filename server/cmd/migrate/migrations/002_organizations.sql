@@ -11,6 +11,16 @@ CREATE TABLE IF NOT EXISTS projects (
     updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),           -- auto-maintained by trigger
     deleted_at  TIMESTAMPTZ  NULL                             -- soft delete
 );
+
+-- DB-level column comments (visible in psql \d, DataGrip, DBeaver).
+COMMENT ON TABLE projects IS 'Project entity owned by a team. Groups bundles and carries the team ownership root.';
+COMMENT ON COLUMN projects.id IS 'Snowflake ID (app-generated BIGINT, no DB autoincrement).';
+COMMENT ON COLUMN projects.name IS 'Project display name. Unique per team among active (non-deleted) projects.';
+COMMENT ON COLUMN projects.team_id IS 'Owning team. FK teams(id) ON DELETE RESTRICT.';
+COMMENT ON COLUMN projects.created_at IS 'Record creation time.';
+COMMENT ON COLUMN projects.updated_at IS 'Auto-maintained by set_updated_at() trigger.';
+COMMENT ON COLUMN projects.deleted_at IS 'Soft delete timestamp. NULL = active.';
+
 CREATE INDEX IF NOT EXISTS ix_projects_team_id ON projects(team_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_projects_team_name_active
     ON projects(team_id, name) WHERE deleted_at IS NULL;
@@ -34,6 +44,19 @@ CREATE TABLE IF NOT EXISTS bundles (
     updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),           -- auto-maintained by trigger
     deleted_at  TIMESTAMPTZ  NULL                             -- soft delete
 );
+
+-- DB-level column comments (visible in psql \d, DataGrip, DBeaver).
+COMMENT ON TABLE bundles IS 'Bundle of stacks within a project. Carries the layer identity used for path generation (D24).';
+COMMENT ON COLUMN bundles.id IS 'Snowflake ID (app-generated BIGINT, no DB autoincrement).';
+COMMENT ON COLUMN bundles.name IS 'Bundle display name (e.g. "orders"). Unique per project among active (non-deleted) bundles.';
+COMMENT ON COLUMN bundles.project_id IS 'Parent project. FK projects(id) ON DELETE RESTRICT.';
+COMMENT ON COLUMN bundles.layer_logical_id IS 'Layer this bundle belongs to. FK added by 010_layers (layer_logical_refs).';
+COMMENT ON COLUMN bundles.repo_path IS 'Repo path for this bundle''s stacks. Used by PathGenerator.';
+COMMENT ON COLUMN bundles.tags_json IS 'L4 bundle tags (doc 08 tag 7-layer model).';
+COMMENT ON COLUMN bundles.created_at IS 'Record creation time.';
+COMMENT ON COLUMN bundles.updated_at IS 'Auto-maintained by set_updated_at() trigger.';
+COMMENT ON COLUMN bundles.deleted_at IS 'Soft delete timestamp. NULL = active.';
+
 CREATE INDEX IF NOT EXISTS ix_bundles_project_id ON bundles(project_id);
 CREATE INDEX IF NOT EXISTS ix_bundles_layer_logical_id ON bundles(layer_logical_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_bundles_project_name_active

@@ -12,6 +12,13 @@ CREATE TABLE IF NOT EXISTS layer_logical_refs (
     created_at              TIMESTAMPTZ  NOT NULL DEFAULT now()             -- row creation time
 );
 
+-- DB-level column comments (visible in psql \d, DataGrip, DBeaver).
+COMMENT ON TABLE layer_logical_refs IS 'Stable layer reference (design.md §03 A7). Phase 1 ships a fixed 3-layer seed: global/middleware/application.';
+COMMENT ON COLUMN layer_logical_refs.logical_id IS 'Stable layer key (e.g. global/middleware/application). PK, referenced by bundles/catalog_items.';
+COMMENT ON COLUMN layer_logical_refs.current_display_name IS 'Human-friendly layer name.';
+COMMENT ON COLUMN layer_logical_refs.notes IS 'Free-form description of the layer.';
+COMMENT ON COLUMN layer_logical_refs.created_at IS 'Row creation time.';
+
 CREATE TABLE IF NOT EXISTS layer_rule_set_versions (
     version_id      INTEGER      PRIMARY KEY,                          -- monotonic rule-set version number
     layers_json     JSONB        NOT NULL,    -- full layer config: name/order/path_template/depends_on/owning_team_pattern
@@ -23,6 +30,18 @@ CREATE TABLE IF NOT EXISTS layer_rule_set_versions (
     superseded_at   TIMESTAMPTZ  NULL,                                -- when a newer version replaced this one
     superseded_by   INTEGER      NULL REFERENCES layer_rule_set_versions(version_id)  -- FK self - replacement version_id
 );
+
+-- DB-level column comments (visible in psql \d, DataGrip, DBeaver).
+COMMENT ON TABLE layer_rule_set_versions IS 'Versioned layer rule set (design.md §03 A7). Phase 1 ships v1 active+default. D24/D26 dynamic machinery is non-MVP.';
+COMMENT ON COLUMN layer_rule_set_versions.version_id IS 'Monotonic rule-set version number. PK; referenced by requests.layer_rule_set_version_id.';
+COMMENT ON COLUMN layer_rule_set_versions.layers_json IS 'Full layer config: name/order/path_template/depends_on/owning_team_pattern.';
+COMMENT ON COLUMN layer_rule_set_versions.status IS 'Rule-set lifecycle: active|superseded|deprecated|archived.';
+COMMENT ON COLUMN layer_rule_set_versions.is_default IS 'Whether this is the default active version.';
+COMMENT ON COLUMN layer_rule_set_versions.created_at IS 'Row creation time.';
+COMMENT ON COLUMN layer_rule_set_versions.created_by IS 'Actor that created this version.';
+COMMENT ON COLUMN layer_rule_set_versions.superseded_at IS 'When a newer version replaced this one.';
+COMMENT ON COLUMN layer_rule_set_versions.superseded_by IS 'Replacement version_id. Self-FK layer_rule_set_versions(version_id).';
+
 CREATE INDEX IF NOT EXISTS ix_layer_rule_set_versions_superseded_by ON layer_rule_set_versions(superseded_by);
 
 -- Back-fill deferred FKs now that the layer tables exist.

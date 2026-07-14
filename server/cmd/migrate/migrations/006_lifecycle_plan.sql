@@ -27,6 +27,29 @@ CREATE TABLE IF NOT EXISTS plan_artifacts (
     expires_at                TIMESTAMPTZ  NULL,                                -- TTL: apply must verify now < expires_at (doc 12)
     created_at                TIMESTAMPTZ  NOT NULL DEFAULT now()             -- artifact creation time
 );
+
+-- DB-level column comments (visible in psql \d, DataGrip, DBeaver).
+COMMENT ON TABLE plan_artifacts IS 'Immutable plan artifact carrying ALL plan/apply version-consistency fields (doc 09 §5.2 + doc 12 invariant 0). D21 plan/apply decoupling safety precondition.';
+COMMENT ON COLUMN plan_artifacts.id IS 'Snowflake ID (app-generated BIGINT, no DB autoincrement).';
+COMMENT ON COLUMN plan_artifacts.request_id IS 'Owning request. FK requests(id) ON DELETE RESTRICT.';
+COMMENT ON COLUMN plan_artifacts.status IS 'Artifact lifecycle (proto ArtifactStatus): ready|expired|consumed|superseded.';
+COMMENT ON COLUMN plan_artifacts.plan_hash IS 'Content hash of the rendered plan (integrity key).';
+COMMENT ON COLUMN plan_artifacts.storage_uri IS 'Object-store location of the plan file.';
+COMMENT ON COLUMN plan_artifacts.sha256 IS 'sha256 of the stored plan artifact bytes.';
+COMMENT ON COLUMN plan_artifacts.size_bytes IS 'Size of the stored artifact in bytes.';
+COMMENT ON COLUMN plan_artifacts.pinned_commit IS 'Apply must check out the same commit.';
+COMMENT ON COLUMN plan_artifacts.toolchain_profile_hash IS 'Apply TF version must match.';
+COMMENT ON COLUMN plan_artifacts.provider_lock_hash IS 'Apply .terraform.lock.hcl must match.';
+COMMENT ON COLUMN plan_artifacts.tf_version_sha256 IS 'Apply terraform binary must match.';
+COMMENT ON COLUMN plan_artifacts.stack_id IS 'PathGenerator output (doc 09 §5.2).';
+COMMENT ON COLUMN plan_artifacts.state_key IS 'PathGenerator output.';
+COMMENT ON COLUMN plan_artifacts.resources_to_add IS 'Plan summary: resources to add.';
+COMMENT ON COLUMN plan_artifacts.resources_to_change IS 'Plan summary: resources to change.';
+COMMENT ON COLUMN plan_artifacts.resources_to_destroy IS 'Plan summary: resources to destroy.';
+COMMENT ON COLUMN plan_artifacts.cost_estimate_cents IS 'Estimated cost in cents for this plan.';
+COMMENT ON COLUMN plan_artifacts.expires_at IS 'TTL: apply must verify now < expires_at (doc 12).';
+COMMENT ON COLUMN plan_artifacts.created_at IS 'Artifact creation time.';
+
 CREATE INDEX IF NOT EXISTS ix_plan_artifacts_request_id ON plan_artifacts(request_id);
 
 -- Back-fill the FK from requests to plan_artifacts (column added in 005).
@@ -55,6 +78,18 @@ CREATE TABLE IF NOT EXISTS gate_results (
                     CHECK (severity IN ('unspecified', 'error', 'warning')),  -- proto GateSeverity
     evaluated_at    TIMESTAMPTZ  NOT NULL DEFAULT now()                -- when the gate was evaluated
 );
+
+-- DB-level column comments (visible in psql \d, DataGrip, DBeaver).
+COMMENT ON TABLE gate_results IS 'Policy/OPA evaluation outcomes per request (proto GateResult).';
+COMMENT ON COLUMN gate_results.id IS 'Snowflake ID (app-generated BIGINT, no DB autoincrement).';
+COMMENT ON COLUMN gate_results.request_id IS 'Evaluated request. FK requests(id) ON DELETE RESTRICT.';
+COMMENT ON COLUMN gate_results.gate_id IS 'Logical gate identifier (e.g. OPA rule name).';
+COMMENT ON COLUMN gate_results.passed IS 'Whether the gate passed.';
+COMMENT ON COLUMN gate_results.policy IS 'Policy/rule reference that was evaluated.';
+COMMENT ON COLUMN gate_results.message IS 'Human-readable evaluation message.';
+COMMENT ON COLUMN gate_results.severity IS 'proto GateSeverity: unspecified|error|warning.';
+COMMENT ON COLUMN gate_results.evaluated_at IS 'When the gate was evaluated.';
+
 CREATE INDEX IF NOT EXISTS ix_gate_results_request_id ON gate_results(request_id);
 
 -- +goose Down

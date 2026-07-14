@@ -20,6 +20,23 @@ CREATE TABLE IF NOT EXISTS modules (
     updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),           -- auto-maintained by trigger
     deleted_at      TIMESTAMPTZ  NULL                                   -- soft delete
 );
+
+-- DB-level column comments (visible in psql \d, DataGrip, DBeaver).
+COMMENT ON TABLE modules IS 'Module registry entry. Atomic TF modules registered with version pins and pure-scalar variable contracts (D25 zero-intrusion).';
+COMMENT ON COLUMN modules.id IS 'Snowflake ID (app-generated BIGINT, no DB autoincrement).';
+COMMENT ON COLUMN modules.name IS 'Module name (e.g. "rds", "vpc", "ecs").';
+COMMENT ON COLUMN modules.git_source IS 'Git repo URL (e.g. github.com/org/modules).';
+COMMENT ON COLUMN modules.module_path IS 'Subdir within repo (e.g. "atomic/rds"). Empty = repo root.';
+COMMENT ON COLUMN modules.provider IS 'Cloud provider (e.g. "aliyun", "aws", "azure").';
+COMMENT ON COLUMN modules.layer IS 'Informational layer hint. Authoritative layer = catalog_items.layer_logical_id.';
+COMMENT ON COLUMN modules.module_type IS 'Three-layer architecture type: atomic|control|declarative.';
+COMMENT ON COLUMN modules.owner_team_id IS 'Team responsible for this module. FK teams(id) ON DELETE RESTRICT.';
+COMMENT ON COLUMN modules.status IS 'Validation lifecycle: pending_validation|validated|validation_failed|deprecated.';
+COMMENT ON COLUMN modules.description IS 'Human-readable description.';
+COMMENT ON COLUMN modules.created_at IS 'Record creation time.';
+COMMENT ON COLUMN modules.updated_at IS 'Auto-maintained by set_updated_at() trigger.';
+COMMENT ON COLUMN modules.deleted_at IS 'Soft delete timestamp. NULL = active.';
+
 CREATE INDEX IF NOT EXISTS ix_modules_owner_team_id ON modules(owner_team_id);
 CREATE INDEX IF NOT EXISTS ix_modules_provider ON modules(provider);
 CREATE INDEX IF NOT EXISTS ix_modules_status ON modules(status);
@@ -40,6 +57,20 @@ CREATE TABLE IF NOT EXISTS module_versions (
     registered_at           TIMESTAMPTZ  NOT NULL DEFAULT now(),           -- when this version was registered
     created_at              TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
+
+-- DB-level column comments (visible in psql \d, DataGrip, DBeaver).
+COMMENT ON TABLE module_versions IS 'Pinned, immutable version of a module. Carries the pure-scalar variable/output contracts (D25).';
+COMMENT ON COLUMN module_versions.id IS 'Snowflake ID (app-generated BIGINT, no DB autoincrement).';
+COMMENT ON COLUMN module_versions.module_id IS 'Parent module. FK modules(id) ON DELETE RESTRICT.';
+COMMENT ON COLUMN module_versions.version IS 'Semantic version (e.g. "v1.0.0"). Unique per module.';
+COMMENT ON COLUMN module_versions.commit_sha IS 'Git commit hash. Immutable pin the catalog item resolves against.';
+COMMENT ON COLUMN module_versions.required_providers_json IS 'From versions.tf: [{"name":"alicloud","version":">=1.280.0"}].';
+COMMENT ON COLUMN module_versions.variables_contract_json IS 'From variables.tf: {name: {type,description,default,sensitive,required}}.';
+COMMENT ON COLUMN module_versions.outputs_contract_json IS 'From outputs.tf: {name: {type,description}}.';
+COMMENT ON COLUMN module_versions.is_current IS 'Marks the active version of the module (at most one true per module_id).';
+COMMENT ON COLUMN module_versions.registered_at IS 'When this version was registered.';
+COMMENT ON COLUMN module_versions.created_at IS 'Record creation time.';
+
 CREATE INDEX IF NOT EXISTS ix_module_versions_module_id ON module_versions(module_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_module_versions_module_version
     ON module_versions(module_id, version);
@@ -55,6 +86,19 @@ CREATE TABLE IF NOT EXISTS module_dependencies (
     description         TEXT         NOT NULL DEFAULT '',           -- human-readable dep description
     created_at          TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
+
+-- DB-level column comments (visible in psql \d, DataGrip, DBeaver).
+COMMENT ON TABLE module_dependencies IS 'Declares that a module version variable needs an upstream module output (D25 wiring).';
+COMMENT ON COLUMN module_dependencies.id IS 'Snowflake ID (app-generated BIGINT, no DB autoincrement).';
+COMMENT ON COLUMN module_dependencies.module_version_id IS 'Parent module version. FK module_versions(id) ON DELETE CASCADE.';
+COMMENT ON COLUMN module_dependencies.variable_name IS 'This module''s variable that needs the upstream output (e.g. "vswitch_id").';
+COMMENT ON COLUMN module_dependencies.depends_on_layer IS 'Upstream layer (e.g. "global").';
+COMMENT ON COLUMN module_dependencies.depends_on_module IS 'Upstream module name (e.g. "vpc").';
+COMMENT ON COLUMN module_dependencies.output_key IS 'Upstream module''s output key (e.g. "vswitch_id"), validated against outputs_contract_json.';
+COMMENT ON COLUMN module_dependencies.required IS 'If true, codegen rejects when the upstream output is not available.';
+COMMENT ON COLUMN module_dependencies.description IS 'Human-readable dependency description.';
+COMMENT ON COLUMN module_dependencies.created_at IS 'Record creation time.';
+
 CREATE INDEX IF NOT EXISTS ix_module_dependencies_module_version_id ON module_dependencies(module_version_id);
 
 -- +goose Down

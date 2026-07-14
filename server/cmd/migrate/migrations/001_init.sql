@@ -42,6 +42,19 @@ CREATE TABLE IF NOT EXISTS teams (
     deleted_at  TIMESTAMPTZ  NULL                             -- soft delete timestamp
 );
 
+-- DB-level column comments (visible in psql \d, DataGrip, DBeaver).
+COMMENT ON TABLE teams IS 'Organizational ownership root. All other MVP tables reference teams(id).';
+COMMENT ON COLUMN teams.id IS 'Snowflake ID (app-generated BIGINT, no DB autoincrement).';
+COMMENT ON COLUMN teams.name IS 'Team display name (e.g. "DBA Team").';
+COMMENT ON COLUMN teams.slug IS 'URL-safe identifier (e.g. "dba"). Unique among active (non-deleted) teams.';
+COMMENT ON COLUMN teams.kind IS 'Team type: platform|dba|middleware|business. Matched by layer_rule_set_versions.layers_json.owning_team_pattern.';
+COMMENT ON COLUMN teams.status IS 'Lifecycle status: active|deprecated.';
+COMMENT ON COLUMN teams.tags_json IS 'L4 team tags (doc 08 tag 7-layer model).';
+COMMENT ON COLUMN teams.policy_json IS 'S6 team policy: {allowed_regions, cost_cap, mandatory_tags} (doc 08 param pipeline).';
+COMMENT ON COLUMN teams.created_at IS 'Record creation time.';
+COMMENT ON COLUMN teams.updated_at IS 'Auto-maintained by set_updated_at() trigger.';
+COMMENT ON COLUMN teams.deleted_at IS 'Soft delete timestamp. NULL = active.';
+
 -- Soft-delete-aware uniqueness: only one active team per slug; deleted rows
 -- can be re-created with the same slug. Uses a partial unique index per
 -- design.md §2.1 (NULLS NOT DISTINCT alternative for soft-delete scenarios).

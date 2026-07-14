@@ -30,6 +30,31 @@ CREATE TABLE IF NOT EXISTS catalog_items (
     updated_at                  TIMESTAMPTZ  NOT NULL DEFAULT now(),           -- auto-maintained by trigger
     deleted_at                  TIMESTAMPTZ  NULL                              -- soft delete
 );
+
+-- DB-level column comments (visible in psql \d, DataGrip, DBeaver).
+COMMENT ON TABLE catalog_items IS 'Service catalog. Binds a module version to a user-facing request form with cardinality (D25), layer identity (D24), tag defaults (L6) and visibility.';
+COMMENT ON COLUMN catalog_items.id IS 'Snowflake ID (app-generated BIGINT, no DB autoincrement).';
+COMMENT ON COLUMN catalog_items.module_version_id IS 'Pinned module version. FK module_versions(id) ON DELETE RESTRICT.';
+COMMENT ON COLUMN catalog_items.display_name IS 'User-facing name (e.g. "RDS MySQL"). Unique per module version among active items.';
+COMMENT ON COLUMN catalog_items.description IS 'Human-readable description.';
+COMMENT ON COLUMN catalog_items.category IS 'Grouping label (e.g. "database", "network").';
+COMMENT ON COLUMN catalog_items.status IS 'Lifecycle status (proto CatalogItemStatus): draft|active|deprecated|archived|blocked.';
+COMMENT ON COLUMN catalog_items.form_schema_json IS 'Frontend form schema (field definitions).';
+COMMENT ON COLUMN catalog_items.defaults_json IS 'S2 catalog defaults (doc 08 param pipeline).';
+COMMENT ON COLUMN catalog_items.cardinality IS 'D25: how codegen injects for_each/count: single|list|map.';
+COMMENT ON COLUMN catalog_items.instance_key IS 'D25: variable name used as the for_each key.';
+COMMENT ON COLUMN catalog_items.per_instance_fields_json IS 'D25: fields that vary per instance (read from each.value).';
+COMMENT ON COLUMN catalog_items.shared_fields_json IS 'D25: fields shared across all instances.';
+COMMENT ON COLUMN catalog_items.layer_logical_id IS 'Layer this catalog item belongs to. FK added by 010_layers (layer_logical_refs).';
+COMMENT ON COLUMN catalog_items.stack_grouping IS 'D24 StackGranularity: per-component|per-bundle|per-team|custom.';
+COMMENT ON COLUMN catalog_items.owner_team_id IS 'Team responsible for this catalog item. FK teams(id) ON DELETE RESTRICT.';
+COMMENT ON COLUMN catalog_items.default_tags_json IS 'L6 catalog default tags (doc 08 tag 7-layer model).';
+COMMENT ON COLUMN catalog_items.user_allowed_tag_keys_json IS 'L7 user tag whitelist (doc 08; empty = no custom tags allowed).';
+COMMENT ON COLUMN catalog_items.visibility_json IS 'team_ids that can see/request this item. GIN indexed.';
+COMMENT ON COLUMN catalog_items.created_at IS 'Record creation time.';
+COMMENT ON COLUMN catalog_items.updated_at IS 'Auto-maintained by set_updated_at() trigger.';
+COMMENT ON COLUMN catalog_items.deleted_at IS 'Soft delete timestamp. NULL = active.';
+
 CREATE INDEX IF NOT EXISTS ix_catalog_items_module_version_id ON catalog_items(module_version_id);
 CREATE INDEX IF NOT EXISTS ix_catalog_items_layer_logical_id ON catalog_items(layer_logical_id);
 CREATE INDEX IF NOT EXISTS ix_catalog_items_owner_team_id ON catalog_items(owner_team_id);
