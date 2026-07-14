@@ -7,19 +7,19 @@
 
 -- +goose Up
 CREATE TABLE IF NOT EXISTS audit_logs (
-    id                  BIGINT       PRIMARY KEY,
-    actor_id            TEXT         NOT NULL DEFAULT '',
+    id                  BIGINT       PRIMARY KEY,                          -- snowflake ID
+    actor_id            TEXT         NOT NULL DEFAULT '',                  -- who performed the action
     actor_team_id       TEXT         NOT NULL DEFAULT '',  -- proto Actor.team_id
-    actor_type          TEXT         NOT NULL DEFAULT 'system'
+    actor_type          TEXT         NOT NULL DEFAULT 'system'             -- proto ActorType (unspecified/human/ai/system)
                         CHECK (actor_type IN ('unspecified', 'human', 'ai', 'system')),  -- proto ActorType
-    action              TEXT         NOT NULL,
-    target_type         TEXT         NOT NULL DEFAULT '',
-    target_id           TEXT         NOT NULL DEFAULT '',
-    before_json         JSONB        NULL,
-    after_json          JSONB        NULL,
+    action              TEXT         NOT NULL,                             -- action verb, e.g. create_request/approve
+    target_type         TEXT         NOT NULL DEFAULT '',                  -- kind of object acted on (e.g. request)
+    target_id           TEXT         NOT NULL DEFAULT '',                  -- id of the object acted on
+    before_json         JSONB        NULL,                                 -- pre-action snapshot of the target (diff base)
+    after_json          JSONB        NULL,                                 -- post-action snapshot of the target
     ai_metadata_json    JSONB        NULL,   -- only when actor_type=ai (doc 17 §9.2)
-    correlation_id      TEXT         NOT NULL DEFAULT '',
-    occurred_at         TIMESTAMPTZ  NOT NULL DEFAULT now()
+    correlation_id      TEXT         NOT NULL DEFAULT '',                  -- trace / distributed correlation id
+    occurred_at         TIMESTAMPTZ  NOT NULL DEFAULT now()                -- when the action happened (immutable)
 );
 CREATE INDEX IF NOT EXISTS ix_audit_logs_target ON audit_logs(target_type, target_id);
 CREATE INDEX IF NOT EXISTS ix_audit_logs_correlation_id ON audit_logs(correlation_id);
@@ -27,20 +27,20 @@ CREATE INDEX IF NOT EXISTS ix_audit_logs_occurred_at ON audit_logs(occurred_at);
 -- No updated_at trigger — append-only.
 
 CREATE TABLE IF NOT EXISTS outbox_events (
-    id              BIGINT       PRIMARY KEY,
+    id              BIGINT       PRIMARY KEY,                          -- snowflake ID
     event_id        TEXT         NOT NULL,    -- UNIQUE, exactly-once idempotency (doc 12a IDEMP-005)
-    aggregate_type  TEXT         NOT NULL,
-    aggregate_id    TEXT         NOT NULL,
-    event_type      TEXT         NOT NULL,
-    payload_json    JSONB        NOT NULL DEFAULT '{}',
-    status          TEXT         NOT NULL DEFAULT 'pending'
+    aggregate_type  TEXT         NOT NULL,                             -- kind of aggregate this event concerns
+    aggregate_id    TEXT         NOT NULL,                             -- id of the aggregate this event concerns
+    event_type      TEXT         NOT NULL,                             -- event verb/type name
+    payload_json    JSONB        NOT NULL DEFAULT '{}',                -- full event payload (opaque to the relay)
+    status          TEXT         NOT NULL DEFAULT 'pending'            -- relay lifecycle (doc 04 §2.8a)
                     CHECK (status IN ('pending', 'processing', 'succeeded', 'failed', 'dead-letter')),
-    retry_count     INTEGER      NOT NULL DEFAULT 0,
-    next_retry_at   TIMESTAMPTZ  NULL,
-    correlation_id  TEXT         NOT NULL DEFAULT '',
-    created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    processed_at    TIMESTAMPTZ  NULL
+    retry_count     INTEGER      NOT NULL DEFAULT 0,                  -- delivery attempt counter
+    next_retry_at   TIMESTAMPTZ  NULL,                                -- scheduled time for the next retry
+    correlation_id  TEXT         NOT NULL DEFAULT '',                  -- trace / distributed correlation id
+    created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),               -- row creation time
+    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),               -- last update time (trigger-maintained)
+    processed_at    TIMESTAMPTZ  NULL                                  -- when delivery finalized (succeeded/dead-letter)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_outbox_events_event_id ON outbox_events(event_id);
 CREATE INDEX IF NOT EXISTS ix_outbox_events_status ON outbox_events(status);

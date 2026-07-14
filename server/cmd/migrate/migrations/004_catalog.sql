@@ -5,30 +5,30 @@
 
 -- +goose Up
 CREATE TABLE IF NOT EXISTS catalog_items (
-    id                          BIGINT       PRIMARY KEY,
-    module_version_id           BIGINT       NOT NULL REFERENCES module_versions(id) ON DELETE RESTRICT,
-    display_name                TEXT         NOT NULL,
-    description                 TEXT         NOT NULL DEFAULT '',
-    category                    TEXT         NOT NULL DEFAULT '',
+    id                          BIGINT       PRIMARY KEY,                     -- snowflake ID
+    module_version_id           BIGINT       NOT NULL REFERENCES module_versions(id) ON DELETE RESTRICT,  -- pinned module version
+    display_name                TEXT         NOT NULL,                         -- user-facing name (e.g. "RDS MySQL")
+    description                 TEXT         NOT NULL DEFAULT '',              -- human-readable description
+    category                    TEXT         NOT NULL DEFAULT '',              -- grouping (e.g. "database", "network")
     status                      TEXT         NOT NULL DEFAULT 'draft'
                                 CHECK (status IN ('draft', 'active', 'deprecated', 'archived', 'blocked')),  -- proto CatalogItemStatus
-    form_schema_json            JSONB        NOT NULL DEFAULT '{}',
-    defaults_json               JSONB        NOT NULL DEFAULT '{}',           -- S2 catalog defaults (doc 08)
+    form_schema_json            JSONB        NOT NULL DEFAULT '{}',            -- frontend form schema (field definitions)
+    defaults_json               JSONB        NOT NULL DEFAULT '{}',            -- S2 catalog defaults (doc 08 param pipeline)
     cardinality                 TEXT         NOT NULL DEFAULT 'single'
-                                CHECK (cardinality IN ('single', 'list', 'map')),  -- D25
-    instance_key                TEXT         NOT NULL DEFAULT '',
-    per_instance_fields_json    JSONB        NOT NULL DEFAULT '{}',
-    shared_fields_json          JSONB        NOT NULL DEFAULT '{}',
-    layer_logical_id            TEXT         NULL,                             -- FK added by 010_layers
+                                CHECK (cardinality IN ('single', 'list', 'map')),  -- D25: how codegen injects for_each/count
+    instance_key                TEXT         NOT NULL DEFAULT '',              -- D25: variable name used as for_each key
+    per_instance_fields_json    JSONB        NOT NULL DEFAULT '{}',            -- D25: fields that vary per instance (from each.value)
+    shared_fields_json          JSONB        NOT NULL DEFAULT '{}',            -- D25: fields shared across all instances
+    layer_logical_id            TEXT         NULL,                             -- FK added by 010_layers; layer this catalog item belongs to
     stack_grouping              TEXT         NOT NULL DEFAULT 'per-component'
-                                CHECK (stack_grouping IN ('per-component', 'per-bundle', 'per-team', 'custom')),
-    owner_team_id               BIGINT       NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,
-    default_tags_json           JSONB        NOT NULL DEFAULT '{}',           -- L6 catalog defaults (doc 08)
-    user_allowed_tag_keys_json  JSONB        NOT NULL DEFAULT '[]',           -- L7 user tag whitelist (doc 08)
-    visibility_json             JSONB        NOT NULL DEFAULT '[]',           -- team_ids array
-    created_at                  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    updated_at                  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    deleted_at                  TIMESTAMPTZ  NULL
+                                CHECK (stack_grouping IN ('per-component', 'per-bundle', 'per-team', 'custom')),  -- D24 StackGranularity
+    owner_team_id               BIGINT       NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,  -- team responsible for this catalog item
+    default_tags_json           JSONB        NOT NULL DEFAULT '{}',            -- L6 catalog default tags (doc 08 tag 7-layer model)
+    user_allowed_tag_keys_json  JSONB        NOT NULL DEFAULT '[]',            -- L7 user tag whitelist (doc 08; empty = no custom tags allowed)
+    visibility_json             JSONB        NOT NULL DEFAULT '[]',            -- team_ids that can see/request this item; GIN indexed
+    created_at                  TIMESTAMPTZ  NOT NULL DEFAULT now(),           -- record creation time
+    updated_at                  TIMESTAMPTZ  NOT NULL DEFAULT now(),           -- auto-maintained by trigger
+    deleted_at                  TIMESTAMPTZ  NULL                              -- soft delete
 );
 CREATE INDEX IF NOT EXISTS ix_catalog_items_module_version_id ON catalog_items(module_version_id);
 CREATE INDEX IF NOT EXISTS ix_catalog_items_layer_logical_id ON catalog_items(layer_logical_id);

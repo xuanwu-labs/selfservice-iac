@@ -4,12 +4,12 @@
 
 -- +goose Up
 CREATE TABLE IF NOT EXISTS projects (
-    id          BIGINT       PRIMARY KEY,
-    name        TEXT         NOT NULL,
-    team_id     BIGINT       NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,
-    created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    deleted_at  TIMESTAMPTZ  NULL
+    id          BIGINT       PRIMARY KEY,                    -- snowflake ID
+    name        TEXT         NOT NULL,                        -- project display name
+    team_id     BIGINT       NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,  -- owning team
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),           -- record creation time
+    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),           -- auto-maintained by trigger
+    deleted_at  TIMESTAMPTZ  NULL                             -- soft delete
 );
 CREATE INDEX IF NOT EXISTS ix_projects_team_id ON projects(team_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_projects_team_name_active
@@ -24,15 +24,15 @@ CREATE TRIGGER trg_projects_updated_at
 -- adds the FK via ALTER in 010. For now bundles is created without the FK
 -- and 010 back-fills it.
 CREATE TABLE IF NOT EXISTS bundles (
-    id          BIGINT       PRIMARY KEY,
-    name        TEXT         NOT NULL,
-    project_id  BIGINT       NOT NULL REFERENCES projects(id) ON DELETE RESTRICT,
-    layer_logical_id TEXT    NULL,  -- FK added by 010_layers after layer_logical_refs exists
-    repo_path   TEXT         NOT NULL,
-    tags_json   JSONB        NOT NULL DEFAULT '{}',
-    created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    deleted_at  TIMESTAMPTZ  NULL
+    id          BIGINT       PRIMARY KEY,                    -- snowflake ID
+    name        TEXT         NOT NULL,                        -- bundle display name (e.g. "orders")
+    project_id  BIGINT       NOT NULL REFERENCES projects(id) ON DELETE RESTRICT,  -- parent project
+    layer_logical_id TEXT    NULL,  -- FK added by 010_layers; layer this bundle belongs to
+    repo_path   TEXT         NOT NULL,                        -- repo path for this bundle's stacks
+    tags_json   JSONB        NOT NULL DEFAULT '{}',           -- L4 bundle tags (doc 08 tag 7-layer model)
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),           -- record creation time
+    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),           -- auto-maintained by trigger
+    deleted_at  TIMESTAMPTZ  NULL                             -- soft delete
 );
 CREATE INDEX IF NOT EXISTS ix_bundles_project_id ON bundles(project_id);
 CREATE INDEX IF NOT EXISTS ix_bundles_layer_logical_id ON bundles(layer_logical_id);

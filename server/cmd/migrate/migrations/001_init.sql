@@ -30,16 +30,16 @@ $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 CREATE TABLE IF NOT EXISTS teams (
-    id          BIGINT       PRIMARY KEY,
-    name        TEXT         NOT NULL,
-    slug        TEXT         NOT NULL,
-    kind        TEXT         NOT NULL CHECK (kind IN ('platform', 'dba', 'middleware', 'business')),
-    status      TEXT         NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'deprecated')),
-    tags_json   JSONB        NOT NULL DEFAULT '{}',
-    policy_json JSONB        NOT NULL DEFAULT '{}',
-    created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    deleted_at  TIMESTAMPTZ  NULL
+    id          BIGINT       PRIMARY KEY,                    -- snowflake ID
+    name        TEXT         NOT NULL,                        -- team display name (e.g. "DBA Team")
+    slug        TEXT         NOT NULL,                        -- URL-safe identifier (e.g. "dba")
+    kind        TEXT         NOT NULL CHECK (kind IN ('platform', 'dba', 'middleware', 'business')),  -- team type, matched by layer owning_team_pattern
+    status      TEXT         NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'deprecated')),  -- lifecycle status
+    tags_json   JSONB        NOT NULL DEFAULT '{}',           -- L4 team tags (doc 08 tag 7-layer model)
+    policy_json JSONB        NOT NULL DEFAULT '{}',           -- S6 team policy (allowed_regions, cost_cap, mandatory_tags)
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),           -- record creation time
+    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),           -- auto-maintained by set_updated_at() trigger
+    deleted_at  TIMESTAMPTZ  NULL                             -- soft delete timestamp
 );
 
 -- Soft-delete-aware uniqueness: only one active team per slug; deleted rows

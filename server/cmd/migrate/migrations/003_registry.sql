@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS modules (
     status          TEXT         NOT NULL DEFAULT 'pending_validation'
                     CHECK (status IN ('pending_validation', 'validated', 'validation_failed', 'deprecated')),
     description     TEXT         NOT NULL DEFAULT '',                   -- human-readable description
-    created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),           -- record creation time
+    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),           -- auto-maintained by trigger
     deleted_at      TIMESTAMPTZ  NULL                                   -- soft delete
 );
 CREATE INDEX IF NOT EXISTS ix_modules_owner_team_id ON modules(owner_team_id);
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS module_versions (
     variables_contract_json JSONB        NOT NULL DEFAULT '{}',                 -- from variables.tf: {name: {type,description,default,sensitive,required}}
     outputs_contract_json   JSONB        NOT NULL DEFAULT '{}',                 -- from outputs.tf: {name: {type,description}}
     is_current              BOOLEAN      NOT NULL DEFAULT FALSE,                -- marks the active version
-    registered_at           TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    registered_at           TIMESTAMPTZ  NOT NULL DEFAULT now(),           -- when this version was registered
     created_at              TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS ix_module_versions_module_id ON module_versions(module_id);
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS module_dependencies (
     depends_on_module   TEXT         NOT NULL,    -- upstream module name (e.g. "vpc")
     output_key          TEXT         NOT NULL,    -- upstream module's output key (e.g. "vswitch_id"), validated against outputs_contract_json
     required            BOOLEAN      NOT NULL DEFAULT FALSE,  -- if true, codegen rejects when upstream not available
-    description         TEXT         NOT NULL DEFAULT '',
+    description         TEXT         NOT NULL DEFAULT '',           -- human-readable dep description
     created_at          TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS ix_module_dependencies_module_version_id ON module_dependencies(module_version_id);

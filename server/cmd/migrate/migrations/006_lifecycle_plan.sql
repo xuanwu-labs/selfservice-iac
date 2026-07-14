@@ -6,26 +6,26 @@
 
 -- +goose Up
 CREATE TABLE IF NOT EXISTS plan_artifacts (
-    id                        BIGINT       PRIMARY KEY,
-    request_id                BIGINT       NOT NULL REFERENCES requests(id) ON DELETE RESTRICT,
-    status                    TEXT         NOT NULL DEFAULT 'ready'
+    id                        BIGINT       PRIMARY KEY,                       -- snowflake ID
+    request_id                BIGINT       NOT NULL REFERENCES requests(id) ON DELETE RESTRICT,  -- FK requests - owning request
+    status                    TEXT         NOT NULL DEFAULT 'ready'           -- artifact lifecycle (proto ArtifactStatus)
                               CHECK (status IN ('ready', 'expired', 'consumed', 'superseded')),  -- proto ArtifactStatus
-    plan_hash                 TEXT         NOT NULL,
-    storage_uri               TEXT         NOT NULL,
-    sha256                    TEXT         NOT NULL,
-    size_bytes                BIGINT       NOT NULL DEFAULT 0,
+    plan_hash                 TEXT         NOT NULL,                          -- content hash of the rendered plan (integrity key)
+    storage_uri               TEXT         NOT NULL,                          -- object-store location of the plan file
+    sha256                    TEXT         NOT NULL,                          -- sha256 of the stored plan artifact bytes
+    size_bytes                BIGINT       NOT NULL DEFAULT 0,                -- size of the stored artifact in bytes
     pinned_commit             TEXT         NOT NULL,                            -- apply must check out same commit
     toolchain_profile_hash    TEXT         NOT NULL,                            -- apply TF version must match
     provider_lock_hash        TEXT         NOT NULL,                            -- apply .terraform.lock.hcl must match
     tf_version_sha256         TEXT         NOT NULL,                            -- apply terraform binary must match
     stack_id                  TEXT         NOT NULL,                            -- PathGenerator output (doc 09 §5.2)
     state_key                 TEXT         NOT NULL,                            -- PathGenerator output
-    resources_to_add          INTEGER      NOT NULL DEFAULT 0,
-    resources_to_change       INTEGER      NOT NULL DEFAULT 0,
-    resources_to_destroy      INTEGER      NOT NULL DEFAULT 0,
-    cost_estimate_cents       BIGINT       NOT NULL DEFAULT 0,
+    resources_to_add          INTEGER      NOT NULL DEFAULT 0,                -- plan summary: resources to add
+    resources_to_change       INTEGER      NOT NULL DEFAULT 0,                -- plan summary: resources to change
+    resources_to_destroy      INTEGER      NOT NULL DEFAULT 0,                -- plan summary: resources to destroy
+    cost_estimate_cents       BIGINT       NOT NULL DEFAULT 0,                -- estimated cost in cents for this plan
     expires_at                TIMESTAMPTZ  NULL,                                -- TTL: apply must verify now < expires_at (doc 12)
-    created_at                TIMESTAMPTZ  NOT NULL DEFAULT now()
+    created_at                TIMESTAMPTZ  NOT NULL DEFAULT now()             -- artifact creation time
 );
 CREATE INDEX IF NOT EXISTS ix_plan_artifacts_request_id ON plan_artifacts(request_id);
 
@@ -45,15 +45,15 @@ END $$;
 
 -- gate_results: policy/OPA evaluation outcomes per request (proto GateResult).
 CREATE TABLE IF NOT EXISTS gate_results (
-    id              BIGINT       PRIMARY KEY,
-    request_id      BIGINT       NOT NULL REFERENCES requests(id) ON DELETE RESTRICT,
-    gate_id         TEXT         NOT NULL,
-    passed          BOOLEAN      NOT NULL,
-    policy          TEXT         NOT NULL DEFAULT '',
-    message         TEXT         NOT NULL DEFAULT '',
-    severity        TEXT         NOT NULL DEFAULT 'warning'
+    id              BIGINT       PRIMARY KEY,                          -- snowflake ID
+    request_id      BIGINT       NOT NULL REFERENCES requests(id) ON DELETE RESTRICT,  -- FK requests - evaluated request
+    gate_id         TEXT         NOT NULL,                             -- logical gate identifier (e.g. OPA rule name)
+    passed          BOOLEAN      NOT NULL,                             -- whether the gate passed
+    policy          TEXT         NOT NULL DEFAULT '',                  -- policy/rule reference that was evaluated
+    message         TEXT         NOT NULL DEFAULT '',                  -- human-readable evaluation message
+    severity        TEXT         NOT NULL DEFAULT 'warning'            -- proto GateSeverity
                     CHECK (severity IN ('unspecified', 'error', 'warning')),  -- proto GateSeverity
-    evaluated_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+    evaluated_at    TIMESTAMPTZ  NOT NULL DEFAULT now()                -- when the gate was evaluated
 );
 CREATE INDEX IF NOT EXISTS ix_gate_results_request_id ON gate_results(request_id);
 
