@@ -13,15 +13,15 @@ CREATE TABLE IF NOT EXISTS requests (
     team_id                     BIGINT       NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,
     requester_id                TEXT         NOT NULL,                          -- MVP dangling string (identities table is B4)
     kind                        TEXT         NOT NULL DEFAULT 'standard'
-                                CHECK (kind IN ('standard', 'drift-remediation', 'legacy-import', 'maintenance-apply')),
+                                CHECK (kind IN ('standard', 'drift_remediation', 'legacy_import', 'maintenance_apply')),
     source                      TEXT         NOT NULL DEFAULT 'web'
-                                CHECK (source IN ('web', 'cli', 'cicd', 'ai')),
+                                CHECK (source IN ('web', 'cli', 'cicd', 'ai', 'gateway')),
     status                      TEXT         NOT NULL DEFAULT 'submitted'
                                 CHECK (status IN (
-                                    'submitted', 'generating', 'pending-admission', 'planning', 'plan-ready',
-                                    'pending-approval', 'applying', 'reconciling', 'succeeded', 'reconcile-pending',
-                                    'rejected', 'cancelled', 'expired', 'failed-retryable', 'failed-terminal',
-                                    'waiting-manual', 'blocked-policy', 'blocked-state-health', 'paused-drift')),
+                                    'submitted', 'generating', 'pending_admission', 'planning', 'plan_ready',
+                                    'pending_approval', 'applying', 'reconciling', 'succeeded', 'reconcile_pending',
+                                    'rejected', 'cancelled', 'expired', 'failed_retryable', 'failed_terminal',
+                                    'waiting_manual')),  -- 16 values aligned to proto RequestStatus (doc 12a health/policy states not in proto yet)
     current_stage               TEXT         NOT NULL DEFAULT '',
     form_values_json            JSONB        NOT NULL DEFAULT '{}',
     form_hash                   TEXT         NOT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS request_events (
     to_status       TEXT         NULL,
     actor_id        TEXT         NOT NULL DEFAULT '',
     actor_type      TEXT         NOT NULL DEFAULT 'system'
-                    CHECK (actor_type IN ('human', 'ai', 'system')),
+                    CHECK (actor_type IN ('unspecified', 'human', 'ai', 'system')),  -- proto ActorType
     message         TEXT         NOT NULL DEFAULT '',
     correlation_id  TEXT         NOT NULL DEFAULT '',
     occurred_at     TIMESTAMPTZ  NOT NULL DEFAULT now()

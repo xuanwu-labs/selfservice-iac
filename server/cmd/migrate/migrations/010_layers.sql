@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS layer_rule_set_versions (
     superseded_at   TIMESTAMPTZ  NULL,
     superseded_by   INTEGER      NULL REFERENCES layer_rule_set_versions(version_id)
 );
+CREATE INDEX IF NOT EXISTS ix_layer_rule_set_versions_superseded_by ON layer_rule_set_versions(superseded_by);
 
 -- Back-fill deferred FKs now that the layer tables exist.
 DO $$

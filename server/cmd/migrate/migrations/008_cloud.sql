@@ -6,12 +6,12 @@
 CREATE TABLE IF NOT EXISTS cloud_accounts (
     id                      BIGINT       PRIMARY KEY,
     provider                TEXT         NOT NULL
-                            CHECK (provider IN ('alicloud', 'aws', 'azure')),
+                            CHECK (provider IN ('aws', 'aliyun', 'azure', 'gcp')),  -- proto CloudProvider
     account_id              TEXT         NOT NULL,
     alias                   TEXT         NOT NULL DEFAULT '',
     display_name            TEXT         NOT NULL DEFAULT '',
     status                  TEXT         NOT NULL DEFAULT 'active'
-                            CHECK (status IN ('active', 'suspended', 'deprecating', 'deprecated')),
+                            CHECK (status IN ('active', 'suspended')),  -- proto CloudAccountStatus
     default_region          TEXT         NOT NULL DEFAULT '',
     regions_json            JSONB        NOT NULL DEFAULT '[]',
     credentials_ref         TEXT         NOT NULL DEFAULT '',   -- Vault/KMS ref, never the secret itself

@@ -25,10 +25,10 @@ CREATE TABLE IF NOT EXISTS approval_runs (
     request_id      BIGINT       NOT NULL REFERENCES requests(id) ON DELETE RESTRICT,
     flow_id         BIGINT       NOT NULL REFERENCES approval_flows(id) ON DELETE RESTRICT,
     gate            TEXT         NOT NULL
-                    CHECK (gate IN ('pre-plan', 'pre-apply', 'break-glass-retroactive')),
+                    CHECK (gate IN ('pre_plan', 'pre_apply')),  -- proto ApprovalGate (break-glass-retroactive not in proto yet)
     current_node    TEXT         NOT NULL DEFAULT '',
     status          TEXT         NOT NULL DEFAULT 'pending'
-                    CHECK (status IN ('pending', 'approved', 'rejected', 'timeout', 'cancelled')),
+                    CHECK (status IN ('pending', 'approved', 'rejected', 'expired')),  -- proto ApprovalRunStatus
     decided_by      TEXT         NOT NULL DEFAULT '',
     decided_at      TIMESTAMPTZ  NULL,
     started_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
@@ -47,11 +47,11 @@ CREATE TABLE IF NOT EXISTS approval_node_runs (
     run_id          BIGINT       NOT NULL REFERENCES approval_runs(id) ON DELETE CASCADE,
     node_id         TEXT         NOT NULL,
     mode            TEXT         NOT NULL
-                    CHECK (mode IN ('any', 'all', 'majority', 'count>=N')),  -- doc 12 §2.3
+                    CHECK (mode IN ('single', 'countersign', 'conditional')),  -- proto ApprovalNodeMode
     decided_count   INTEGER      NOT NULL DEFAULT 0,
     required_count  INTEGER      NOT NULL DEFAULT 1,
     status          TEXT         NOT NULL DEFAULT 'pending'
-                    CHECK (status IN ('pending', 'approved', 'rejected', 'timeout')),
+                    CHECK (status IN ('pending', 'approved', 'rejected', 'skipped', 'timeout')),  -- proto ApprovalNodeStatus
     timeout_at      TIMESTAMPTZ  NULL
 );
 CREATE INDEX IF NOT EXISTS ix_approval_node_runs_run_id ON approval_node_runs(run_id);
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS approval_decisions (
     node_run_id     BIGINT       NOT NULL REFERENCES approval_node_runs(id) ON DELETE RESTRICT,
     approver_id     TEXT         NOT NULL,            -- MVP dangling string (identities is B4)
     decision        TEXT         NOT NULL
-                    CHECK (decision IN ('approve', 'reject', 'abstain')),
+                    CHECK (decision IN ('approved', 'rejected')),  -- proto ApprovalDecision (no abstain)
     comment         TEXT         NOT NULL DEFAULT '',
     decided_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
 );

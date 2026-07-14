@@ -8,8 +8,8 @@
 CREATE TABLE IF NOT EXISTS plan_artifacts (
     id                        BIGINT       PRIMARY KEY,
     request_id                BIGINT       NOT NULL REFERENCES requests(id) ON DELETE RESTRICT,
-    status                    TEXT         NOT NULL DEFAULT 'active'
-                              CHECK (status IN ('active', 'superseded', 'expired', 'orphan')),
+    status                    TEXT         NOT NULL DEFAULT 'ready'
+                              CHECK (status IN ('ready', 'expired', 'consumed')),  -- proto ArtifactStatus
     plan_hash                 TEXT         NOT NULL,
     storage_uri               TEXT         NOT NULL,
     sha256                    TEXT         NOT NULL,
@@ -49,8 +49,8 @@ CREATE TABLE IF NOT EXISTS gate_results (
     passed          BOOLEAN      NOT NULL,
     policy          TEXT         NOT NULL DEFAULT '',
     message         TEXT         NOT NULL DEFAULT '',
-    severity        TEXT         NOT NULL DEFAULT 'info'
-                    CHECK (severity IN ('info', 'warning', 'error', 'critical')),
+    severity        TEXT         NOT NULL DEFAULT 'warning'
+                    CHECK (severity IN ('unspecified', 'error', 'warning')),  -- proto GateSeverity
     evaluated_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS ix_gate_results_request_id ON gate_results(request_id);
