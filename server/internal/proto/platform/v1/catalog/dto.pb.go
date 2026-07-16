@@ -33,6 +33,12 @@ type CatalogItem struct {
 	ModuleVersion  *registry.ModuleVersion  `protobuf:"bytes,6,opt,name=module_version,json=moduleVersion,proto3" json:"module_version,omitempty"`
 	FormSchemaJson string                   `protobuf:"bytes,7,opt,name=form_schema_json,json=formSchemaJson,proto3" json:"form_schema_json,omitempty"`
 	DefaultTags    map[string]string        `protobuf:"bytes,8,rep,name=default_tags,json=defaultTags,proto3" json:"default_tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// owner_team_id: team responsible for this catalog item (DB NOT NULL).
+	OwnerTeamId string `protobuf:"bytes,9,opt,name=owner_team_id,json=ownerTeamId,proto3" json:"owner_team_id,omitempty"`
+	// stack_grouping: D24 StackGranularity. Drives PathGenerator stack partitioning.
+	StackGrouping common.StackGranularity `protobuf:"varint,10,opt,name=stack_grouping,json=stackGrouping,proto3,enum=aether.platform.v1.common.StackGranularity" json:"stack_grouping,omitempty"`
+	// layer_logical_id: stable layer identity (D24/D26). FK layer_logical_refs.
+	LayerLogicalId string `protobuf:"bytes,11,opt,name=layer_logical_id,json=layerLogicalId,proto3" json:"layer_logical_id,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -121,6 +127,27 @@ func (x *CatalogItem) GetDefaultTags() map[string]string {
 		return x.DefaultTags
 	}
 	return nil
+}
+
+func (x *CatalogItem) GetOwnerTeamId() string {
+	if x != nil {
+		return x.OwnerTeamId
+	}
+	return ""
+}
+
+func (x *CatalogItem) GetStackGrouping() common.StackGranularity {
+	if x != nil {
+		return x.StackGrouping
+	}
+	return common.StackGranularity(0)
+}
+
+func (x *CatalogItem) GetLayerLogicalId() string {
+	if x != nil {
+		return x.LayerLogicalId
+	}
+	return ""
 }
 
 // ModuleDependencyInfo is the consumer-side view of a module's
@@ -757,8 +784,10 @@ type PublishCatalogItemRequest struct {
 	VisibleToTeams    []string               `protobuf:"bytes,12,rep,name=visible_to_teams,json=visibleToTeams,proto3" json:"visible_to_teams,omitempty"`
 	LayerLogicalId    string                 `protobuf:"bytes,13,opt,name=layer_logical_id,json=layerLogicalId,proto3" json:"layer_logical_id,omitempty"`
 	DefaultTags       map[string]string      `protobuf:"bytes,14,rep,name=default_tags,json=defaultTags,proto3" json:"default_tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// owner_team_id: team that owns this catalog item (DB NOT NULL).
+	OwnerTeamId   string `protobuf:"bytes,15,opt,name=owner_team_id,json=ownerTeamId,proto3" json:"owner_team_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PublishCatalogItemRequest) Reset() {
@@ -887,6 +916,13 @@ func (x *PublishCatalogItemRequest) GetDefaultTags() map[string]string {
 		return x.DefaultTags
 	}
 	return nil
+}
+
+func (x *PublishCatalogItemRequest) GetOwnerTeamId() string {
+	if x != nil {
+		return x.OwnerTeamId
+	}
+	return ""
 }
 
 type PublishCatalogItemResponse struct {
@@ -1153,7 +1189,7 @@ var File_platform_v1_catalog_dto_proto protoreflect.FileDescriptor
 
 const file_platform_v1_catalog_dto_proto_rawDesc = "" +
 	"\n" +
-	"\x1dplatform/v1/catalog/dto.proto\x12\x1aaether.platform.v1.catalog\x1a\x1dplatform/v1/common/enum.proto\x1a\x1eplatform/v1/registry/dto.proto\"\xcf\x03\n" +
+	"\x1dplatform/v1/catalog/dto.proto\x12\x1aaether.platform.v1.catalog\x1a\x1dplatform/v1/common/enum.proto\x1a\x1eplatform/v1/registry/dto.proto\"\xf1\x04\n" +
 	"\vCatalogItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -1162,7 +1198,11 @@ const file_platform_v1_catalog_dto_proto_rawDesc = "" +
 	"\x06status\x18\x05 \x01(\x0e2,.aether.platform.v1.common.CatalogItemStatusR\x06status\x12Q\n" +
 	"\x0emodule_version\x18\x06 \x01(\v2*.aether.platform.v1.registry.ModuleVersionR\rmoduleVersion\x12(\n" +
 	"\x10form_schema_json\x18\a \x01(\tR\x0eformSchemaJson\x12[\n" +
-	"\fdefault_tags\x18\b \x03(\v28.aether.platform.v1.catalog.CatalogItem.DefaultTagsEntryR\vdefaultTags\x1a>\n" +
+	"\fdefault_tags\x18\b \x03(\v28.aether.platform.v1.catalog.CatalogItem.DefaultTagsEntryR\vdefaultTags\x12\"\n" +
+	"\rowner_team_id\x18\t \x01(\tR\vownerTeamId\x12R\n" +
+	"\x0estack_grouping\x18\n" +
+	" \x01(\x0e2+.aether.platform.v1.common.StackGranularityR\rstackGrouping\x12(\n" +
+	"\x10layer_logical_id\x18\v \x01(\tR\x0elayerLogicalId\x1a>\n" +
 	"\x10DefaultTagsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xc5\x02\n" +
@@ -1214,7 +1254,7 @@ const file_platform_v1_catalog_dto_proto_rawDesc = "" +
 	"\x06env_id\x18\x03 \x01(\tR\x05envId\x12\x17\n" +
 	"\ateam_id\x18\x04 \x01(\tR\x06teamId\"a\n" +
 	"\x1bListAvailableStacksResponse\x12B\n" +
-	"\x06stacks\x18\x01 \x03(\v2*.aether.platform.v1.catalog.AvailableStackR\x06stacks\"\xcf\x06\n" +
+	"\x06stacks\x18\x01 \x03(\v2*.aether.platform.v1.catalog.AvailableStackR\x06stacks\"\xf3\x06\n" +
 	"\x19PublishCatalogItemRequest\x12\x1b\n" +
 	"\tmodule_id\x18\x01 \x01(\tR\bmoduleId\x12%\n" +
 	"\x0emodule_version\x18\x02 \x01(\tR\rmoduleVersion\x12\x12\n" +
@@ -1230,7 +1270,8 @@ const file_platform_v1_catalog_dto_proto_rawDesc = "" +
 	"\x0edefault_values\x18\v \x03(\v2H.aether.platform.v1.catalog.PublishCatalogItemRequest.DefaultValuesEntryR\rdefaultValues\x12(\n" +
 	"\x10visible_to_teams\x18\f \x03(\tR\x0evisibleToTeams\x12(\n" +
 	"\x10layer_logical_id\x18\r \x01(\tR\x0elayerLogicalId\x12i\n" +
-	"\fdefault_tags\x18\x0e \x03(\v2F.aether.platform.v1.catalog.PublishCatalogItemRequest.DefaultTagsEntryR\vdefaultTags\x1a@\n" +
+	"\fdefault_tags\x18\x0e \x03(\v2F.aether.platform.v1.catalog.PublishCatalogItemRequest.DefaultTagsEntryR\vdefaultTags\x12\"\n" +
+	"\rowner_team_id\x18\x0f \x01(\tR\vownerTeamId\x1a@\n" +
 	"\x12DefaultValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a>\n" +
@@ -1298,32 +1339,34 @@ var file_platform_v1_catalog_dto_proto_goTypes = []any{
 	nil,                                    // 22: aether.platform.v1.catalog.UpdateCatalogItemRequest.DefaultTagsEntry
 	(common.CatalogItemStatus)(0),          // 23: aether.platform.v1.common.CatalogItemStatus
 	(*registry.ModuleVersion)(nil),         // 24: aether.platform.v1.registry.ModuleVersion
-	(common.Cardinality)(0),                // 25: aether.platform.v1.common.Cardinality
+	(common.StackGranularity)(0),           // 25: aether.platform.v1.common.StackGranularity
+	(common.Cardinality)(0),                // 26: aether.platform.v1.common.Cardinality
 }
 var file_platform_v1_catalog_dto_proto_depIdxs = []int32{
 	23, // 0: aether.platform.v1.catalog.CatalogItem.status:type_name -> aether.platform.v1.common.CatalogItemStatus
 	24, // 1: aether.platform.v1.catalog.CatalogItem.module_version:type_name -> aether.platform.v1.registry.ModuleVersion
 	17, // 2: aether.platform.v1.catalog.CatalogItem.default_tags:type_name -> aether.platform.v1.catalog.CatalogItem.DefaultTagsEntry
-	2,  // 3: aether.platform.v1.catalog.ModuleDependencyInfo.available_stacks:type_name -> aether.platform.v1.catalog.AvailableStack
-	18, // 4: aether.platform.v1.catalog.AvailableStack.outputs_summary:type_name -> aether.platform.v1.catalog.AvailableStack.OutputsSummaryEntry
-	23, // 5: aether.platform.v1.catalog.ListItemsRequest.status_filter:type_name -> aether.platform.v1.common.CatalogItemStatus
-	0,  // 6: aether.platform.v1.catalog.ListItemsResponse.items:type_name -> aether.platform.v1.catalog.CatalogItem
-	0,  // 7: aether.platform.v1.catalog.GetCatalogItemResponse.item:type_name -> aether.platform.v1.catalog.CatalogItem
-	1,  // 8: aether.platform.v1.catalog.ListModuleDependenciesResponse.dependencies:type_name -> aether.platform.v1.catalog.ModuleDependencyInfo
-	2,  // 9: aether.platform.v1.catalog.ListAvailableStacksResponse.stacks:type_name -> aether.platform.v1.catalog.AvailableStack
-	25, // 10: aether.platform.v1.catalog.PublishCatalogItemRequest.cardinality:type_name -> aether.platform.v1.common.Cardinality
-	19, // 11: aether.platform.v1.catalog.PublishCatalogItemRequest.default_values:type_name -> aether.platform.v1.catalog.PublishCatalogItemRequest.DefaultValuesEntry
-	20, // 12: aether.platform.v1.catalog.PublishCatalogItemRequest.default_tags:type_name -> aether.platform.v1.catalog.PublishCatalogItemRequest.DefaultTagsEntry
-	0,  // 13: aether.platform.v1.catalog.PublishCatalogItemResponse.item:type_name -> aether.platform.v1.catalog.CatalogItem
-	21, // 14: aether.platform.v1.catalog.UpdateCatalogItemRequest.default_values:type_name -> aether.platform.v1.catalog.UpdateCatalogItemRequest.DefaultValuesEntry
-	22, // 15: aether.platform.v1.catalog.UpdateCatalogItemRequest.default_tags:type_name -> aether.platform.v1.catalog.UpdateCatalogItemRequest.DefaultTagsEntry
-	0,  // 16: aether.platform.v1.catalog.UpdateCatalogItemResponse.item:type_name -> aether.platform.v1.catalog.CatalogItem
-	0,  // 17: aether.platform.v1.catalog.DeprecateCatalogItemResponse.item:type_name -> aether.platform.v1.catalog.CatalogItem
-	18, // [18:18] is the sub-list for method output_type
-	18, // [18:18] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	25, // 3: aether.platform.v1.catalog.CatalogItem.stack_grouping:type_name -> aether.platform.v1.common.StackGranularity
+	2,  // 4: aether.platform.v1.catalog.ModuleDependencyInfo.available_stacks:type_name -> aether.platform.v1.catalog.AvailableStack
+	18, // 5: aether.platform.v1.catalog.AvailableStack.outputs_summary:type_name -> aether.platform.v1.catalog.AvailableStack.OutputsSummaryEntry
+	23, // 6: aether.platform.v1.catalog.ListItemsRequest.status_filter:type_name -> aether.platform.v1.common.CatalogItemStatus
+	0,  // 7: aether.platform.v1.catalog.ListItemsResponse.items:type_name -> aether.platform.v1.catalog.CatalogItem
+	0,  // 8: aether.platform.v1.catalog.GetCatalogItemResponse.item:type_name -> aether.platform.v1.catalog.CatalogItem
+	1,  // 9: aether.platform.v1.catalog.ListModuleDependenciesResponse.dependencies:type_name -> aether.platform.v1.catalog.ModuleDependencyInfo
+	2,  // 10: aether.platform.v1.catalog.ListAvailableStacksResponse.stacks:type_name -> aether.platform.v1.catalog.AvailableStack
+	26, // 11: aether.platform.v1.catalog.PublishCatalogItemRequest.cardinality:type_name -> aether.platform.v1.common.Cardinality
+	19, // 12: aether.platform.v1.catalog.PublishCatalogItemRequest.default_values:type_name -> aether.platform.v1.catalog.PublishCatalogItemRequest.DefaultValuesEntry
+	20, // 13: aether.platform.v1.catalog.PublishCatalogItemRequest.default_tags:type_name -> aether.platform.v1.catalog.PublishCatalogItemRequest.DefaultTagsEntry
+	0,  // 14: aether.platform.v1.catalog.PublishCatalogItemResponse.item:type_name -> aether.platform.v1.catalog.CatalogItem
+	21, // 15: aether.platform.v1.catalog.UpdateCatalogItemRequest.default_values:type_name -> aether.platform.v1.catalog.UpdateCatalogItemRequest.DefaultValuesEntry
+	22, // 16: aether.platform.v1.catalog.UpdateCatalogItemRequest.default_tags:type_name -> aether.platform.v1.catalog.UpdateCatalogItemRequest.DefaultTagsEntry
+	0,  // 17: aether.platform.v1.catalog.UpdateCatalogItemResponse.item:type_name -> aether.platform.v1.catalog.CatalogItem
+	0,  // 18: aether.platform.v1.catalog.DeprecateCatalogItemResponse.item:type_name -> aether.platform.v1.catalog.CatalogItem
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_platform_v1_catalog_dto_proto_init() }

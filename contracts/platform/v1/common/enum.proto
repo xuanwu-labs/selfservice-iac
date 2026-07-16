@@ -106,6 +106,40 @@ enum Cardinality {
   CARDINALITY_MAP = 3;
 }
 
+// StackGranularity is the D24 stack-grouping strategy declared on a
+// catalog item. Determines how codegen partitions instances into stacks:
+//   per-component = one stack per component (default, smallest blast radius)
+//   per-bundle    = one stack per bundle (coarser, for tightly coupled sets)
+//   per-team      = one stack per team (coarsest, rarely used)
+//   custom        = path_template override (advanced, admin-only)
+enum StackGranularity {
+  STACK_GRANULARITY_UNSPECIFIED = 0;
+  STACK_GRANULARITY_PER_COMPONENT = 1;
+  STACK_GRANULARITY_PER_BUNDLE = 2;
+  STACK_GRANULARITY_PER_TEAM = 3;
+  STACK_GRANULARITY_CUSTOM = 4;
+}
+
+// StackMigrationStatus is the D26 Tier classification for a stack under a
+// layer-rule-set version change. Drives the StateMover / sunset lifecycle.
+enum StackMigrationStatus {
+  STACK_MIGRATION_STATUS_UNSPECIFIED = 0;
+  STACK_MIGRATION_STATUS_STABLE = 1;
+  STACK_MIGRATION_STATUS_MIGRATION_PENDING = 2;
+  STACK_MIGRATION_STATUS_MIGRATING = 3;
+  STACK_MIGRATION_STATUS_DEPRECATED = 4;
+}
+
+// StackDependencyKind is the wiring type for a runtime cross-layer
+// dependency (D29 after/watch). codegen renders the corresponding Terraform
+// construct based on this value.
+enum StackDependencyKind {
+  STACK_DEPENDENCY_KIND_UNSPECIFIED = 0;
+  STACK_DEPENDENCY_KIND_REMOTE_STATE = 1;
+  STACK_DEPENDENCY_KIND_DATA_SOURCE = 2;
+  STACK_DEPENDENCY_KIND_WATCH_ONLY = 3;
+}
+
 enum CloudProvider {
   CLOUD_PROVIDER_UNSPECIFIED = 0;
   CLOUD_PROVIDER_AWS = 1;
