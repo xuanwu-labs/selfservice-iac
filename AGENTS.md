@@ -53,6 +53,17 @@ selfservice-iac/
 
 **所有 commit message 必须全英文**（subject + body）。这是开源项目的基本要求。中文文档内容（docs/*.md、migration SQL 的 PG COMMENT、代码注释引用中文 doc）不在此限制内——限制的是 git commit message。详见 `server/AGENTS.md` 的 "Git 提交规范" 段。
 
+## 分支策略（一个功能一个分支——最高优先级）
+
+权威定义在 `openspec/config.yaml` 的 `rules.git` 段。关键规则：
+
+- **一个 OpenSpec change = 一个 feature 分支**：`feat/<change-name>`（如 `feat/platform-db-schema`）。
+- **同功能的实现 + review 修复 + 衍生改进全在同一个分支上累积**，不开 `fix/xxx` 子分支（会导致分支爆炸）。
+- **合并用 `--no-ff`**（保留 merge commit，历史可追溯）；合并后删分支（保持分支列表清爽）。
+- **不在 main 直接提交**；所有改动走 feature 分支。
+- **只有跨功能的独立紧急修复**（main 上的生产 bug，不属于任何进行中的功能）才用 `fix/<描述>` 短命分支。
+- **分支命名**：`<type>/<简短描述>`，type = feat/fix/chore/docs/refactor/test。
+
 ## 边界
 
 - ❌ 不要修改 `../terramate/` 仓库(那是上游开源引擎,独立项目)。
