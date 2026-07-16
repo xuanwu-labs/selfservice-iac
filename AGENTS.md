@@ -49,6 +49,10 @@ selfservice-iac/
 - **tasks** 按 `## 01-功能模块` 分组,按依赖排序,每个 task 必须配测试任务,最后一个 task 跑 `make build` + `make test`。
 - 产物目录:`changes/<change>/{proposal.md, design.md, tasks.md, specs/, docs/, scripts/}`。
 
+## Git 提交语言（开源规范，强制）
+
+**所有 commit message 必须全英文**（subject + body）。这是开源项目的基本要求。中文文档内容（docs/*.md、migration SQL 的 PG COMMENT、代码注释引用中文 doc）不在此限制内——限制的是 git commit message。详见 `server/AGENTS.md` 的 "Git 提交规范" 段。
+
 ## 边界
 
 - ❌ 不要修改 `../terramate/` 仓库(那是上游开源引擎,独立项目)。

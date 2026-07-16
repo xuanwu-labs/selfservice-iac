@@ -12,6 +12,25 @@
 - **测试**：表驱动 + `t.Run` subtest + testify assert/require（不用 testify/mock）；用 `t.Helper`/`t.Cleanup`/`t.TempDir`
 - **Context**：所有可能跨边界的函数第一个参数是 `ctx context.Context`
 
+## Git 提交规范（开源项目，必须全英文）
+
+This is an open-source project. **All commit messages MUST be in English.** No Chinese in subject or body. This applies to both AI agents and human contributors.
+
+- **格式**：Conventional Commits — `type(scope): subject`
+  - type: `feat` / `fix` / `docs` / `refactor` / `test` / `chore` / `perf` / `build` / `ci`
+  - scope: affected domain（`db` / `proto` / `codegen` / `migrations` / `catalog` 等）
+  - subject: imperative mood, lowercase, no period（`add state_backends table` ✅ | `Added state_backends table.` ❌）
+- **body**（可选）：空行后写详细说明，每行 ≤ 72 字符；解释 what + why，不解释 how（diff 自带 how）
+- **语言**：subject + body 全英文。中文只允许出现在：代码注释引用中文 doc 时（如 `doc 02 §4.1`）+ migration SQL 里的中文表注释（PG COMMENT）。
+- **示例**：
+  ```
+  feat(db): execution-plane MVP tables + end-to-end gap fix
+
+  Promote 5 execution-plane tables to MVP after the 2026-07-16
+  architecture review, closing the catalog -> request -> stack -> git
+  end-to-end gap.
+  ```
+
 ## D1 边界（关键架构守护）
 
 **禁止 `server/**` import `github.com/terramate-io/terramate/<任何子包>`。**
