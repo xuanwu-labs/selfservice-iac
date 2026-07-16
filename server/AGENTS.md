@@ -50,7 +50,7 @@ server/
 ├── cmd/{server,aether,migrate}/     # 二进制入口(HTTP server / CLI / 迁移)
 ├── api/{http,connect}/              # 传输层 handler(契约在仓库根 contracts/)
 ├── core/<domain>/                   # 领域核心(顶层一等公民,package-by-feature)
-├── data/                            # 数据访问层(pgxpool provider + dbset 表分组包装)
+├── data/                            # 数据访问层(pgxpool provider + repo/ + dbset/ + query_wrapper)
 ├── internal/                        # 只装私有基建(config/otel/model/proto/cli/cmdutil/...)
 ├── pkg/db/{queries,generated}/      # sqlc 输入输出(可复用数据层)
 └── cmd/migrate/migrations/          # goose 迁移(embed)
@@ -60,12 +60,12 @@ server/
 
 | 目录 | 职责 | 内容 |
 |---|---|---|
-| `core/<domain>/` | **领域核心**(业务逻辑) | registry/catalog/codegen/orchestrator/drift 等领域包,顶层一等公民 |
-| `data/` | **数据访问层** | `data.go`(pgxpool provider + wire ProviderSet)、`dbset/`(按表分组的薄包装) |
-| `pkg/db/` | **sqlc 生成层**(可复用) | `queries/`(SQL 源)、`generated/`(sqlc 输出) |
+| `core/<domain>/` | **领域核心**(业务逻辑) | registry/catalog/codegen/orchestrator/drift 等领域包,顶层一等公民;通过 wire 注入 `*repo.XxxRepo` |
+| `data/` | **数据访问层** | `data.go`(pgxpool provider + wire ProviderSet)、`repo/`(Repo struct 薄包装 `*generated.Queries` + 事务 + 动态查询)、`dbset/`(多表组合 opt-in)、`query_wrapper.go`(动态查询构造器) |
+| `pkg/db/` | **sqlc 生成层**(可复用) | `queries/`(SQL 源)、`generated/`(sqlc 输出 `*Queries` + models) |
 | `internal/` | **私有基建**(不外露) | config/otel/model/proto/mapping/errors/event/auth/httpclient/asset/utils/**cli/cmdutil** |
 
-**数据访问三件套**:`core/store`(薄包装,调用方)→ `data/`(pgxpool 池)→ `pkg/db/generated`(sqlc 生成的 `*Queries`)。
+**数据访问混合范式**(W1-02,ferret Repo struct × DIP 可演进 × sqlc SQL-as-truth):`core/<domain>/`(注入 Repo struct)→ `data/repo/`(Repo 实现,薄包装 `*generated.Queries` + 跨表事务 WithTx + 动态查询 query_wrapper)→ `pkg/db/generated`(sqlc 生成的 `*Queries`)→ `data/`(pgxpool 池)。core 不直接 import `pkg/db`(DIP 依赖方向正确);需要测试/mock 时在 core 提取小 interface(Go 隐式 interface,无需改 data 层)。
 
 ## 依赖注入（wire）
 
@@ -122,16 +122,21 @@ server/
 
 | 层 | 位置 | 职责 | 当前状态 |
 |---|---|---|---|
-| sqlc 生成 model | `pkg/db/generated/models.go` | DB 表的 struct(sqlc 自动) | ✅ teams 表 |
-| 手写 entity | `internal/model/entity/` | 额外字段/校验标签/表名方法 | 空(teams 不需要额外字段) |
-| dbset 薄包装 | `data/dbset/` | 组合 sqlc Queries + entity | 空(等 core/store 落地) |
-| mapping 转换 | `internal/mapping/` | entity ↔ proto message | 空(等 handler 接 DB) |
+| sqlc 生成 model | `pkg/db/generated/models.go` | DB 表的 struct(sqlc 自动) | ✅ 29 张表（含 env/tenant/binding/tag_policy） |
+| 手写 entity | `internal/model/entity/` | 额外字段/校验标签/表名方法(opt-in,仅 sqlc model 不够时) | 空（MVP 大多数表用 sqlc model 直接） |
+| Repo struct | `data/repo/<entity>.go` | 薄包装 `*generated.Queries` + 跨表事务 WithTx + 动态查询 query_wrapper | ✅ W1-02 落地（15 个核心实体） |
+| dbset 多表组合 | `data/dbset/` | 跨表聚合 struct（opt-in,如 StackWithSpace） | ✅ W1-02 落地（StackWithSpace） |
+| mapping 转换 | `internal/mapping/` | sqlc model/entity ↔ proto message | 空(等 handler 接 DB,W1-03+) |
 
-**数据流**(未来完整):
+**数据流**(混合范式,W1-02 落地):
 ```
-Connect 请求(proto) → handler → core 业务逻辑 → dbset → pkg/db generated → PostgreSQL
+Connect 请求(proto) → handler → core 业务逻辑 → *repo.XxxRepo → pkg/db generated → PostgreSQL
+                          ↑                              ↑              ↓
+                   注入 Repo struct(wire)         薄包装 Queries     pgxpool 池
+                   需要 mock 时提取小 interface     + 事务 + 动态查询
+                   (Go 隐式,不改 data 层)
                                                               ↓
-                                            entity → mapping → proto 响应
+                                            sqlc model → mapping → proto 响应
 ```
 
 ## 配置加载策略

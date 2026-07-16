@@ -55,7 +55,7 @@ server/
 ├── cmd/{server,aether,migrate}/   # 二进制入口
 ├── api/{http,connect}/           # 传输层 handler
 ├── core/<domain>/                 # 领域核心(顶层一等公民,规划中)
-├── data/                          # pgxpool + dbset(数据访问层)
+├── data/                          # 数据访问层(pgxpool + repo/ Repo struct + dbset/ + query_wrapper)
 ├── internal/                      # 私有基建(config/cli/cmdutil/...)
 └── pkg/db/{queries,generated}/    # sqlc 输入输出
 ```

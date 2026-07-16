@@ -111,6 +111,35 @@ type CloudAccount struct {
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 }
 
+type Environment struct {
+	ID               int64              `json:"id"`
+	EnvLogicalID     string             `json:"env_logical_id"`
+	DisplayName      string             `json:"display_name"`
+	Stage            string             `json:"stage"`
+	CloudAccountID   *int64             `json:"cloud_account_id"`
+	Region           string             `json:"region"`
+	NetworkTopology  string             `json:"network_topology"`
+	TagNamespaceJson []byte             `json:"tag_namespace_json"`
+	Status           string             `json:"status"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt        pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type EnvironmentTenantBinding struct {
+	ID                     int64              `json:"id"`
+	EnvID                  int64              `json:"env_id"`
+	TenantID               int64              `json:"tenant_id"`
+	LayerLogicalID         string             `json:"layer_logical_id"`
+	VpcStackID             *int64             `json:"vpc_stack_id"`
+	SubnetBlocksJson       []byte             `json:"subnet_blocks_json"`
+	SecurityGroupBaseID    string             `json:"security_group_base_id"`
+	OverrideCloudAccountID *int64             `json:"override_cloud_account_id"`
+	Status                 string             `json:"status"`
+	CreatedAt              pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt              pgtype.Timestamptz `json:"updated_at"`
+}
+
 type GateResult struct {
 	ID          int64              `json:"id"`
 	RequestID   int64              `json:"request_id"`
@@ -330,6 +359,19 @@ type StateBackend struct {
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 }
 
+type TagPolicy struct {
+	ID                     int64              `json:"id"`
+	ScopeType              string             `json:"scope_type"`
+	ScopeID                string             `json:"scope_id"`
+	TagNamespaceJson       []byte             `json:"tag_namespace_json"`
+	MandatoryKeysJson      []byte             `json:"mandatory_keys_json"`
+	UserAllowedTagKeysJson []byte             `json:"user_allowed_tag_keys_json"`
+	Version                int32              `json:"version"`
+	CreatedAt              pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt              pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt              pgtype.Timestamptz `json:"deleted_at"`
+}
+
 type Team struct {
 	ID         int64              `json:"id"`
 	Name       string             `json:"name"`
@@ -341,6 +383,20 @@ type Team struct {
 	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt  pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type Tenant struct {
+	ID               int64              `json:"id"`
+	TenantLogicalID  string             `json:"tenant_logical_id"`
+	Name             string             `json:"name"`
+	IsolationLevel   string             `json:"isolation_level"`
+	Kind             string             `json:"kind"`
+	OwnerTeamID      *int64             `json:"owner_team_id"`
+	TagNamespaceJson []byte             `json:"tag_namespace_json"`
+	Status           string             `json:"status"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt        pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type Workspace struct {

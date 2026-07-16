@@ -9,15 +9,131 @@ import (
 )
 
 type Querier interface {
+	CreateBinding(ctx context.Context, arg CreateBindingParams) (EnvironmentTenantBinding, error)
+	CreateEnvironment(ctx context.Context, arg CreateEnvironmentParams) (Environment, error)
+	CreateLayerLogicalRef(ctx context.Context, arg CreateLayerLogicalRefParams) (LayerLogicalRef, error)
+	CreateModule(ctx context.Context, arg CreateModuleParams) (Module, error)
+	CreateModuleDependency(ctx context.Context, arg CreateModuleDependencyParams) (ModuleDependency, error)
+	CreateModuleVersion(ctx context.Context, arg CreateModuleVersionParams) (ModuleVersion, error)
+	CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error)
+	CreateRuleSetVersion(ctx context.Context, arg CreateRuleSetVersionParams) (LayerRuleSetVersion, error)
+	CreateSpace(ctx context.Context, arg CreateSpaceParams) (Space, error)
+	CreateStack(ctx context.Context, arg CreateStackParams) (Stack, error)
+	CreateStackDependency(ctx context.Context, arg CreateStackDependencyParams) (StackDependency, error)
+	CreateTagPolicy(ctx context.Context, arg CreateTagPolicyParams) (TagPolicy, error)
 	CreateTeam(ctx context.Context, arg CreateTeamParams) (Team, error)
+	CreateTenant(ctx context.Context, arg CreateTenantParams) (Tenant, error)
+	DeleteBinding(ctx context.Context, id int64) error
+	DeleteStackDependency(ctx context.Context, id int64) error
+	GetActiveRuleSetVersion(ctx context.Context) (LayerRuleSetVersion, error)
+	// environment_tenant_bindings queries. ID is app-generated (snowflake), passed by caller.
+	// Hard-delete only: table has no deleted_at column, so no soft-delete filtering.
+	GetBinding(ctx context.Context, id int64) (EnvironmentTenantBinding, error)
+	GetBindingByTriple(ctx context.Context, arg GetBindingByTripleParams) (EnvironmentTenantBinding, error)
+	// catalog_items queries. ID is app-generated (snowflake), passed by caller.
+	// Soft-delete aware: active filters use WHERE deleted_at IS NULL.
+	GetCatalogItem(ctx context.Context, id int64) (CatalogItem, error)
+	GetCurrentModuleVersion(ctx context.Context, moduleID int64) (ModuleVersion, error)
+	GetDefaultRuleSetVersion(ctx context.Context) (LayerRuleSetVersion, error)
+	// environments queries. ID is app-generated (snowflake), passed by caller.
+	// Soft-delete aware: active filters use WHERE deleted_at IS NULL.
+	GetEnvironment(ctx context.Context, id int64) (Environment, error)
+	GetEnvironmentByLogicalId(ctx context.Context, envLogicalID string) (Environment, error)
+	// layer_logical_refs queries. PK is logical_id TEXT (NOT snowflake), passed by caller.
+	// Hard-lifecycle only: table has no deleted_at column, so no soft-delete filtering.
+	GetLayerLogicalRef(ctx context.Context, logicalID string) (LayerLogicalRef, error)
+	// modules queries. ID is app-generated (snowflake), passed by caller.
+	// Status-based lifecycle (no deleted_at): status field tracks state, e.g. 'pending_validation'.
+	GetModule(ctx context.Context, id int64) (Module, error)
+	GetModuleByGitSource(ctx context.Context, gitSource string) (Module, error)
+	// module_dependencies queries. ID is app-generated (snowflake), passed by caller.
+	// Lifecycle: no deleted_at. Cascade-deleted with parent module_version (FK ON DELETE CASCADE).
+	GetModuleDependency(ctx context.Context, id int64) (ModuleDependency, error)
+	// module_versions queries. ID is app-generated (snowflake), passed by caller.
+	// Lifecycle: no deleted_at. is_current marks the active version per module.
+	GetModuleVersion(ctx context.Context, id int64) (ModuleVersion, error)
+	GetModuleVersionByRef(ctx context.Context, arg GetModuleVersionByRefParams) (ModuleVersion, error)
+	// projects queries. ID is app-generated (snowflake), passed by caller.
+	// projects table has no slug/status/tags_json columns (only id/name/team_id/timestamps).
+	// Soft-delete aware: active filters use WHERE deleted_at IS NULL.
+	GetProject(ctx context.Context, id int64) (Project, error)
+	GetProjectByName(ctx context.Context, name string) (Project, error)
+	// layer_rule_set_versions queries. PK is version_id INTEGER (NOT snowflake), passed by caller.
+	// Versioned-lifecycle table: uses status/superseded_at instead of deleted_at, so no soft-delete filtering.
+	GetRuleSetVersion(ctx context.Context, versionID int32) (LayerRuleSetVersion, error)
+	// spaces queries. ID is app-generated (snowflake), passed by caller.
+	// Soft-delete aware: active filters use WHERE deleted_at IS NULL.
+	GetSpace(ctx context.Context, id int64) (Space, error)
+	// stacks queries. ID is app-generated (snowflake), passed by caller.
+	// Lifecycle: no deleted_at. Stacks are immutable once applied; migration_status tracks lifecycle.
+	GetStack(ctx context.Context, id int64) (Stack, error)
+	GetStackByRepoPath(ctx context.Context, repoPath string) (Stack, error)
+	// stack_dependencies queries. ID is app-generated (snowflake), passed by caller.
+	// Hard-delete only: table has no deleted_at column, so no soft-delete filtering.
+	GetStackDependency(ctx context.Context, id int64) (StackDependency, error)
+	// tag_policies queries. ID is app-generated (snowflake), passed by caller.
+	// Soft-delete aware: active filters use WHERE deleted_at IS NULL.
+	GetTagPolicy(ctx context.Context, id int64) (TagPolicy, error)
+	GetTagPolicyByScope(ctx context.Context, arg GetTagPolicyByScopeParams) (TagPolicy, error)
 	// teams queries. ID is app-generated (snowflake), passed by caller.
 	// Soft-delete aware: active filters use WHERE deleted_at IS NULL.
 	GetTeam(ctx context.Context, id int64) (Team, error)
 	GetTeamBySlug(ctx context.Context, slug string) (Team, error)
+	// tenants queries. ID is app-generated (snowflake), passed by caller.
+	// Soft-delete aware: active filters use WHERE deleted_at IS NULL.
+	GetTenant(ctx context.Context, id int64) (Tenant, error)
+	GetTenantByLogicalId(ctx context.Context, tenantLogicalID string) (Tenant, error)
+	ListBindingsByEnv(ctx context.Context, envID int64) ([]EnvironmentTenantBinding, error)
+	ListBindingsByTenant(ctx context.Context, tenantID int64) ([]EnvironmentTenantBinding, error)
+	ListCatalogItems(ctx context.Context) ([]CatalogItem, error)
+	ListCatalogItemsByLayer(ctx context.Context, layerLogicalID *string) ([]CatalogItem, error)
+	ListCatalogItemsByOwner(ctx context.Context, ownerTeamID int64) ([]CatalogItem, error)
+	ListDependenciesByStack(ctx context.Context, fromStackID int64) ([]StackDependency, error)
+	ListDependenciesByVersion(ctx context.Context, moduleVersionID int64) ([]ModuleDependency, error)
+	ListDependentsByStack(ctx context.Context, toStackID int64) ([]StackDependency, error)
+	ListEnvironments(ctx context.Context) ([]Environment, error)
+	ListLayerLogicalRefs(ctx context.Context) ([]LayerLogicalRef, error)
+	ListModuleVersions(ctx context.Context, moduleID int64) ([]ModuleVersion, error)
+	ListModules(ctx context.Context) ([]Module, error)
+	ListModulesByLayer(ctx context.Context, layer string) ([]Module, error)
+	ListModulesByOwner(ctx context.Context, ownerTeamID int64) ([]Module, error)
+	ListProjects(ctx context.Context) ([]Project, error)
+	ListProjectsByTeam(ctx context.Context, teamID int64) ([]Project, error)
+	ListRuleSetVersions(ctx context.Context) ([]LayerRuleSetVersion, error)
+	ListSpaces(ctx context.Context) ([]Space, error)
+	ListSpacesByLayer(ctx context.Context, layerLogicalID *string) ([]Space, error)
+	ListSpacesByProject(ctx context.Context, projectID int64) ([]Space, error)
+	ListStacks(ctx context.Context) ([]Stack, error)
+	ListStacksByEnv(ctx context.Context, env string) ([]Stack, error)
+	ListStacksByLayer(ctx context.Context, layer string) ([]Stack, error)
+	ListStacksBySpace(ctx context.Context, spaceID *int64) ([]Stack, error)
+	ListTagPoliciesByScopeType(ctx context.Context, scopeType string) ([]TagPolicy, error)
 	ListTeams(ctx context.Context) ([]Team, error)
 	ListTeamsByKind(ctx context.Context, kind string) ([]Team, error)
+	ListTenants(ctx context.Context) ([]Tenant, error)
+	ListVisibleCatalogItems(ctx context.Context, dollar_1 []byte) ([]CatalogItem, error)
+	PublishCatalogItem(ctx context.Context, arg PublishCatalogItemParams) (CatalogItem, error)
+	SetCurrentModuleVersion(ctx context.Context, id int64) (ModuleVersion, error)
+	SoftDeleteCatalogItem(ctx context.Context, id int64) error
+	SoftDeleteEnvironment(ctx context.Context, id int64) error
+	SoftDeleteProject(ctx context.Context, id int64) error
+	SoftDeleteSpace(ctx context.Context, id int64) error
+	SoftDeleteTagPolicy(ctx context.Context, id int64) error
 	SoftDeleteTeam(ctx context.Context, id int64) error
+	SoftDeleteTenant(ctx context.Context, id int64) error
+	SupersedeRuleSetVersion(ctx context.Context, arg SupersedeRuleSetVersionParams) error
+	UnsetOtherCurrentVersions(ctx context.Context, moduleID int64) error
+	UpdateCatalogItem(ctx context.Context, arg UpdateCatalogItemParams) (CatalogItem, error)
+	UpdateEnvironment(ctx context.Context, arg UpdateEnvironmentParams) (Environment, error)
+	UpdateLayerLogicalRefDisplayName(ctx context.Context, arg UpdateLayerLogicalRefDisplayNameParams) (LayerLogicalRef, error)
+	UpdateModule(ctx context.Context, arg UpdateModuleParams) (Module, error)
+	UpdateModuleStatus(ctx context.Context, arg UpdateModuleStatusParams) (Module, error)
+	UpdateProject(ctx context.Context, arg UpdateProjectParams) (Project, error)
+	UpdateSpace(ctx context.Context, arg UpdateSpaceParams) (Space, error)
+	UpdateStack(ctx context.Context, arg UpdateStackParams) (Stack, error)
+	UpdateTagPolicy(ctx context.Context, arg UpdateTagPolicyParams) (TagPolicy, error)
 	UpdateTeam(ctx context.Context, arg UpdateTeamParams) (Team, error)
+	UpdateTenant(ctx context.Context, arg UpdateTenantParams) (Tenant, error)
 }
 
 var _ Querier = (*Queries)(nil)

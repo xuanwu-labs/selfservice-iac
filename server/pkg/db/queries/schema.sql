@@ -383,3 +383,81 @@ CREATE TABLE stack_dependencies (
     status          TEXT         NOT NULL DEFAULT 'active',
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
+
+-- =====================================================================
+-- environments (D27): Environment as first-class governance object.
+-- =====================================================================
+CREATE TABLE environments (
+    id                      BIGINT       PRIMARY KEY,
+    env_logical_id          TEXT         NOT NULL,
+    display_name            TEXT         NOT NULL DEFAULT '',
+    stage                   TEXT         NOT NULL DEFAULT 'dev'
+                            CHECK (stage IN ('dev', 'staging', 'prod', 'dr')),
+    cloud_account_id        BIGINT       NULL REFERENCES cloud_accounts(id) ON DELETE SET NULL,
+    region                  TEXT         NOT NULL DEFAULT '',
+    network_topology        TEXT         NOT NULL DEFAULT 'shared'
+                            CHECK (network_topology IN ('shared', 'distributed')),
+    tag_namespace_json      JSONB        NOT NULL DEFAULT '{}',
+    status                  TEXT         NOT NULL DEFAULT 'active'
+                            CHECK (status IN ('active', 'frozen', 'deprecated')),
+    created_at              TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at              TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    deleted_at              TIMESTAMPTZ  NULL
+);
+
+-- =====================================================================
+-- tenants (D27): Tenant as first-class object. Default 'platform-default'.
+-- =====================================================================
+CREATE TABLE tenants (
+    id                      BIGINT       PRIMARY KEY,
+    tenant_logical_id       TEXT         NOT NULL,
+    name                    TEXT         NOT NULL,
+    isolation_level         TEXT         NOT NULL DEFAULT 'vpc-per-env'
+                            CHECK (isolation_level IN ('vpc-per-env', 'account-per-env')),
+    kind                    TEXT         NOT NULL DEFAULT 'internal'
+                            CHECK (kind IN ('internal', 'external')),
+    owner_team_id           BIGINT       NULL REFERENCES teams(id) ON DELETE SET NULL,
+    tag_namespace_json      JSONB        NOT NULL DEFAULT '{}',
+    status                  TEXT         NOT NULL DEFAULT 'active'
+                            CHECK (status IN ('active', 'frozen', 'deprecated')),
+    created_at              TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at              TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    deleted_at              TIMESTAMPTZ  NULL
+);
+
+-- =====================================================================
+-- environment_tenant_bindings (D27): (env x tenant x layer) triple UNIQUE.
+-- Network scope resolver for codegen Stage 4.
+-- =====================================================================
+CREATE TABLE environment_tenant_bindings (
+    id                          BIGINT       PRIMARY KEY,
+    env_id                      BIGINT       NOT NULL REFERENCES environments(id) ON DELETE RESTRICT,
+    tenant_id                   BIGINT       NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
+    layer_logical_id            TEXT         NOT NULL REFERENCES layer_logical_refs(logical_id) ON DELETE RESTRICT,
+    vpc_stack_id                BIGINT       NULL REFERENCES stacks(id) ON DELETE SET NULL,
+    subnet_blocks_json          JSONB        NOT NULL DEFAULT '[]',
+    security_group_base_id      TEXT         NOT NULL DEFAULT '',
+    override_cloud_account_id   BIGINT       NULL REFERENCES cloud_accounts(id) ON DELETE SET NULL,
+    status                      TEXT         NOT NULL DEFAULT 'active'
+                                CHECK (status IN ('active', 'pending-cleanup')),
+    created_at                  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at                  TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+
+-- =====================================================================
+-- tag_policies (D28): Tag namespace config storage (L2/L3/L4/L6 layers).
+-- Polymorphic scope (scope_id TEXT, integrity at app layer).
+-- =====================================================================
+CREATE TABLE tag_policies (
+    id                              BIGINT       PRIMARY KEY,
+    scope_type                      TEXT         NOT NULL
+                                    CHECK (scope_type IN ('platform', 'env', 'tenant', 'team', 'space', 'catalog_item')),
+    scope_id                        TEXT         NOT NULL,
+    tag_namespace_json              JSONB        NOT NULL DEFAULT '{}',
+    mandatory_keys_json             JSONB        NOT NULL DEFAULT '[]',
+    user_allowed_tag_keys_json      JSONB        NOT NULL DEFAULT '[]',
+    version                         INT          NOT NULL DEFAULT 1,
+    created_at                      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at                      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    deleted_at                      TIMESTAMPTZ  NULL
+);

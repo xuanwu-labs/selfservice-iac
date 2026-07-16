@@ -83,9 +83,11 @@ func newPoolConfig(dbCfg config.DatabaseConfig) (*pgxpool.Config, error) {
 }
 
 // NewQueries creates a sqlc Queries from the pgxpool.
-// WIP: registered in ProviderSet but currently has no wire consumer — the
-// first consumer will be core/store (薄包装) when it lands in Wave 1.
-// Until then it stays registered so the dependency is visible in the graph.
+// Consumed internally by data/repo Repo structs (each Repo holds its own
+// *generated.Queries via repo.NewXxxRepo(pool)). Kept in ProviderSet so the
+// dependency is visible in the wire graph; core/<domain>/ packages inject
+// *repo.XxxRepo (not *generated.Queries directly) per the W1-02 hybrid paradigm
+// (ferret Repo struct × DIP evolvable × sqlc SQL-as-truth).
 func NewQueries(pool *pgxpool.Pool) *generated.Queries {
 	return generated.New(pool)
 }
