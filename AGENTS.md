@@ -103,7 +103,13 @@ selfservice-iac/
 - ✅ `/opsx:apply` 过程中发现设计问题需要改 artifacts → **直接编辑文件 + git commit**，apply 文档明确允许 "suggest updating artifacts"
 - ✅ `/opsx:explore` 讨论后想更新 artifacts → **直接编辑文件 + git commit**
 
-> **关键区分**：`/opsx:` 命令管**生命周期阶段切换**（propose→apply→archive）；artifact **内容编辑**随时可直接改文件 + commit。只有**新建 change** 必须用 `/opsx:propose`，**归档**必须用 `/opsx:archive`。中间的微调、修正、补充都直接编辑。
+> **关键区分**：`/opsx:` 命令管**生命周期阶段切换**（propose→apply→sync→archive）；artifact **内容编辑**随时可直接改文件 + commit。需要命令的阶段切换有 4 个：
+> - **新建 change** → `/opsx:propose`（CLI 脚手架 + instructions template）
+> - **开始实现** → `/opsx:apply`（写代码 + 勾 tasks）
+> - **同步 specs** → `/opsx:sync`（delta specs 合并到主 specs，通常跟 archive 一起）
+> - **归档 change** → `/opsx:archive`（change 移到 archive/）
+>
+> 中间的微调、修正、补充都**直接编辑文件 + commit**，不需要命令。
 
 ### 生命周期发起权
 
