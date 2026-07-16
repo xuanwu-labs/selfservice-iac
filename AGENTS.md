@@ -80,16 +80,36 @@ selfservice-iac/
 
 **agent 开始工作前 MUST 先读 `openspec/config.yaml` 的 `rules` 段**——特别是 `lifecycle-ownership` 规则。关键纪律：
 
-1. **propose / apply / archive / sync 四个生命周期动作必须由维护者显式发起**。agent 不得擅自执行。
-   - **propose**：维护者说"新建提案/新建 change" → agent 可以起草 change 目录 + proposal/design/tasks/specs。但**不能自己写代码**——代码是 apply 阶段的事。
-   - **apply**：维护者说"开始实现/apply" → agent 才能开始写代码 + 标记 tasks。
-   - **archive**：维护者确认"做完了" → agent 才能归档。
-2. **agent 不得在 propose 阶段写实现代码**。propose 只产文档（proposal/design/tasks/specs）。代码在 apply 后才写。
-3. **agent 不得自行标记 tasks 为完成**。tasks 的 `[x]` 标记在 apply 后、验证通过后才打。
-4. **openspec validate MUST 通过**才能推进。spec 文件结构是 `specs/<capability-name>/spec.md`（不是 `specs/01-xxx.md`）。
-5. 若 agent 认为某 change 应推进，需向维护者说明依据并**等待明确指令**，而非直接执行。
+### 必须使用 `/opsx:` 命令操作 OpenSpec 生命周期
 
-> **反面教材**：上一轮 agent 在维护者只说"新建提案"时，不仅建了提案还直接写了实现代码 + 标记 tasks 完成——违反了 propose→apply 的先后顺序。正确做法是：propose 阶段只建文档，等维护者说 apply 才写代码。
+本项目有 5 个 slash command 封装了 OpenSpec 工作流（`.zcode/commands/opsx/`）。**agent MUST 使用这些命令，不得手动建目录/手写文件替代。**
+
+| 命令 | 用途 | 何时用 |
+|------|------|--------|
+| `/opsx:propose <name>` | 新建 change + 用 CLI 脚手架生成全部 artifacts | 维护者说"新建提案/new change" |
+| `/opsx:apply <name>` | 实现 tasks（写代码 + 勾 `[x]`）| 维护者说"apply/开始实现" |
+| `/opsx:archive <name>` | 归档完成的 change（specs 并入主线 + 移到 archive/）| 维护者说"归档/archive" |
+| `/opsx:sync <name>` | delta specs 同步到主 specs（通常跟 archive 一起）| 维护者说"sync" |
+| `/opsx:explore <topic>` | 探索模式（思考/调研，不写代码）| 维护者说"explore/思考" |
+
+**禁止的做法**：
+- ❌ 手动 `mkdir changes/<name>/` + 手写 proposal/design/tasks —— 必须用 `/opsx:propose`（它调 `openspec new change` 脚手架 + `openspec instructions` 拿 template）
+- ❌ 手动勾 tasks `[x]` —— 必须在 `/opsx:apply` 流程中完成
+- ❌ 手动 `mv` 归档 —— 必须用 `/opsx:archive`
+
+### 生命周期发起权
+
+1. **propose / apply / archive / sync 四个生命周期动作必须由维护者显式发起**。agent 不得擅自执行。
+   - **propose**：维护者说"新建提案" → agent 用 `/opsx:propose` 命令。**不能自己写代码**——代码是 apply 阶段的事。
+   - **apply**：维护者说"apply/开始实现" → agent 用 `/opsx:apply` 命令开始写代码。
+   - **archive**：维护者确认"做完了" → agent 用 `/opsx:archive` 命令归档。
+2. **agent 不得在 propose 阶段写实现代码**。propose 只产文档。代码在 apply 后才写。
+3. **openspec validate MUST 通过**才能推进。
+4. 若 agent 认为某 change 应推进，需向维护者说明依据并**等待明确指令**，而非直接执行。
+
+> **反面教材 1**：agent 在维护者只说"新建提案"时，不仅建了提案还直接写了实现代码 + 标记 tasks 完成——违反了 propose→apply 的先后顺序。
+>
+> **反面教材 2**：agent 手动 `mkdir` + 手写 proposal/design/tasks/specs 文件，没用 `/opsx:propose` 命令——导致 spec 目录结构错误（`specs/01-xxx.md` 而非 `specs/<capability>/spec.md`）、template 格式没遵循。正确做法是用 `/opsx:propose`，它会调 `openspec new change` + `openspec instructions` 拿正确的 template。
 
 ## 边界
 
@@ -106,11 +126,11 @@ selfservice-iac/
 
 OpenSpec 流程 `propose → apply → sync → archive` 中,**改变 change 状态的动作必须由维护者(人类)发起**,agent 只能在维护者指令下执行具体工作。
 
-| 动作 | 谁发起 | agent 能做什么 |
-|---|---|---|
-| **propose**(新建 change) | 🔒 维护者 | 起草 proposal/design/tasks **内容**;新建 change 目录/分支由维护者指令触发 |
-| **apply**(实现 tasks) | 🔒 维护者 | 写代码、跑测试、改文档(在维护者明确指令"开始实现 X"之后) |
-| **archive**(归档 change) | 🔒 维护者 | 验证 task 完成度、报告状态;归档操作由维护者指令触发 |
-| **sync**(specs 并入主线) | 🔒 维护者 | 跟随 archive 一起做 |
+| 动作 | 谁发起 | agent 能做什么 | 用的命令 |
+|---|---|---|---|
+| **propose**(新建 change) | 🔒 维护者 | 用 `/opsx:propose` 命令调 CLI 脚手架生成 artifacts | `/opsx:propose <name>` |
+| **apply**(实现 tasks) | 🔒 维护者 | 用 `/opsx:apply` 命令写代码、跑测试、勾 tasks | `/opsx:apply <name>` |
+| **archive**(归档 change) | 🔒 维护者 | 用 `/opsx:archive` 命令归档 + 同步 specs | `/opsx:archive <name>` |
+| **sync**(specs 并入主线) | 🔒 维护者 | 用 `/opsx:sync` 命令（通常跟 archive 一起）| `/opsx:sync <name>` |
 
 **红线**:agent 不得擅自新建 change、不得擅自归档、不得擅自把 change 标记完成或重新定义验收范围。这三类动作改变仓库结构语义,必须反映维护者真实意图。若 agent 判断某 change 应推进,需说明依据并等待指令。
