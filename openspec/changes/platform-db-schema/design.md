@@ -228,10 +228,12 @@ bundles(id, name, project_id FK→projects, layer_logical_id FK→layer_logical_
 
 #### A2. 模块注册（3 张）
 ```
-modules(id, name, git_source, module_path, provider, layer DEFAULT '', module_type CHECK(atomic|control|declarative),
+modules(id, name, git_source, module_path, provider, layer DEFAULT '',
   owner_team_id FK→teams, status CHECK(pending_validation|validated|validation_failed|deprecated),
   description, created_at, updated_at, deleted_at)
-  -- module_type: 三层架构（atomic 原子/control 编排/declarative 声明）
+  -- registry 只接受 atomic 模块（D19/D25）：控制层编排由平台 codegen 承担，
+  -- 声明层由 Web 表单承担。原 module_type CHECK(atomic|control|declarative) 已删除
+  -- （它把 terraform-alicloud-modules 的人工三层误植为平台 registry 三层）。
   -- layer: 信息性字段，权威层归属看 catalog_items.layer_logical_id
 module_versions(id, module_id FK→modules, version, commit_sha,
   required_providers_json, variables_contract_json, outputs_contract_json,
@@ -356,12 +358,68 @@ outbox_events(id, event_id,   -- event_id UNIQUE，幂等（doc 12a IDEMP-005）
 ```
 **修复**：audit_logs 补 ai_metadata_json（doc 17 §9.2，AI 操作审计链）；outbox_events 枚举改 5 值（pending/processing/succeeded/failed/dead-letter，doc 04 §2.8a）+ 补 event_id（幂等 UNIQUE）/next_retry_at/correlation_id。
 
+#### A9. 执行面（5 张，2026-07-16 从 B 列提升为 MVP）
+```
+state_backends(id, name, kind CHECK(s3|oss|local), bucket, region, endpoint,
+  encrypt BOOL, lock_table, access_style CHECK(oidc|aksk|anonymous),
+  credentials_ref, is_default BOOL, created_at, updated_at)
+  -- 父级后端配置唯一源（替代 doc 02/09 硬编码 bucket="tm-state"）。
+  -- codegen 读 is_default 行渲染 backend.tf；account-per-env 场景用 stacks.state_backend_id override。
+  -- 约束: uq_state_backends_single_default（部分唯一索引，保证至多 1 个 is_default=true）
+  -- seed: id=0, name='default', bucket='tm-state'（初始 dev 流可用）
+workspaces(id, name, remote_url, default_branch DEFAULT 'main', created_at, updated_at)
+  -- 平台管理的 infra-repo 注册（D4/D29 单仓 monorepo）。
+  -- 约束: uq_workspaces_name
+workspace_checkouts(id, workspace_id FK→workspaces, node_id, worktree_path, branch,
+  pinned_commit, purpose CHECK(plan_apply|drift|import),
+  leased_by_request_id FK→requests nullable, leased_until,
+  status CHECK(active|released|stale), created_at, updated_at)
+  -- 每工单独占 worktree；pinned_commit 是 requests.pinned_commit 的归属目标（消除孤儿）。
+  -- 索引: ix_workspace_checkouts_status（重启 reconcile 扫 stale，doc 10 §4）
+stacks(id, bundle_id FK→bundles nullable, catalog_item_id FK→catalog_items,
+  layer_logical_id FK→layer_logical_refs, layer_rule_set_version_id FK→layer_rule_set_versions(version_id),
+  owner_team_id FK→teams, layer, component, env, tenant_id DEFAULT 'platform-default',
+  stack_id, repo_path, state_key, terramate_tags_json,
+  state_backend_id FK→state_backends nullable, pinned_commit,
+  migration_status CHECK(stable|migration_pending|migrating|deprecated), sunset_deadline,
+  version, created_at, updated_at)
+  -- codegen 产出的 stack 身份落库（D29 stack.tm.hcl 镜像）。
+  -- stacks.tenant_id MVP 为字符串（tenants 表 B11 非 MVP），Phase 2 落表后加 FK。
+  -- 约束: uq_stacks_stack_id（全局唯一）；uq_stacks_repo_path_active（同路径非 deprecated 唯一）
+stack_dependencies(id, from_stack_id FK→stacks CASCADE, to_stack_id FK→stacks RESTRICT,
+  kind CHECK(remote_state|data_source|watch_only), variable_name, output_key, inject_as,
+  status CHECK(active|deprecated), created_at)
+  -- 运行时跨层依赖图（D29 after/watch）。codegen 从 module_dependencies + (env,tenant,layer) binding 物化。
+```
+**2026-07-16 提升 MVP 理由**：原 MVP 20 张表只穿通 catalog → request → codegen 输入；后半段（stack 落地 → git → 执行）完全断裂——requests.pinned_commit 是孤儿（workspace_checkouts 在 B 列）、codegen 产出无 stacks 表持久化、backend.tf 硬编码无 state_backends 源。这 5 张表是端到端穿通的必要条件，不是可选优化。
+
 ### 优先级 B：非 MVP 表（本 change 设计定稿，迁移随 Wave 落）
 
 > 这些表**字段/类型/约束/FK 本 change 全部推导定稿**，但不写迁移 SQL——等对应 Wave 实现功能时直接按定稿 schema 落迁移。设计依据来自 docs/04 §2.1-2.16 全部读完 + proto 契约对齐。
 
-#### B1. 执行与工作仓库（Wave 2-3 实现）
+#### B1. 执行与工作仓库（Wave 2-3 实现，部分已提升 A9）
 ```
+executor_runs(id, request_id FK→requests,
+  phase TEXT CHECK(phase IN ('plan','apply','drift','import')),
+  pinned_commit, artifact_id FK→plan_artifacts nullable,
+  toolchain_profile_hash, provider_lock_hash,
+  credential_session_id nullable, exit_code INT, started_at, finished_at,
+  status TEXT CHECK(status IN ('running','succeeded','failed','interrupted')),
+  failure_category TEXT CHECK(failure_category IN
+    ('user_input','policy_denied','cloud_quota','cloud_api','toolchain','state_backend',
+     'platform_bug','manual_required')) nullable)   -- doc 18 §4/§6 Phase 1 验收门
+  -- FK 索引: ix_executor_runs_request_id, ix_executor_runs_artifact_id
+-- NOTE: workspaces/workspace_checkouts 已于 2026-07-16 提升至 A9（MVP），此处不再重复。
+toolchain_manifest(node_id, mode TEXT CHECK(mode IN ('process','container','kubernetes','remote')),
+  terramate_version, tf_version, tofu_version, providers_json,
+  checked_at, status TEXT CHECK(status IN ('active','superseded')), created_at, updated_at)
+  -- doc 11 §6 节点工具链版本真相源（DB+节点双写），校验时机③的输入
+  -- PK: (node_id, mode) 或独立 id；此处用 (node_id) 单节点单 manifest
+```
+注意：executor_runs.artifact_id → plan_artifacts（非"并入"——plan_artifacts 独立，executor_runs 引用它）。这解决了 docs/04 A1 三处矛盾。补 failure_category（doc 18 §4 结构化失败归因，dashboard 必需）+ toolchain_manifest（doc 11 §6 节点工具链真相源）。
+
+#### B2. stack 注册表（已于 2026-07-16 提升至 A9 MVP）
+> stacks + stack_dependencies 已在 A9 落迁移。详见 A9 段。此处保留标题供历史索引。
 executor_runs(id, request_id FK→requests,
   phase TEXT CHECK(phase IN ('plan','apply','drift','import')),
   pinned_commit, artifact_id FK→plan_artifacts nullable,
@@ -387,20 +445,29 @@ toolchain_manifest(node_id, mode TEXT CHECK(mode IN ('process','container','kube
 ```
 注意：executor_runs.artifact_id → plan_artifacts（非"并入"——plan_artifacts 独立，executor_runs 引用它）。这解决了 docs/04 A1 三处矛盾。补 failure_category（doc 18 §4 结构化失败归因，dashboard 必需）+ toolchain_manifest（doc 11 §6 节点工具链真相源）。
 
-#### B2. stack 注册表（Wave 2 codegen 后实现）
+#### B2. 组合模板 catalog_blueprints（Wave 2 实现，2026-07-16 新增设计）
 ```
-stacks(id, bundle_id FK→bundles nullable, layer, component, env, tenant_id,
-       stack_id, repo_path, state_key, terramate_tags_json, owner_team_id FK→teams,
-       catalog_item_id FK→catalog_items,
-       layer_logical_id FK→layer_logical_refs,          -- ← 修复 A6：补此列闭合动态分层链路
-       layer_rule_set_version_id FK→layer_rule_set_versions,
-       migration_status[stable|migration_pending|migrating|deprecated], sunset_deadline,
-       version, created_at)
-stack_dependencies(id, from_stack_id FK→stacks, to_stack_id FK→stacks,
-                   kind[remote_state|data_source|watch_only], output_key, inject_as,
-                   status[active|deprecated], created_at)
+catalog_blueprints(id, name, display_name, description, category,
+  status CHECK(draft|active|deprecated|archived),
+  owner_team_id FK→teams, layer_logical_id FK→layer_logical_refs nullable,
+  visibility_json, version INT DEFAULT 1, created_at, updated_at, deleted_at)
+  -- 组合模板：用户一次申请一套资源（如"订单微服务套件"= VPC+RDS+Redis+ECS+SLB）。
+  -- 与 bundles（路径分组）正交：bundles 管"目录/成本/标签分组"，
+  -- catalog_blueprints 管"一次申请多个 catalog_item 的模板 + 参数映射"。
+  -- 编排顺序由 stacks 的 stack.tm.hcl after/watch 表达（Terramate DAG），本表只管模板定义。
+catalog_blueprint_items(id, blueprint_id FK→catalog_blueprints CASCADE,
+  catalog_item_id FK→catalog_items RESTRICT,
+  role, sort_order INT,             -- 部署拓扑序（codegen 据此生成 stack after 链）
+  param_mappings_json,              -- 本 item 变量 ← 其他 item output 映射（如 db_conn ← {{outputs.primary-db.conn}}）
+  overrides_json,                   -- 对 catalog defaults 的覆盖
+  required BOOL DEFAULT TRUE,       -- false=可选加购
+  created_at)
 ```
-**修复 A6**：stacks 补 `layer_logical_id`（docs/04 §2.3 缺此列，动态分层链路在 stack 端断开）。现在 stacks 同时有 layer_logical_id（稳定身份）+ layer_rule_set_version_id（版本 pin），链路闭合。
+**设计依据**（2026-07-16 架构审查）：用户场景"一次申请一套组合"当前无产品入口——catalog_items 是单 atomic，bundles 是路径分组，stack_dependencies 是运行时关系。组合模板填补"设计时模板 + 参数映射"缺口，codegen 展开后生成 N 个 stack，每 stack 仍独立 state/审批/回滚（防爆炸）。
+**与 Terramate bundle 的区分**：Terramate bundle 是静态 HCL 求值（cty.Value 单次计算），无 provenance/拒绝门；Aether blueprint 的参数映射走 codegen 9 阶段管道（每 item 参数经 S1-S9 合并 + provenance 审计）。MPL-2.0 开源无商业限制，但技术不匹配（静态 vs 9 阶段动态），故自研表。
+
+#### B2a. stack 注册表（已于 2026-07-16 提升至 A9 MVP）
+> stacks + stack_dependencies 已在 A9 落迁移（含补 layer_logical_id + layer_rule_set_version_id 闭合动态分层链路）。此处保留索引。
 
 #### B3. 漂移检测（Wave 4 实现）
 ```
@@ -683,8 +750,8 @@ skills(id, name, description, trigger_patterns_json, steps_yaml, output_contract
 
 | 优先级 | 域 | 表数 | 本 change 动作 |
 |---|---|---|---|
-| A（MVP）| 组织3/registry3/catalog1/lifecycle4（+approval_flows 共5）/cloud1/layer2/审计2 | **20** | 落迁移 SQL + sqlc |
-| B（非 MVP）| exec4（+toolchain_manifest）/stacks2/drift2/auth11（+identity_sources/org_nodes/org_mappings/sync_runs）/adapters1/saga2/hooks运营10（+signing_keys/runbooks）/layer-migration2/cmdb7（+resource_relations）/finops/cloud-creds4/env-tenant3/tag2（+tag_policy_versions）/cicd3/import2/AI机器身份4（B15 新增） | **~48** | **设计定稿**，迁移随 Wave 落 |
+| A（MVP）| 组织3/registry3/catalog1/lifecycle4（+approval_flows 共5）/cloud1/layer2/审计2/**执行面5（2026-07-16 提升）** | **25** | 落迁移 SQL + sqlc |
+| B（非 MVP）| exec2（+toolchain_manifest，workspaces/checkout 已提升 A9）/**catalog_blueprints2（2026-07-16 新增）**/stacks0（已提升 A9）/drift2/auth11（+identity_sources/org_nodes/org_mappings/sync_runs）/adapters1/saga2/hooks运营10（+signing_keys/runbooks）/layer-migration2/cmdb7（+resource_relations）/finops/cloud-creds4/env-tenant3/tag2（+tag_policy_versions）/cicd3/import2/AI机器身份4（B15 新增） | **~45** | **设计定稿**，迁移随 Wave 落 |
 | **合计** | | **~68** | 全部初版设计完成（docs 全量对账后） |
 
 > **表数变化说明**：原 ~52 张基于 docs/04 §2.1-2.16 + proto 契约；docs 全量通读（含 docs/05 §5 目录同步层、docs/11 §6 toolchain_manifest、docs/17 §3/§6/§9.2 AI/机器身份、docs/20 §3.2 signing_keys、docs/21 §1 runbooks、docs/04 §2.14 tag_policy_versions、docs/14 §2 resource_relations）后补全至 ~68 张。新增表见 audit-docs-sweep.md B-致命-1。
@@ -738,6 +805,12 @@ skills(id, name, description, trigger_patterns_json, steps_yaml, output_contract
 | C3 import_jobs 无 created_stack_id | 加列 FK→stacks nullable（闭合 import→stack 创建链，doc 15 §6 step 4）| B14 |
 | C4 layer_migrations 缺 to_version_id 索引 | 补索引 | B8 |
 | C5 MVP requester_id/env_id/tenant_id 悬挂 | 显式标注 MVP 边界（identities B4 / environments B11 非 MVP），Wave 落表后加 FK | A4 |
+| **C6（2026-07-16）module_type 误植** | 删除 modules.module_type（registry 只接受 atomic；control 由平台 codegen 承担，declarative 由 Web 表单承担）| migration 011 |
+| **C7（2026-07-16）state backend 硬编码** | 新增 state_backends 表（A9），替代 doc 02 §4.1 / doc 09 §6 硬编码 `bucket="tm-state"`；codegen 读 is_default 行渲染 backend.tf | migration 011 |
+| **C8（2026-07-16）requests.pinned_commit 孤儿** | 新增 workspaces + workspace_checkouts 表（A9），pinned_commit 有归属表；重启 reconcile 有扫描目标（doc 10 §4）| migration 011 |
+| **C9（2026-07-16）codegen 产出无持久化** | 新增 stacks + stack_dependencies 表（A9），codegen 输出 stack 身份（id/path/state_key/tags）落库；DB↔repo↔state 三方对账有数据源 | migration 011 |
+| **C10（2026-07-16）组合模板缺失** | 设计定稿 catalog_blueprints + catalog_blueprint_items（B2，非 MVP）；一次申请多 atomic 的产品入口 + 参数映射，codegen 展开成 N stack | Wave 2 |
+| **C11（2026-07-16）catalog_item_defaults 缺失** | 设计待定（per-env/per-team 默认值覆盖，S2 管道读）；当前 catalog_items.defaults_json 全局单一，prod/dev 差异无法表达 | Wave 2 |
 
 ## 05-Phase 推进策略
 

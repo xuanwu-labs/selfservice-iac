@@ -10,8 +10,6 @@ CREATE TABLE IF NOT EXISTS modules (
     module_path     TEXT         NOT NULL DEFAULT '',                   -- subdir within repo (e.g. "atomic/rds")
     provider        TEXT         NOT NULL,                              -- cloud provider (e.g. "aliyun", "aws", "azure")
     layer           TEXT         NOT NULL DEFAULT '',                   -- informational layer; authoritative = catalog_items.layer_logical_id
-    module_type     TEXT         NOT NULL DEFAULT 'atomic'
-                    CHECK (module_type IN ('atomic', 'control', 'declarative')),  -- three-layer architecture
     owner_team_id   BIGINT       NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,  -- team responsible for this module
     status          TEXT         NOT NULL DEFAULT 'pending_validation'
                     CHECK (status IN ('pending_validation', 'validated', 'validation_failed', 'deprecated')),
@@ -29,7 +27,6 @@ COMMENT ON COLUMN modules.git_source IS 'Git repo URL (e.g. github.com/org/modul
 COMMENT ON COLUMN modules.module_path IS 'Subdir within repo (e.g. "atomic/rds"). Empty = repo root.';
 COMMENT ON COLUMN modules.provider IS 'Cloud provider (e.g. "aliyun", "aws", "azure").';
 COMMENT ON COLUMN modules.layer IS 'Informational layer hint. Authoritative layer = catalog_items.layer_logical_id.';
-COMMENT ON COLUMN modules.module_type IS 'Three-layer architecture type: atomic|control|declarative.';
 COMMENT ON COLUMN modules.owner_team_id IS 'Team responsible for this module. FK teams(id) ON DELETE RESTRICT.';
 COMMENT ON COLUMN modules.status IS 'Validation lifecycle: pending_validation|validated|validation_failed|deprecated.';
 COMMENT ON COLUMN modules.description IS 'Human-readable description.';

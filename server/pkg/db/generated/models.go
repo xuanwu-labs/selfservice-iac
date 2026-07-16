@@ -118,6 +118,7 @@ type CloudAccount struct {
 	TagsJson            []byte             `json:"tags_json"`
 	BootstrapStatus     string             `json:"bootstrap_status"`
 	OidcTrustConfigured bool               `json:"oidc_trust_configured"`
+	StateBackendID      *int64             `json:"state_backend_id"`
 	CreatedAt           pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 }
@@ -277,6 +278,58 @@ type RequestEvent struct {
 	OccurredAt    pgtype.Timestamptz `json:"occurred_at"`
 }
 
+type Stack struct {
+	ID                    int64              `json:"id"`
+	BundleID              *int64             `json:"bundle_id"`
+	CatalogItemID         int64              `json:"catalog_item_id"`
+	LayerLogicalID        *string            `json:"layer_logical_id"`
+	LayerRuleSetVersionID *int32             `json:"layer_rule_set_version_id"`
+	OwnerTeamID           int64              `json:"owner_team_id"`
+	Layer                 string             `json:"layer"`
+	Component             string             `json:"component"`
+	Env                   string             `json:"env"`
+	TenantID              string             `json:"tenant_id"`
+	StackID               string             `json:"stack_id"`
+	RepoPath              string             `json:"repo_path"`
+	StateKey              string             `json:"state_key"`
+	TerramateTagsJson     []byte             `json:"terramate_tags_json"`
+	StateBackendID        *int64             `json:"state_backend_id"`
+	PinnedCommit          string             `json:"pinned_commit"`
+	MigrationStatus       string             `json:"migration_status"`
+	SunsetDeadline        pgtype.Timestamptz `json:"sunset_deadline"`
+	Version               int32              `json:"version"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
+}
+
+type StackDependency struct {
+	ID           int64              `json:"id"`
+	FromStackID  int64              `json:"from_stack_id"`
+	ToStackID    int64              `json:"to_stack_id"`
+	Kind         string             `json:"kind"`
+	VariableName string             `json:"variable_name"`
+	OutputKey    string             `json:"output_key"`
+	InjectAs     string             `json:"inject_as"`
+	Status       string             `json:"status"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
+type StateBackend struct {
+	ID             int64              `json:"id"`
+	Name           string             `json:"name"`
+	Kind           string             `json:"kind"`
+	Bucket         string             `json:"bucket"`
+	Region         string             `json:"region"`
+	Endpoint       string             `json:"endpoint"`
+	Encrypt        bool               `json:"encrypt"`
+	LockTable      string             `json:"lock_table"`
+	AccessStyle    string             `json:"access_style"`
+	CredentialsRef string             `json:"credentials_ref"`
+	IsDefault      bool               `json:"is_default"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Team struct {
 	ID         int64              `json:"id"`
 	Name       string             `json:"name"`
@@ -288,4 +341,28 @@ type Team struct {
 	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt  pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type Workspace struct {
+	ID            int64              `json:"id"`
+	Name          string             `json:"name"`
+	RemoteUrl     string             `json:"remote_url"`
+	DefaultBranch string             `json:"default_branch"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
+type WorkspaceCheckout struct {
+	ID                int64              `json:"id"`
+	WorkspaceID       int64              `json:"workspace_id"`
+	NodeID            string             `json:"node_id"`
+	WorktreePath      string             `json:"worktree_path"`
+	Branch            string             `json:"branch"`
+	PinnedCommit      string             `json:"pinned_commit"`
+	Purpose           string             `json:"purpose"`
+	LeasedByRequestID *int64             `json:"leased_by_request_id"`
+	LeasedUntil       pgtype.Timestamptz `json:"leased_until"`
+	Status            string             `json:"status"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
 }

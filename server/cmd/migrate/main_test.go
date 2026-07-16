@@ -29,7 +29,7 @@ func cleanSlate(_ *testing.T, _ *sql.DB) {}
 
 // expectedMigrationCount is the number of .sql migration files applied by Up.
 // Update this when adding a new migration file.
-const expectedMigrationCount = 10 // 001_init through 010_layers (000 merged into 001: goose skips v0)
+const expectedMigrationCount = 12 // 001_init through 012_cloud_account_state_backend (000 merged into 001: goose skips v0)
 
 func TestMigrationUpDownUpIdempotent(t *testing.T) {
 	if testing.Short() {

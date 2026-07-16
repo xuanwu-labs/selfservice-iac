@@ -108,16 +108,18 @@ application/platform-default/team-a/
 **核心**：上层 stack 通过 Terraform `data source` 读取下层 stack 的输出，**不硬编码**。两种实现：
 
 ### 4.1 `terraform_remote_state`（跨 stack 读输出）
+
+> **2026-07-16 修订**：bucket/region 不再硬编码——codegen 从 `state_backends` 表（A9）读取父级配置，从 `stack_dependencies` 表读取上游 state_key，动态渲染。下方示例保留结构，具体值由 codegen 注入。
+
 ```hcl
-# application/platform-default/team-a/orders/ecs-prod/main.tf
+# application/platform-default/team-a/orders/ecs-prod/cross-layer.tf
+# codegen 生成：bucket/region 从 state_backends 表读，key 从 stack_dependencies.to_stack_id 解析
 data "terraform_remote_state" "vpc" {
-  backend = "s3"
+  backend = var._tm_backend_kind               # ← state_backends.kind (s3|oss)
   config = {
-    # AI Generated Start
-    bucket = "tm-state"
-    key    = "global/vpc-platform-default-prod"     # 对应 Global 层 stack 的 state key
-    region = "us-east-1"
-    # AI Generated End
+    bucket = var._tm_backend_bucket            # ← state_backends.bucket
+    key    = var._tm_upstream_vpc_state_key    # ← stack_dependencies → stacks.state_key
+    region = var._tm_backend_region            # ← state_backends.region
   }
 }
 module "ecs" {
@@ -125,6 +127,12 @@ module "ecs" {
   vswitch_id = data.terraform_remote_state.vpc.outputs.vswitch_ids[0]
 }
 ```
+
+**解析链路**（codegen 生成 cross-layer.tf 时）：
+1. 读 `module_dependencies`：本模块需要 vpc.vswitch_id
+2. 读 `stack_dependencies`：to_stack_id = vpc stack → stacks.state_key = "global/vpc-platform-default-prod"
+3. 读 `state_backends`（is_default 或 stacks.state_backend_id override）：bucket/region/encrypt
+4. 渲染 data 块（变量从 DB 来，不硬编码）
 
 ### 4.2 云厂商 data source（直接查资源）
 ```hcl

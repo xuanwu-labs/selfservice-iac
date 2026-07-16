@@ -270,6 +270,7 @@ CREATE TABLE cloud_accounts (
     tags_json               JSONB        NOT NULL DEFAULT '{}',
     bootstrap_status        TEXT         NOT NULL DEFAULT 'none',
     oidc_trust_configured   BOOLEAN      NOT NULL DEFAULT FALSE,
+    state_backend_id        BIGINT       REFERENCES state_backends(id) ON DELETE SET NULL,
     created_at              TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at              TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
@@ -302,4 +303,83 @@ CREATE TABLE outbox_events (
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
     processed_at    TIMESTAMPTZ
+);
+
+-- 011_exec_stack_state.sql: execution-plane MVP tables (added 2026-07-16).
+-- These close the catalog -> request -> stack -> git -> exec end-to-end gap.
+
+CREATE TABLE state_backends (
+    id              BIGINT       PRIMARY KEY,
+    name            TEXT         NOT NULL,
+    kind            TEXT         NOT NULL,
+    bucket          TEXT         NOT NULL,
+    region          TEXT         NOT NULL DEFAULT '',
+    endpoint        TEXT         NOT NULL DEFAULT '',
+    encrypt         BOOLEAN      NOT NULL DEFAULT TRUE,
+    lock_table      TEXT         NOT NULL DEFAULT '',
+    access_style    TEXT         NOT NULL DEFAULT 'oidc',
+    credentials_ref TEXT         NOT NULL DEFAULT '',
+    is_default      BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+
+CREATE TABLE workspaces (
+    id              BIGINT       PRIMARY KEY,
+    name            TEXT         NOT NULL,
+    remote_url      TEXT         NOT NULL,
+    default_branch  TEXT         NOT NULL DEFAULT 'main',
+    created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+
+CREATE TABLE workspace_checkouts (
+    id                    BIGINT       PRIMARY KEY,
+    workspace_id          BIGINT       NOT NULL REFERENCES workspaces(id) ON DELETE RESTRICT,
+    node_id               TEXT         NOT NULL,
+    worktree_path         TEXT         NOT NULL,
+    branch                TEXT         NOT NULL,
+    pinned_commit         TEXT         NOT NULL,
+    purpose               TEXT         NOT NULL DEFAULT 'plan_apply',
+    leased_by_request_id  BIGINT       NULL REFERENCES requests(id) ON DELETE SET NULL,
+    leased_until          TIMESTAMPTZ  NULL,
+    status                TEXT         NOT NULL DEFAULT 'active',
+    created_at            TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at            TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+
+CREATE TABLE stacks (
+    id                            BIGINT       PRIMARY KEY,
+    bundle_id                     BIGINT       NULL REFERENCES bundles(id) ON DELETE RESTRICT,
+    catalog_item_id               BIGINT       NOT NULL REFERENCES catalog_items(id) ON DELETE RESTRICT,
+    layer_logical_id              TEXT         NULL REFERENCES layer_logical_refs(logical_id) ON DELETE RESTRICT,
+    layer_rule_set_version_id     INTEGER      NULL REFERENCES layer_rule_set_versions(version_id) ON DELETE RESTRICT,
+    owner_team_id                 BIGINT       NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,
+    layer                         TEXT         NOT NULL,
+    component                     TEXT         NOT NULL,
+    env                           TEXT         NOT NULL,
+    tenant_id                     TEXT         NOT NULL DEFAULT 'platform-default',
+    stack_id                      TEXT         NOT NULL,
+    repo_path                     TEXT         NOT NULL,
+    state_key                     TEXT         NOT NULL,
+    terramate_tags_json           JSONB        NOT NULL DEFAULT '[]',
+    state_backend_id              BIGINT       NULL REFERENCES state_backends(id) ON DELETE RESTRICT,
+    pinned_commit                 TEXT         NOT NULL DEFAULT '',
+    migration_status              TEXT         NOT NULL DEFAULT 'stable',
+    sunset_deadline               TIMESTAMPTZ  NULL,
+    version                       INT          NOT NULL DEFAULT 1,
+    created_at                    TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at                    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+
+CREATE TABLE stack_dependencies (
+    id              BIGINT       PRIMARY KEY,
+    from_stack_id   BIGINT       NOT NULL REFERENCES stacks(id) ON DELETE CASCADE,
+    to_stack_id     BIGINT       NOT NULL REFERENCES stacks(id) ON DELETE RESTRICT,
+    kind            TEXT         NOT NULL DEFAULT 'remote_state',
+    variable_name   TEXT         NOT NULL DEFAULT '',
+    output_key      TEXT         NOT NULL DEFAULT '',
+    inject_as       TEXT         NOT NULL DEFAULT '',
+    status          TEXT         NOT NULL DEFAULT 'active',
+    created_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
