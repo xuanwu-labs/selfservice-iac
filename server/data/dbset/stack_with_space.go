@@ -20,7 +20,7 @@ import (
 // Layer may be nil (stacks.layer_logical_id is NULL theoretically, though in practice
 // always set for applied stacks).
 type StackWithSpace struct {
-	Stack generated.Stack        `json:"stack"`
-	Space *generated.Space       `json:"space,omitempty"`
+	Stack generated.Stack            `json:"stack"`
+	Space *generated.Space           `json:"space,omitempty"`
 	Layer *generated.LayerLogicalRef `json:"layer,omitempty"`
 }

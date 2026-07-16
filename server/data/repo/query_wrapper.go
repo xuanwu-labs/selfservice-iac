@@ -7,10 +7,12 @@
 //   - Used ONLY for dynamic queries that sqlc cannot handle well: runtime-determined
 //     IN-lists, ad-hoc filter combinations, pagination. Fixed queries MUST go in
 //     pkg/db/queries/*.sql (SQL-as-truth).
-//   - Backed by Masterminds/squirrel (standard SQL builder, no ORM reflection),
-//     producing SQL string + args compatible with pgx's pool.Query(ctx, sql, args...).
-//   - Fluent chainable API: New().Eq().In().OrderBy().Page().BuildSQL(base)
-package data
+//   - Uses Masterminds/squirrel only for rendering individual condition clauses
+//     (placeholder + args). The AND/OR join logic is hand-rolled to match the
+//     MyBatis-Plus semantics where Or(fn) makes the GROUP join with OR (not the
+//     conditions inside the group).
+//   - Produces SQL string + args compatible with pgx's pool.Query(ctx, sql, args...).
+package repo
 
 import (
 	"fmt"
@@ -19,30 +21,29 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-// Operator describes a comparison in a WHERE clause.
-type Operator string
-
-const (
-	OpEq         Operator = "="
-	OpNe         Operator = "!="
-	OpGt         Operator = ">"
-	OpGte        Operator = ">="
-	OpLt         Operator = "<"
-	OpLte        Operator = "<="
-	OpLike       Operator = "LIKE"
-	OpNotLike    Operator = "NOT LIKE"
-	OpIn         Operator = "IN"
-	OpNotIn      Operator = "NOT IN"
-	OpBetween    Operator = "BETWEEN"
-	OpNotBetween Operator = "NOT BETWEEN"
-	OpIsNull     Operator = "IS NULL"
-	OpIsNotNull  Operator = "IS NOT NULL"
-)
-
 // Pagination holds optional page/size. Nil Page field means no pagination.
 type Pagination struct {
 	Page int // 1-based
 	Size int // page size
+}
+
+// joinLogic determines how a condition/group connects to the PREVIOUS one.
+type joinLogic int
+
+const (
+	logicAnd joinLogic = iota
+	logicOr
+)
+
+// condEntry is a flat condition or a nested group, with the join logic that
+// connects it to the previous entry (AND or OR). This flat structure lets us
+// implement MyBatis-Plus semantics exactly: Or(fn) sets the group's joinLogic
+// to OR (group internals stay AND).
+type condEntry struct {
+	join joinLogic
+	// one of sqlizer / group is set
+	sqlizer sq.Sqlizer
+	group   []condEntry // nested group (joined internally by AND by default)
 }
 
 // QueryWrapper builds dynamic WHERE/ORDER/LIMIT clauses on top of a base SQL
@@ -53,15 +54,12 @@ type Pagination struct {
 //	w := New().Eq("status", "active").In("layer", "db", "mw").
 //	    OrderByDesc("created_at").Page(1, 20)
 //	sql, args, err := w.BuildSQL("SELECT * FROM modules WHERE deleted_at IS NULL")
-//	rows, err := pool.Query(ctx, sql, args...)
 type QueryWrapper struct {
-	builder sq.SelectBuilder
-	// We keep conditions/orderby/page separate so BuildSQL can compose with a
-	// caller-provided base that already contains a WHERE (like deleted_at IS NULL).
-	conds    []sq.Sqlizer
-	orderBy  []orderClause
-	page     *Pagination
-	placeholderErr error // captured during construction
+	conds      []condEntry
+	nextJoin   joinLogic // join for the NEXT condition (Or() flips to OR)
+	orderBy    []orderClause
+	page       *Pagination
+	groupInner joinLogic // join inside Or(fn)/And(fn) groups; default AND
 }
 
 type orderClause struct {
@@ -71,90 +69,88 @@ type orderClause struct {
 
 // New creates an empty QueryWrapper (AND logic by default).
 func New() *QueryWrapper {
-	return &QueryWrapper{}
+	return &QueryWrapper{groupInner: logicAnd}
+}
+
+// addCond appends a condition using nextJoin, then resets nextJoin to AND.
+func (w *QueryWrapper) addCond(s sq.Sqlizer) *QueryWrapper {
+	j := w.nextJoin
+	// First condition has no predecessor; join is effectively AND (no prefix).
+	w.conds = append(w.conds, condEntry{join: j, sqlizer: s})
+	w.nextJoin = logicAnd
+	return w
 }
 
 // ---- Comparison builders (chainable) ----
 
 // Eq adds `column = value`.
 func (w *QueryWrapper) Eq(column string, value any) *QueryWrapper {
-	w.conds = append(w.conds, sq.Eq{column: value})
-	return w
+	return w.addCond(sq.Eq{column: value})
 }
 
 // Ne adds `column != value`.
 func (w *QueryWrapper) Ne(column string, value any) *QueryWrapper {
-	w.conds = append(w.conds, sq.NotEq{column: value})
-	return w
+	return w.addCond(sq.NotEq{column: value})
 }
 
 // Gt adds `column > value`.
 func (w *QueryWrapper) Gt(column string, value any) *QueryWrapper {
-	w.conds = append(w.conds, sq.Gt{column: value})
-	return w
+	return w.addCond(sq.Gt{column: value})
 }
 
 // Gte adds `column >= value`.
 func (w *QueryWrapper) Gte(column string, value any) *QueryWrapper {
-	w.conds = append(w.conds, sq.GtOrEq{column: value})
-	return w
+	return w.addCond(sq.GtOrEq{column: value})
 }
 
 // Lt adds `column < value`.
 func (w *QueryWrapper) Lt(column string, value any) *QueryWrapper {
-	w.conds = append(w.conds, sq.Lt{column: value})
-	return w
+	return w.addCond(sq.Lt{column: value})
 }
 
 // Le adds `column <= value`.
 func (w *QueryWrapper) Le(column string, value any) *QueryWrapper {
-	w.conds = append(w.conds, sq.LtOrEq{column: value})
-	return w
+	return w.addCond(sq.LtOrEq{column: value})
 }
 
 // Like adds `column LIKE value` (caller provides % wildcards).
 func (w *QueryWrapper) Like(column string, pattern string) *QueryWrapper {
-	w.conds = append(w.conds, sq.Like{column: pattern})
-	return w
+	return w.addCond(sq.Like{column: pattern})
 }
 
 // NotLike adds `column NOT LIKE value`.
 func (w *QueryWrapper) NotLike(column string, pattern string) *QueryWrapper {
-	w.conds = append(w.conds, sq.NotLike{column: pattern})
-	return w
+	return w.addCond(sq.NotLike{column: pattern})
 }
 
 // In adds `column IN (values...)`.
 func (w *QueryWrapper) In(column string, values ...any) *QueryWrapper {
-	w.conds = append(w.conds, sq.Eq{column: values})
-	return w
+	return w.addCond(sq.Eq{column: values})
 }
 
 // NotIn adds `column NOT IN (values...)`.
 func (w *QueryWrapper) NotIn(column string, values ...any) *QueryWrapper {
-	w.conds = append(w.conds, sq.NotEq{column: values})
-	return w
+	return w.addCond(sq.NotEq{column: values})
 }
 
 // Between adds `column BETWEEN low AND high`.
 func (w *QueryWrapper) Between(column string, low, high any) *QueryWrapper {
-	w.conds = append(w.conds, sq.Expr(column+" BETWEEN ? AND ?", low, high))
-	return w
+	return w.addCond(sq.Expr(column+" BETWEEN ? AND ?", low, high))
 }
 
 // IsNull adds `column IS NULL`.
 func (w *QueryWrapper) IsNull(column string) *QueryWrapper {
-	w.conds = append(w.conds, sq.Eq{column: nil})
-	return w
+	return w.addCond(sq.Eq{column: nil})
 }
 
 // IsNotNull adds `column IS NOT NULL`.
 func (w *QueryWrapper) IsNotNull(column string) *QueryWrapper {
-	w.conds = append(w.conds, sq.NotEq{column: nil})
-	return w
+	return w.addCond(sq.NotEq{column: nil})
 }
 
-// Or wraps the given conditions in a parenthesized OR group:
+// Or wraps the given conditions in a parenthesized group that joins with the
+// PREVIOUS condition via OR (MyBatis-Plus semantics). Group internals default
+// to AND.
 //
 //	w.Eq("a", 1).Or(func(sub *QueryWrapper) {
 //	    sub.Eq("b", 2).Eq("c", 3)
@@ -166,23 +162,23 @@ func (w *QueryWrapper) Or(fn func(*QueryWrapper)) *QueryWrapper {
 	if len(sub.conds) == 0 {
 		return w
 	}
-	grouped := make([]sq.Sqlizer, len(sub.conds))
-	copy(grouped, sub.conds)
-	w.conds = append(w.conds, sq.Or(grouped))
+	// Group joins with the previous condition via OR.
+	w.conds = append(w.conds, condEntry{join: logicOr, group: sub.conds})
+	w.nextJoin = logicAnd
 	return w
 }
 
-// And wraps the given conditions in a parenthesized AND group. Rarely needed
-// (default is AND) but provided for parity with Or.
+// And wraps the given conditions in a parenthesized group that joins with the
+// PREVIOUS condition via AND. Rarely needed (default is AND) but provided for
+// parity with Or.
 func (w *QueryWrapper) And(fn func(*QueryWrapper)) *QueryWrapper {
 	sub := New()
 	fn(sub)
 	if len(sub.conds) == 0 {
 		return w
 	}
-	grouped := make([]sq.Sqlizer, len(sub.conds))
-	copy(grouped, sub.conds)
-	w.conds = append(w.conds, sq.And(grouped))
+	w.conds = append(w.conds, condEntry{join: logicAnd, group: sub.conds})
+	w.nextJoin = logicAnd
 	return w
 }
 
@@ -229,32 +225,21 @@ func (w *QueryWrapper) DisablePage() *QueryWrapper {
 //
 // base is the starting query (e.g. "SELECT * FROM modules WHERE deleted_at IS NULL").
 // If base already contains a WHERE, new conditions are appended with AND; otherwise
-// a WHERE clause is introduced. Uses squirrel's PlaceholderFormat to emit $1/$2/...
-// (pgx native format).
+// a WHERE clause is introduced. Uses $1/$2/... placeholders (pgx native format).
 func (w *QueryWrapper) BuildSQL(base string) (sql string, args []any, err error) {
-	if w.placeholderErr != nil {
-		return "", nil, w.placeholderErr
-	}
-
-	// Start from a squirrel builder seeded with the base so ORDER BY / LIMIT
-	// compose consistently, but we need to preserve the exact base text.
-	// Strategy: append WHERE conditions as text into the base, then ORDER BY,
-	// then LIMIT/OFFSET, using squirrel only to render conditions + args.
 	sqlStr := base
+	var allArgs []any
 
 	if len(w.conds) > 0 {
-		whereSQL, whereArgs, err := sq.And(w.conds).ToSql()
+		whereBody, err := renderConds(w.conds, &allArgs)
 		if err != nil {
-			return "", nil, fmt.Errorf("query_wrapper: build WHERE: %w", err)
+			return "", nil, fmt.Errorf("query_wrapper: render WHERE: %w", err)
 		}
-		// squirrel returns "WHERE ..."; strip the leading keyword to merge cleanly.
-		whereBody := strings.TrimPrefix(whereSQL, "WHERE ")
 		if containsWhere(sqlStr) {
 			sqlStr += " AND " + whereBody
 		} else {
 			sqlStr += " WHERE " + whereBody
 		}
-		args = append(args, whereArgs...)
 	}
 
 	if len(w.orderBy) > 0 {
@@ -271,18 +256,54 @@ func (w *QueryWrapper) BuildSQL(base string) (sql string, args []any, err error)
 
 	if w.page != nil {
 		offset := (w.page.Page - 1) * w.page.Size
-		// LIMIT/OFFSET use the same positional args ($N).
 		sqlStr += fmt.Sprintf(" LIMIT %d OFFSET %d", w.page.Size, offset)
 	}
 
-	// Convert ? placeholders to $N (pgx). squirrel's PlaceholderFormat would do
-	// this if we built the whole thing via the builder, but since we splice text
-	// manually we normalize here.
-	sqlStr, args, err = normalizePlaceholders(sqlStr, args)
+	// Convert ? placeholders to $N (pgx native).
+	sqlStr, err = normalizePlaceholders(sqlStr, allArgs)
 	if err != nil {
 		return "", nil, err
 	}
-	return sqlStr, args, nil
+	return sqlStr, allArgs, nil
+}
+
+// renderConds builds the WHERE body (without the "WHERE" keyword) from a list
+// of condEntry. The first entry has no join prefix; subsequent entries are
+// prefixed with AND/OR per their join field. Nested groups are parenthesized.
+// Placeholders are ? (squirrel default); normalized to $N by BuildSQL.
+// Args are appended in order to *args.
+func renderConds(entries []condEntry, args *[]any) (string, error) {
+	var parts []string
+	for i, e := range entries {
+		var part string
+		if e.group != nil {
+			// Recurse into nested group, parenthesized.
+			inner, err := renderConds(e.group, args)
+			if err != nil {
+				return "", err
+			}
+			part = "(" + inner + ")"
+		} else {
+			sql, sqlArgs, err := e.sqlizer.ToSql()
+			if err != nil {
+				return "", err
+			}
+			// squirrel returns "column OP ?" — collect args in order.
+			*args = append(*args, sqlArgs...)
+			part = sql
+		}
+		if i == 0 {
+			// First condition: no join prefix.
+			parts = append(parts, part)
+		} else {
+			op := "AND"
+			if e.join == logicOr {
+				op = "OR"
+			}
+			parts = append(parts, op+" "+part)
+		}
+	}
+	return strings.Join(parts, " "), nil
 }
 
 // containsWhere reports whether the base SQL already has a WHERE clause
@@ -293,7 +314,6 @@ func containsWhere(s string) bool {
 	if idx < 0 {
 		return false
 	}
-	// Ensure word boundary (preceding space or start).
 	if idx > 0 {
 		prev := s[idx-1]
 		if prev != ' ' && prev != '\t' && prev != '\n' {
@@ -303,29 +323,21 @@ func containsWhere(s string) bool {
 	return true
 }
 
-// normalizePlaceholders converts "? $1"-style mixed placeholders to pure $N
-// positional placeholders expected by pgx, reordering args accordingly.
-// We rebuild the placeholder list based on the count of args.
-func normalizePlaceholders(sqlStr string, args []any) (string, []any, error) {
-	// Count ? in the SQL and ensure they match args length for the WHERE part.
-	// LIMIT/OFFSET are already inlined as literals, so only ? from conditions remain.
+// normalizePlaceholders converts ? placeholders to $N positional (pgx format).
+func normalizePlaceholders(sqlStr string, args []any) (string, error) {
 	var out strings.Builder
 	argIdx := 0
-	i := 0
-	for i < len(sqlStr) {
+	for i := 0; i < len(sqlStr); i++ {
 		if sqlStr[i] == '?' {
 			argIdx++
 			if argIdx > len(args) {
-				return "", nil, fmt.Errorf("query_wrapper: more placeholders (%d) than args (%d)", argIdx, len(args))
+				return "", fmt.Errorf("query_wrapper: more placeholders (%d) than args (%d)", argIdx, len(args))
 			}
 			out.WriteString("$")
 			out.WriteString(fmt.Sprintf("%d", argIdx))
-			i++
 			continue
 		}
 		out.WriteByte(sqlStr[i])
-		i++
 	}
-	// args stay in the order conditions were appended (squirrel returns them in order).
-	return out.String(), args, nil
+	return out.String(), nil
 }

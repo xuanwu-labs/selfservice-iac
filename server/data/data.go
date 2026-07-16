@@ -10,14 +10,18 @@ import (
 	"github.com/google/wire"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/xuanwu-labs/selfservice-iac/server/data/repo"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/config"
 	"github.com/xuanwu-labs/selfservice-iac/server/pkg/db/generated"
 )
 
-// ProviderSet provides data-layer dependencies for wire.
+// ProviderSet provides data-layer dependencies for wire: the pgxpool, the
+// sqlc *generated.Queries, and all Repo structs registered in repo.ProviderSet
+// (ferret style: core/<domain>/ injects *repo.XxxRepo directly).
 var ProviderSet = wire.NewSet(
 	NewPgxPool,
 	NewQueries,
+	repo.ProviderSet,
 )
 
 // NewPgxPool creates a pgxpool connection pool from config, instrumented with
