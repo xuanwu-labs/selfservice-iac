@@ -64,6 +64,21 @@ selfservice-iac/
 - **只有跨功能的独立紧急修复**（main 上的生产 bug，不属于任何进行中的功能）才用 `fix/<描述>` 短命分支。
 - **分支命名**：`<type>/<简短描述>`，type = feat/fix/chore/docs/refactor/test。
 
+## OpenSpec 生命周期纪律（最高优先级，agent MUST 遵守）
+
+**agent 开始工作前 MUST 先读 `openspec/config.yaml` 的 `rules` 段**——特别是 `lifecycle-ownership` 规则。关键纪律：
+
+1. **propose / apply / archive / sync 四个生命周期动作必须由维护者显式发起**。agent 不得擅自执行。
+   - **propose**：维护者说"新建提案/新建 change" → agent 可以起草 change 目录 + proposal/design/tasks/specs。但**不能自己写代码**——代码是 apply 阶段的事。
+   - **apply**：维护者说"开始实现/apply" → agent 才能开始写代码 + 标记 tasks。
+   - **archive**：维护者确认"做完了" → agent 才能归档。
+2. **agent 不得在 propose 阶段写实现代码**。propose 只产文档（proposal/design/tasks/specs）。代码在 apply 后才写。
+3. **agent 不得自行标记 tasks 为完成**。tasks 的 `[x]` 标记在 apply 后、验证通过后才打。
+4. **openspec validate MUST 通过**才能推进。spec 文件结构是 `specs/<capability-name>/spec.md`（不是 `specs/01-xxx.md`）。
+5. 若 agent 认为某 change 应推进，需向维护者说明依据并**等待明确指令**，而非直接执行。
+
+> **反面教材**：上一轮 agent 在维护者只说"新建提案"时，不仅建了提案还直接写了实现代码 + 标记 tasks 完成——违反了 propose→apply 的先后顺序。正确做法是：propose 阶段只建文档，等维护者说 apply 才写代码。
+
 ## 边界
 
 - ❌ 不要修改 `../terramate/` 仓库(那是上游开源引擎,独立项目)。
