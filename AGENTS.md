@@ -111,6 +111,21 @@ selfservice-iac/
 >
 > 中间的微调、修正、补充都**直接编辑文件 + commit**，不需要命令。
 
+### 子提案与主提案的同步规则
+
+本项目有一个**主提案**（`iac-self-service-platform`，含全部 W1-W8 模块的 specs + tasks）和多个**子提案**（如 `w1-adapter-interfaces`、`w1-db-store`，每个对应一个 W1 模块）。
+
+**子提案完成时 MUST 同步主提案**：
+- 子提案 `/opsx:apply` 完成后，**手动编辑主提案 tasks.md**，把对应的 task 组勾 `[x]`
+  - 例：`w1-adapter-interfaces` 完成 → 编辑 `iac-self-service-platform/tasks.md` 把 `## 01-平台骨架与适配器接口` 的 1.2-1.6 勾 `[x]`
+- 子提案 `/opsx:archive` 后，主提案 tasks.md 的对应模块标注"已归档于 w1-xxx"
+- **这是手动编辑（直接改文件 + commit），不需要 `/opsx:` 命令**
+
+**子提案与主提案的 capability 命名**：
+- 子提案的 capability 名（如 `adapter-interfaces`）独立于主提案的 spec 文件名（如 `01-模块注册.md`）
+- 子提案归档时，`/opsx:sync` 把子提案的 delta specs 合并到主 specs（`openspec/specs/adapter-interfaces/spec.md`）
+- 主提案 `iac-self-service-platform/specs/` 下的 22 个文件是**人类阅读的能力设计参考**（历史遗留，CLI 不解析），不代表 CLI 可识别的 delta spec
+
 ### 生命周期发起权
 
 1. **propose / apply / archive / sync 四个生命周期动作必须由维护者显式发起**。agent 不得擅自执行。
