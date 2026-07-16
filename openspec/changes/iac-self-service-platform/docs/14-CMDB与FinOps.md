@@ -28,16 +28,16 @@ apply 成功但 CMDB/FinOps/通知失败时，工单进入 `reconciling` 后可�
 ## 2. 表结构（补充 docs/04）
 
 ```
-resources(id, stack_id, bundle_id, team_id, layer, address, type,
+resources(id, stack_id, space_id, team_id, layer, address, type,
           cloud_provider, region, cloud_resource_id, name,
           tags_json, attributes_json, monthly_cost_estimate_cents, currency,
           first_seen_at, last_synced_at,
           status[active|drifted|orphan|destroyed], managed bool)
 resource_relations(id, source_resource_id, target_resource_id, relation_type)
-cost_records(id, period_month, team_id, bundle_id, stack_id, resource_id nullable,
+cost_records(id, period_month, team_id, space_id, stack_id, resource_id nullable,
              cloud_provider, service_code, amount_cents, currency,
              cost_source[bill|estimate], tags_json, recorded_at)
-cost_budgets(id, scope_type[team|bundle|stack|layer], scope_id,
+cost_budgets(id, scope_type[team|space|stack|layer], scope_id,
              period_month, budget_cents, alert_thresholds_json,
              alert_status[ok|warning|exceeded])
 finops_recommendations(id, kind[rightsize|release_orphan|reserved_instance|tag_missing],
@@ -56,8 +56,8 @@ finops_recommendations(id, kind[rightsize|release_orphan|reserved_instance|tag_m
 
 平台给所有生成的云资源强制打：
 ```
-platform-team    = <team_id>           # L4 team/bundle 层
-platform-bundle  = <bundle_id>         # L4 team/bundle 层
+platform-team    = <team_id>           # L4 team/space 层
+platform-space  = <space_id>         # L4 team/space 层
 platform-stack   = <stack_id>          # L5 stack 层（codegen 自动派生）
 platform-managed = true                # L1 platform-mandated 层（绝对，不可覆盖）
 ```
@@ -66,12 +66,12 @@ platform-managed = true                # L1 platform-mandated 层（绝对，不
 - L1 platform-mandated（永远赢，用户尝试覆盖 silently ignore + 审计）
 - L2 env（`environments.tag_namespace_json`，注入 env/cost-center）
 - L3 tenant（`tenants.tag_namespace_json`，注入 tenant/compliance）
-- L4 team/bundle（`teams.tags_json` + `bundles.tags_json`）
+- L4 team/space（`teams.tags_json` + `spaces.tags_json`）
 - L5 stack（codegen 自动派生 platform-stack）
 - L6 catalog defaults（`catalog_items.default_tags_json`）
 - L7 user form（受 `catalog_items.user_allowed_tag_keys_json` 白名单约束）
 
-- **catalog 注册校验**：模块输出必须含 L1 四 tag（platform-managed/team/bundle/stack）或声明由平台注入。
+- **catalog 注册校验**：模块输出必须含 L1 四 tag（platform-managed/team/space/stack）或声明由平台注入。
 - **codegen S9 自动注入**：codegen 在 S9 阶段合并 7 层 tag 后注入 module 调用层，L1 永远覆盖用户输入防绕过。
 - **ingester 校验**：apply 后从 state 读 tag，**校验 7 层合并后的预期 tag 与实际 tag 一致**，缺失则告警（区分 L1 缺失=critical / L2-L6 缺失=warning）。
 - **resolved_params_json.tags**：每次 codegen 写入 tags 完整层级审计（layers_applied / user_overrides_blocked / layers_merged_summary），便于追溯。
@@ -261,7 +261,7 @@ func (e *OptimizationEngine) Analyze(
 ## 6. 界面设计
 
 ### CMDB 视图
-- **资源拓扑图**：bundle → stack → 资源 → 依赖关系（可下钻到资源详情）
+- **资源拓扑图**：space → stack → 资源 → 依赖关系（可下钻到资源详情）
 - **筛选**：按团队 / 层 / 资源类型 / 云 / 区域 / 状态（active / drifted / orphan）
 - **资源详情**：归属、tags、state 关键属性（脱敏）、漂移历史、成本趋势
 

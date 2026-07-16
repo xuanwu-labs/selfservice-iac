@@ -22,8 +22,8 @@
     "owner_user_id": "usr_admin01"
   },
 
-  "bundle": {
-    "id": "bundle-infra",
+  "space": {
+    "id": "space-infra",
     "name": "Infrastructure",
     "team_id": "team-platform"
   },
@@ -101,7 +101,7 @@
       "layer": "application",
       "env": "dev",
       "team": "team-platform",
-      "bundle": "bundle-infra"
+      "space": "space-infra"
     },
     "layer_root": "application"
   },

@@ -28,7 +28,7 @@ metadata:
   name: order-service-prod-scale-up
 spec:
   catalogItem: dba/rds              # 引用服务目录项
-  bundle: team-a/orders
+  space: team-a/orders
   form:                              # 等价于表单值
     instance_type: mysql.n2.large.1c
     storage: 200
@@ -108,7 +108,7 @@ CICD 默认只在 `apply_succeeded` 继续；如遇 `reconcile_pending`，可按
 | 1 | yaml 语法（YAML parse）| 400 + `{"error":"yaml_parse","detail":"..."}` |
 | 2 | 平台 schema（apiVersion/kind/metadata.name/spec 必填）| 400 + `{"error":"schema_invalid","field":"spec.catalogItem","msg":"required"}` |
 | 3 | `spec.catalogItem` 存在 + 当前 team 可见（visibility ∋ team_id）| 403 + `{"error":"catalog_not_visible","catalog":"dba/rds"}` |
-| 4 | `spec.bundle` 归属当前 team（tenancy 校验）| 403 + `{"error":"bundle_not_owned","bundle":"team-a/orders"}` |
+| 4 | `spec.space` 归属当前 team（tenancy 校验）| 403 + `{"error":"space_not_owned","space":"team-a/orders"}` |
 | 5 | `spec.form` 字段 vs `catalog_items.form_schema_json`（类型/必填/枚举/范围）| 422 + `{"error":"form_invalid","field":"spec.form.storage","msg":"must be >= 50","expected":"number","got":"string"}` |
 | 6 | team_cloud_grants 校验（team 对该云账号+layer 有授权）| 403 + `{"error":"no_cloud_grant","cloud":"alicloud:corp-prod-1","layer":"Middleware"}` |
 | 7 | 幂等键（§3.1）| 200/409 按表 |

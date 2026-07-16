@@ -1,5 +1,5 @@
 -- 010_layers.sql: layer_logical_refs + layer_rule_set_versions + Phase 1 seed
--- + back-fill deferred FKs (bundles/catalog_items/requests reference these).
+-- + back-fill deferred FKs (spaces/catalog_items/requests reference these).
 -- design.md §03 A7. Phase 1 ships a fixed 3-layer seed (global/middleware/
 -- application) and one active rule-set version v1. D24/D26 dynamic layering
 -- machinery (CRUD, versioning, migrations) is non-MVP.
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS layer_logical_refs (
 
 -- DB-level column comments (visible in psql \d, DataGrip, DBeaver).
 COMMENT ON TABLE layer_logical_refs IS 'Stable layer reference (design.md §03 A7). Phase 1 ships a fixed 3-layer seed: global/middleware/application.';
-COMMENT ON COLUMN layer_logical_refs.logical_id IS 'Stable layer key (e.g. global/middleware/application). PK, referenced by bundles/catalog_items.';
+COMMENT ON COLUMN layer_logical_refs.logical_id IS 'Stable layer key (e.g. global/middleware/application). PK, referenced by spaces/catalog_items.';
 COMMENT ON COLUMN layer_logical_refs.current_display_name IS 'Human-friendly layer name.';
 COMMENT ON COLUMN layer_logical_refs.notes IS 'Free-form description of the layer.';
 COMMENT ON COLUMN layer_logical_refs.created_at IS 'Row creation time.';
@@ -48,8 +48,8 @@ CREATE INDEX IF NOT EXISTS ix_layer_rule_set_versions_superseded_by ON layer_rul
 -- +goose StatementBegin
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_bundles_layer_logical_id') THEN
-        ALTER TABLE bundles ADD CONSTRAINT fk_bundles_layer_logical_id
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_spaces_layer_logical_id') THEN
+        ALTER TABLE spaces ADD CONSTRAINT fk_spaces_layer_logical_id
             FOREIGN KEY (layer_logical_id) REFERENCES layer_logical_refs(logical_id) ON DELETE RESTRICT;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_catalog_items_layer_logical_id') THEN
@@ -76,7 +76,7 @@ INSERT INTO layer_rule_set_versions (version_id, layers_json, status, is_default
     '[
         {"logical_id":"global","order":1,"owning_team_pattern":"platform","path_template":"global/{{.component}}-{{.tenant}}-{{.env}}","depends_on":[]},
         {"logical_id":"middleware","order":2,"owning_team_pattern":"dba|middleware","path_template":"middleware/{{.tenant}}/{{.component}}-{{.env}}","depends_on":["global"]},
-        {"logical_id":"application","order":3,"owning_team_pattern":"business","path_template":"application/{{.tenant}}/{{.team}}/{{if .bundle}}{{.bundle}}/{{end}}{{.component}}-{{.env}}","depends_on":["global","middleware"]}
+        {"logical_id":"application","order":3,"owning_team_pattern":"business","path_template":"application/{{.tenant}}/{{.team}}/{{if .space}}{{.space}}/{{end}}{{.component}}-{{.env}}","depends_on":["global","middleware"]}
     ]'::jsonb,
     'active', TRUE, now(), 'system-seed'
 )
@@ -85,6 +85,6 @@ ON CONFLICT (version_id) DO NOTHING;
 -- +goose Down
 ALTER TABLE requests DROP CONSTRAINT IF EXISTS fk_requests_layer_rule_set_version_id;
 ALTER TABLE catalog_items DROP CONSTRAINT IF EXISTS fk_catalog_items_layer_logical_id;
-ALTER TABLE bundles DROP CONSTRAINT IF EXISTS fk_bundles_layer_logical_id;
+ALTER TABLE spaces DROP CONSTRAINT IF EXISTS fk_spaces_layer_logical_id;
 DROP TABLE IF EXISTS layer_rule_set_versions;
 DROP TABLE IF EXISTS layer_logical_refs;

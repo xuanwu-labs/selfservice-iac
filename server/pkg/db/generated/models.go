@@ -67,18 +67,6 @@ type AuditLog struct {
 	OccurredAt     pgtype.Timestamptz `json:"occurred_at"`
 }
 
-type Bundle struct {
-	ID             int64              `json:"id"`
-	Name           string             `json:"name"`
-	ProjectID      int64              `json:"project_id"`
-	LayerLogicalID *string            `json:"layer_logical_id"`
-	RepoPath       string             `json:"repo_path"`
-	TagsJson       []byte             `json:"tags_json"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt      pgtype.Timestamptz `json:"deleted_at"`
-}
-
 type CatalogItem struct {
 	ID                     int64              `json:"id"`
 	ModuleVersionID        int64              `json:"module_version_id"`
@@ -239,7 +227,7 @@ type Project struct {
 type Request struct {
 	ID                    int64              `json:"id"`
 	CatalogItemID         int64              `json:"catalog_item_id"`
-	BundleID              *int64             `json:"bundle_id"`
+	SpaceID               *int64             `json:"space_id"`
 	EnvID                 string             `json:"env_id"`
 	TenantID              string             `json:"tenant_id"`
 	TeamID                int64              `json:"team_id"`
@@ -278,9 +266,21 @@ type RequestEvent struct {
 	OccurredAt    pgtype.Timestamptz `json:"occurred_at"`
 }
 
+type Space struct {
+	ID             int64              `json:"id"`
+	Name           string             `json:"name"`
+	ProjectID      int64              `json:"project_id"`
+	LayerLogicalID *string            `json:"layer_logical_id"`
+	RepoPath       string             `json:"repo_path"`
+	TagsJson       []byte             `json:"tags_json"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt      pgtype.Timestamptz `json:"deleted_at"`
+}
+
 type Stack struct {
 	ID                    int64              `json:"id"`
-	BundleID              *int64             `json:"bundle_id"`
+	SpaceID               *int64             `json:"space_id"`
 	CatalogItemID         int64              `json:"catalog_item_id"`
 	LayerLogicalID        *string            `json:"layer_logical_id"`
 	LayerRuleSetVersionID *int32             `json:"layer_rule_set_version_id"`

@@ -1,6 +1,6 @@
 # 02-分层与 stack 模型
 
-> 对应 design.md `04 D3/D6`、spec `specs/04-分层与stack组织` 的详细展开。回应：基础网络与中间件如何与应用关联、foreach vs gen、stack/bundle 组织。
+> 对应 design.md `04 D3/D6`、spec `specs/04-分层与stack组织` 的详细展开。回应：基础网络与中间件如何与应用关联、foreach vs gen、stack/space 组织。
 
 ## 1. 三层定义与归属
 
@@ -13,7 +13,7 @@
 ### 1.1 层级归属要点（重要）
 
 - **第二层 = DBA + 中间件两个部门并列**——DBA 团队管 RDS / Redis，中间件团队管 Kafka / RabbitMQ，二者**同一层级、互不统属、各自维护自己的 stack 与 state**。平台 RBAC、审批、成本归集按部门独立路由（DBA 的工单不进中间件团队审批）。
-- **第三层 = 不同业务部门各自独立**——业务A、业务B、… 多个业务部门在同一层级，每个业务部门下有自己的项目组（bundle），**互不干扰、状态隔离、资源不可见**。
+- **第三层 = 不同业务部门各自独立**——业务A、业务B、… 多个业务部门在同一层级，每个业务部门下有自己的项目组（space），**互不干扰、状态隔离、资源不可见**。
 - **跨层单向依赖**：Global → Middleware → Application，上层 stack 通过 `terraform_remote_state` / data source 读下层 outputs（§4），**下层不反向依赖上层**。
 
 ### 1.2 stack 粒度原则：一个组件（component）一个 stack 目录
@@ -22,25 +22,25 @@
 
 | 反例（禁止） | 正例 |
 |--------------|------|
-| 一个 bundle 全塞一个 stack | bundle 下每个 component 一个 stack |
+| 一个 space 全塞一个 stack | space 下每个 component 一个 stack |
 | 同一 component 多实例拆多个 stack | 同一 stack 内多实例用 `for_each`（§5） |
 | 跨业务共用一个 Application stack | 每个业务部门各自的 component 独立 stack |
 
-例：业务部门 `team-a` 下含 3 个 component → 3 个 stack 目录（bundle 可选，见 §2）：
+例：业务部门 `team-a` 下含 3 个 component → 3 个 stack 目录（space 可选，见 §2）：
 
 ```
-# 模式 A：业务部门下直接 component（小部门/资源少，无 bundle）
+# 模式 A：业务部门下直接 component（小部门/资源少，无 space）
 application/platform-default/team-a/
 ├── ecs-prod/          # component：ECS × 5（for_each 多实例，单 stack）
 ├── slb-rules-prod/    # component：SLB 规则
 └── rds-account-prod/  # component：RDS 只读账号
 
-# 模式 B：业务部门下按 bundle 分组（大部门/多产品线）
+# 模式 B：业务部门下按 space 分组（大部门/多产品线）
 application/platform-default/team-b/
-├── orders/            # bundle：订单项目组
+├── orders/            # space：订单项目组
 │   ├── ecs-prod/
 │   └── rds-account-prod/
-└── users/             # bundle：用户项目组
+└── users/             # space：用户项目组
     └── ecs-prod/
 ```
 
@@ -48,7 +48,7 @@ application/platform-default/team-b/
 
 ## 2. 目录布局（确定性路径）
 
-> **权威 Path Contract**：本节以 `design.md` D29 为准。工作仓库采用单仓 + layer-first 拓扑；`tenant/env/team/bundle/component` 是路径和 Terramate tags 的维度，但不再保留 tenant-first 或 legacy `globals/<env>` 作为并列模板。PathGenerator 必须一次性输出 `repo_path`、`state_key`、`stack_id`、Terramate tags，四者共同构成 stack 身份契约。
+> **权威 Path Contract**：本节以 `design.md` D29 为准。工作仓库采用单仓 + layer-first 拓扑；`tenant/env/team/space/component` 是路径和 Terramate tags 的维度，但不再保留 tenant-first 或 legacy `globals/<env>` 作为并列模板。PathGenerator 必须一次性输出 `repo_path`、`state_key`、`stack_id`、Terramate tags，四者共同构成 stack 身份契约。
 
 工作仓库根目录：
 
@@ -67,28 +67,28 @@ infra-repo/
 │       ├── stack.tm.hcl
 │       └── main.tf
 └── application/
-    └── {tenant}/{team}/[bundle/]{component}-{env}/
+    └── {tenant}/{team}/[space/]{component}-{env}/
         ├── stack.tm.hcl
         └── main.tf
 ```
 
-**路径推导规则**（确定性，由元数据唯一生成；`bundle` 可选）：
+**路径推导规则**（确定性，由元数据唯一生成；`space` 可选）：
 - Global：`global/<component>-<tenant>-<env>`，如 `global/vpc-platform-default-prod`
 - Middleware：`middleware/<tenant>/<component>-<env>`，如 `middleware/platform-default/rds-orders-prod`
-- Application 无 bundle：`application/<tenant>/<team>/<component>-<env>`
-- Application 有 bundle：`application/<tenant>/<team>/<bundle>/<component>-<env>`
+- Application 无 space：`application/<tenant>/<team>/<component>-<env>`
+- Application 有 space：`application/<tenant>/<team>/<space>/<component>-<env>`
 
 state key 与 stack 路径**一一对应**，默认等于 `repo_path`。stack ID 由 PathGenerator 输出，建议格式为 `{layer}-{tenant}-{team}-{component}-{env}`，全小写、`-` 分隔、全局唯一、≤64 字符。Terramate tags 至少包含 `layer:*`、`tenant:*`、`env:*`、`team:*`；跨租户 CEN stack 使用 `cross-tenant` tag，不写单一 tenant tag。
 
-**bundle 何时用**：业务部门内资源少（< 10 个 component）可不用 bundle，直接 `<team>/<component>`；业务部门内有多个产品线/项目组（如电商业务部门下"订单""用户""支付"）建议按 bundle 分组，便于按项目组批量编排/审计/成本归集。两种路径平台都识别，元数据 `stacks.bundle_id` 为空表示无 bundle。
+**space 何时用**：业务部门内资源少（< 10 个 component）可不用 space，直接 `<team>/<component>`；业务部门内有多个产品线/项目组（如电商业务部门下"订单""用户""支付"）建议按 space 分组，便于按项目组批量编排/审计/成本归集。两种路径平台都识别，元数据 `stacks.space_id` 为空表示无 space。
 
-## 3. bundle 与 stack 映射（bundle 可选）
+## 3. space 与 stack 映射（space 可选）
 
-- **bundle**：平台层概念，= 一个业务部门内的项目组/产品线（一组相关 component 的逻辑集合）。Terramate 本身无 bundle 概念。**bundle 可选**——小业务部门直接 `<team>/<component>`，大业务部门多产品线用 `<team>/<bundle>/<component>` 分组。
-- **bundle → stacks**：一个 bundle 在工作仓库中映射到一个目录根（如 `application/platform-default/team-b/orders/`），其下每个 component 一个 stack。无 bundle 时业务部门目录就是直接的 stack 父目录。
-- **编排粒度**：支持"按 bundle 整体编排"（`terramate run` 指向 bundle 根，递归所有子 stack）、"按业务部门整体编排"（无 bundle 时指向 `<team>` 根）、或"按单 stack 操作"。
+- **space**：平台层概念，= 一个业务部门内的项目组/产品线（一组相关 component 的逻辑集合）。Terramate 本身无 space 概念。**space 可选**——小业务部门直接 `<team>/<component>`，大业务部门多产品线用 `<team>/<space>/<component>` 分组。
+- **space → stacks**：一个 space 在工作仓库中映射到一个目录根（如 `application/platform-default/team-b/orders/`），其下每个 component 一个 stack。无 space 时业务部门目录就是直接的 stack 父目录。
+- **编排粒度**：支持"按 space 整体编排"（`terramate run` 指向 space 根，递归所有子 stack）、"按业务部门整体编排"（无 space 时指向 `<team>` 根）、或"按单 stack 操作"。
 
-示例 bundle `team-b/orders`（大业务部门用 bundle）：
+示例 space `team-b/orders`（大业务部门用 space）：
 ```
 application/platform-default/team-b/orders/
 ├── ecs-prod/          # ECS × 5（for_each 多实例）
@@ -96,7 +96,7 @@ application/platform-default/team-b/orders/
 └── rds-account-prod/  # 申請到的 RDS 只读账号
 ```
 
-无 bundle 示例 `team-a`（小业务部门）：
+无 space 示例 `team-a`（小业务部门）：
 ```
 application/platform-default/team-a/
 ├── ecs-prod/
@@ -217,9 +217,9 @@ global/vpc-platform-default-prod/                    outputs: vpc_id, vswitch_id
 global/ack-platform-default-prod/                    outputs: cluster_id                   (平台运维)
 middleware/platform-default/rds-orders-prod/         outputs: rds_id, rds_conn             (DBA)
 middleware/platform-default/kafka-platform-prod/     outputs: kafka_brokers                (中间件)
-application/platform-default/team-a/ecs-prod/        读 vpc + ack outputs，部署 ECS×5     (业务A，无 bundle)
+application/platform-default/team-a/ecs-prod/        读 vpc + ack outputs，部署 ECS×5     (业务A，无 space)
 application/platform-default/team-a/rds-account-prod/读 rds_id，创建只读账号（DBA 审批）
-application/platform-default/team-b/orders/ecs-prod/ 业务B 订单线 ECS（有 bundle，与业务A 互不可见）
+application/platform-default/team-b/orders/ecs-prod/ 业务B 订单线 ECS（有 space，与业务A 互不可见）
 application/platform-default/team-b/orders/kafka-topic/读 kafka_brokers，创建 Topic（中间件审批）
 ```
 依赖图（平台元数据维护）：`ecs-prod depends-on vpc-global-prod, ack-global-prod`；`rds-account-prod depends-on rds-orders-prod`；`kafka-topic depends-on kafka-platform-prod`。编排时 Terramate 按目录执行，平台在工单层确保下层先成功。**业务A 与业务B 的 stack 互不可见**（RBAC + team_cloud_grants 双重隔离）。
@@ -247,7 +247,7 @@ layers:
   - name: application
     order: 3
     owning_team_pattern: "business-*"                # 不同业务部门（通配）
-    path_template: "application/{{.tenant}}/{{.team}}/{{if .bundle}}{{.bundle}}/{{end}}{{.component}}-{{.env}}"
+    path_template: "application/{{.tenant}}/{{.team}}/{{if .space}}{{.space}}/{{end}}{{.component}}-{{.env}}"
     depends_on: [global, middleware]
 # AI Generated End
 ```
@@ -266,7 +266,7 @@ layers:
 // AI Generated Start
 // codegen MUST 调用 PathGenerator，MUST NOT 字符串拼接
 path := PathGenerator(layer.PathTemplate, StackMetadata{
-    Env: "prod", Tenant: "platform-default", Team: "team-a", Bundle: "orders",
+    Env: "prod", Tenant: "platform-default", Team: "team-a", Space: "orders",
     Component: "ecs", Layer: "application",
 })
 // → "application/platform-default/team-a/orders/ecs-prod"
@@ -274,14 +274,14 @@ path := PathGenerator(layer.PathTemplate, StackMetadata{
 // AI Generated End
 ```
 
-模板变量：`env / team / bundle / component / layer / layer_order / custom_kv / tenant`（**tenant 由 D27 引入，默认 platform-default**）。Go text/template 语法。
+模板变量：`env / team / space / component / layer / layer_order / custom_kv / tenant`（**tenant 由 D27 引入，默认 platform-default**）。Go text/template 语法。
 
 ### 7.4 StackGranularity（stack 粒度策略）
 
 | 策略 | 含义 | 用例 |
 |------|------|------|
 | `per-component`（默认） | 一个组件一个 stack | ECS 一个 / SLB 一个 / RDS 账号一个 |
-| `per-bundle` | bundle 内合并 | 微服务全套（ECS+SLB+账号）合一个 stack |
+| `per-space` | space 内合并 | 微服务全套（ECS+SLB+账号）合一个 stack |
 | `per-team` | 业务部门内合并 | 小业务部门全部资源一个 stack |
 | `custom` | catalog 项声明 stack_grouping 规则 | 复杂场景 |
 
@@ -386,7 +386,7 @@ terraform state pull/push 跨 backend 极易出错（push 错 key 就完蛋）�
 | 场景 | Tier | 动作 | 耗时 |
 |---|---|---|---|
 | 加 security 第 4 层（不挤占已有路径） | 全 Tier 1 | v1→v2 自动 bump，已部署 stack 不动 | 分钟级 |
-| bundle 从可选变必选（path_template 改） | 全 Tier 2 | 每 stack 走 state mv，按 team 灰度 | 天级 |
+| space 从可选变必选（path_template 改） | 全 Tier 2 | 每 stack 走 state mv，按 team 灰度 | 天级 |
 | DBA + Middleware 合并（仅改 owning_team_pattern） | 全 Tier 1 | 自动 bump，无 state 操作 | 分钟级 |
 | DBA + Middleware 合并 + 改 path | Tier 2 | state mv | 天级 |
 | 删 Global 层（合并到 Middleware） | Tier 3 | 旧 stack 永久 pin，新 stack 走新版本，逐步 destroy+recreate | 月级 |
@@ -408,7 +408,7 @@ D27/D28 是 D24 PathGenerator 的下游消费者，对 §7 不破坏只扩展：
 
 - **PathGenerator 新增 `${tenant}` 变量**（默认 `platform-default`），见 §7.3 模板变量列表；path_template 由管理员自由选用（不强制带 tenant 前缀）。
 - **EnvironmentTenantBinding 是 codegen Stage 4 的查询入口**：见 docs/07 §2.3 + specs/17「EnvironmentTenantBinding 三元组」。
-- **Tag 来源 7 层**：见 docs/08 §2 + specs/18「Tag 来源 7 层」。L4 team/bundle 层 tag 由本节团队归属驱动，L5 stack 层 tag 由 PathGenerator 输出的 stack_logical_id 派生。
+- **Tag 来源 7 层**：见 docs/08 §2 + specs/18「Tag 来源 7 层」。L4 team/space 层 tag 由本节团队归属驱动，L5 stack 层 tag 由 PathGenerator 输出的 stack_logical_id 派生。
 - **9 阶段参数解析管道**：见 docs/08 §3 + specs/18。layer rule（S3）作为治理硬规则 rank 2，高于用户表单 rank 7。
 
 **核心不变量**：D27/D28 不修改 §7.1-§7.5 任何表/字段定义；PathGenerator 输入仍只接收 layer.path_template + StackMetadata；新增的 tenant/env 变量是 StackMetadata 的扩展字段，PathGenerator 算法本身不变。
@@ -443,7 +443,7 @@ catalog 项同时承载两 Generator 的配置：
 | 字段 | 给谁 | 作用 |
 |------|------|------|
 | `layer` | PathGenerator (D24) | 决定路径模板选哪个 layer |
-| `stack_grouping` | PathGenerator (D24) | 决定 stack 粒度（per-component/per-bundle/...） |
+| `stack_grouping` | PathGenerator (D24) | 决定 stack 粒度（per-component/per-space/...） |
 | `cardinality` | CardinalityInjector (D25) | 决定调用语法（single/list/map） |
 | `instance_key` | CardinalityInjector (D25) | map 模式的 key 含义（角色名/实例名） |
 | `per_instance_fields` | CardinalityInjector (D25) | 进入 map value 的字段（每实例独立） |
@@ -460,4 +460,4 @@ catalog 项同时承载两 Generator 的配置：
 
 ### 8.4 业界对照
 
-Spacelift（stack = 目录 + 内含 for_each 模块调用）/ Env0（environment = stack 概念）/ Terraform Cloud（workspace = stack）—— 都是"stack 目录 + 调用方 for_each + 模块零感知"的同构实现。本平台 D24+D25 与之同构，叠加"层可配置 + bundle 可选"的灵活性。
+Spacelift（stack = 目录 + 内含 for_each 模块调用）/ Env0（environment = stack 概念）/ Terraform Cloud（workspace = stack）—— 都是"stack 目录 + 调用方 for_each + 模块零感知"的同构实现。本平台 D24+D25 与之同构，叠加"层可配置 + space 可选"的灵活性。

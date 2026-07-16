@@ -613,17 +613,16 @@ func (Cardinality) EnumDescriptor() ([]byte, []int) {
 
 // StackGranularity is the D24 stack-grouping strategy declared on a
 // catalog item. Determines how codegen partitions instances into stacks:
-//
-//	per-component = one stack per component (default, smallest blast radius)
-//	per-bundle    = one stack per bundle (coarser, for tightly coupled sets)
-//	per-team      = one stack per team (coarsest, rarely used)
-//	custom        = path_template override (advanced, admin-only)
+//   per-component = one stack per component (default, smallest blast radius)
+//   per-space    = one stack per space (coarser, for tightly coupled sets)
+//   per-team      = one stack per team (coarsest, rarely used)
+//   custom        = path_template override (advanced, admin-only)
 type StackGranularity int32
 
 const (
 	StackGranularity_STACK_GRANULARITY_UNSPECIFIED   StackGranularity = 0
 	StackGranularity_STACK_GRANULARITY_PER_COMPONENT StackGranularity = 1
-	StackGranularity_STACK_GRANULARITY_PER_BUNDLE    StackGranularity = 2
+	StackGranularity_STACK_GRANULARITY_PER_SPACE     StackGranularity = 2
 	StackGranularity_STACK_GRANULARITY_PER_TEAM      StackGranularity = 3
 	StackGranularity_STACK_GRANULARITY_CUSTOM        StackGranularity = 4
 )
@@ -633,14 +632,14 @@ var (
 	StackGranularity_name = map[int32]string{
 		0: "STACK_GRANULARITY_UNSPECIFIED",
 		1: "STACK_GRANULARITY_PER_COMPONENT",
-		2: "STACK_GRANULARITY_PER_BUNDLE",
+		2: "STACK_GRANULARITY_PER_SPACE",
 		3: "STACK_GRANULARITY_PER_TEAM",
 		4: "STACK_GRANULARITY_CUSTOM",
 	}
 	StackGranularity_value = map[string]int32{
 		"STACK_GRANULARITY_UNSPECIFIED":   0,
 		"STACK_GRANULARITY_PER_COMPONENT": 1,
-		"STACK_GRANULARITY_PER_BUNDLE":    2,
+		"STACK_GRANULARITY_PER_SPACE":     2,
 		"STACK_GRANULARITY_PER_TEAM":      3,
 		"STACK_GRANULARITY_CUSTOM":        4,
 	}
@@ -949,12 +948,10 @@ func (ApprovalGate) EnumDescriptor() ([]byte, []int) {
 // ApprovalNodeMode is the decision semantics of an approval node, as
 // declared in the approval flow DSL (docs/12 §2.3). The engine uses mode +
 // required_count to determine if a node is satisfied:
-//
-//	any      = at least 1 approver (required_count ignored, treated as 1)
-//	all      = all assigned approvers (required_count = total assignees)
-//	majority = >50% of assignees (required_count = ceil(N/2))
-//	quorum   = at least required_count approvers (count>=N expressed as quorum+N)
-//
+//   any      = at least 1 approver (required_count ignored, treated as 1)
+//   all      = all assigned approvers (required_count = total assignees)
+//   majority = >50% of assignees (required_count = ceil(N/2))
+//   quorum   = at least required_count approvers (count>=N expressed as quorum+N)
 // Conditional routing (next_node based on outcome) is handled in the DSL,
 // not in this enum — mode is purely the decision-aggregation rule.
 type ApprovalNodeMode int32
@@ -1148,11 +1145,11 @@ const file_platform_v1_common_enum_proto_rawDesc = "" +
 	"\x17CARDINALITY_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12CARDINALITY_SINGLE\x10\x01\x12\x14\n" +
 	"\x10CARDINALITY_LIST\x10\x02\x12\x13\n" +
-	"\x0fCARDINALITY_MAP\x10\x03*\xba\x01\n" +
+	"\x0fCARDINALITY_MAP\x10\x03*\xb9\x01\n" +
 	"\x10StackGranularity\x12!\n" +
 	"\x1dSTACK_GRANULARITY_UNSPECIFIED\x10\x00\x12#\n" +
-	"\x1fSTACK_GRANULARITY_PER_COMPONENT\x10\x01\x12 \n" +
-	"\x1cSTACK_GRANULARITY_PER_BUNDLE\x10\x02\x12\x1e\n" +
+	"\x1fSTACK_GRANULARITY_PER_COMPONENT\x10\x01\x12\x1f\n" +
+	"\x1bSTACK_GRANULARITY_PER_SPACE\x10\x02\x12\x1e\n" +
 	"\x1aSTACK_GRANULARITY_PER_TEAM\x10\x03\x12\x1c\n" +
 	"\x18STACK_GRANULARITY_CUSTOM\x10\x04*\xdc\x01\n" +
 	"\x14StackMigrationStatus\x12&\n" +

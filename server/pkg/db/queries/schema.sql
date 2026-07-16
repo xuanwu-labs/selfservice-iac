@@ -13,7 +13,7 @@
 
 -- 000_utils: set_updated_at() trigger function (not needed for sqlc type gen).
 
--- Layer tables first (referenced by bundles/catalog_items/requests).
+-- Layer tables first (referenced by spaces/catalog_items/requests).
 CREATE TABLE layer_logical_refs (
     logical_id              TEXT         PRIMARY KEY,
     current_display_name    TEXT         NOT NULL DEFAULT '',
@@ -54,7 +54,7 @@ CREATE TABLE projects (
     deleted_at  TIMESTAMPTZ
 );
 
-CREATE TABLE bundles (
+CREATE TABLE spaces (
     id                BIGINT       PRIMARY KEY,
     name              TEXT         NOT NULL,
     project_id        BIGINT       NOT NULL REFERENCES projects(id) ON DELETE RESTRICT,
@@ -156,7 +156,7 @@ CREATE TABLE plan_artifacts (
 CREATE TABLE requests (
     id                          BIGINT       PRIMARY KEY,
     catalog_item_id             BIGINT       NOT NULL REFERENCES catalog_items(id) ON DELETE RESTRICT,
-    bundle_id                   BIGINT       REFERENCES bundles(id) ON DELETE RESTRICT,
+    space_id                   BIGINT       REFERENCES spaces(id) ON DELETE RESTRICT,
     env_id                      TEXT         NOT NULL,
     tenant_id                   TEXT         NOT NULL,
     team_id                     BIGINT       NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,
@@ -350,7 +350,7 @@ CREATE TABLE workspace_checkouts (
 
 CREATE TABLE stacks (
     id                            BIGINT       PRIMARY KEY,
-    bundle_id                     BIGINT       NULL REFERENCES bundles(id) ON DELETE RESTRICT,
+    space_id                     BIGINT       NULL REFERENCES spaces(id) ON DELETE RESTRICT,
     catalog_item_id               BIGINT       NOT NULL REFERENCES catalog_items(id) ON DELETE RESTRICT,
     layer_logical_id              TEXT         NULL REFERENCES layer_logical_refs(logical_id) ON DELETE RESTRICT,
     layer_rule_set_version_id     INTEGER      NULL REFERENCES layer_rule_set_versions(version_id) ON DELETE RESTRICT,

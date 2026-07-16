@@ -30,7 +30,7 @@ type LifecycleRequest struct {
 	EnvId             string                 `protobuf:"bytes,4,opt,name=env_id,json=envId,proto3" json:"env_id,omitempty"`
 	TeamId            string                 `protobuf:"bytes,5,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"`
 	TenantId          string                 `protobuf:"bytes,6,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	BundleId          string                 `protobuf:"bytes,7,opt,name=bundle_id,json=bundleId,proto3" json:"bundle_id,omitempty"`
+	SpaceId           string                 `protobuf:"bytes,7,opt,name=space_id,json=spaceId,proto3" json:"space_id,omitempty"`
 	FormValues        map[string]string      `protobuf:"bytes,8,rep,name=form_values,json=formValues,proto3" json:"form_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	FormHash          string                 `protobuf:"bytes,9,opt,name=form_hash,json=formHash,proto3" json:"form_hash,omitempty"`
 	Source            common.RequestSource   `protobuf:"varint,10,opt,name=source,proto3,enum=aether.platform.v1.common.RequestSource" json:"source,omitempty"`
@@ -129,9 +129,9 @@ func (x *LifecycleRequest) GetTenantId() string {
 	return ""
 }
 
-func (x *LifecycleRequest) GetBundleId() string {
+func (x *LifecycleRequest) GetSpaceId() string {
 	if x != nil {
-		return x.BundleId
+		return x.SpaceId
 	}
 	return ""
 }
@@ -963,7 +963,7 @@ type CreateRequestRequest struct {
 	EnvId         string                 `protobuf:"bytes,2,opt,name=env_id,json=envId,proto3" json:"env_id,omitempty"`
 	TeamId        string                 `protobuf:"bytes,3,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"`
 	TenantId      string                 `protobuf:"bytes,4,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	BundleId      string                 `protobuf:"bytes,5,opt,name=bundle_id,json=bundleId,proto3" json:"bundle_id,omitempty"`
+	SpaceId       string                 `protobuf:"bytes,5,opt,name=space_id,json=spaceId,proto3" json:"space_id,omitempty"`
 	FormValues    map[string]string      `protobuf:"bytes,6,rep,name=form_values,json=formValues,proto3" json:"form_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Source        common.RequestSource   `protobuf:"varint,7,opt,name=source,proto3,enum=aether.platform.v1.common.RequestSource" json:"source,omitempty"`
 	SourceContext map[string]string      `protobuf:"bytes,8,rep,name=source_context,json=sourceContext,proto3" json:"source_context,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -1029,9 +1029,9 @@ func (x *CreateRequestRequest) GetTenantId() string {
 	return ""
 }
 
-func (x *CreateRequestRequest) GetBundleId() string {
+func (x *CreateRequestRequest) GetSpaceId() string {
 	if x != nil {
-		return x.BundleId
+		return x.SpaceId
 	}
 	return ""
 }
@@ -2355,8 +2355,8 @@ type Stack struct {
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	StackId       string                 `protobuf:"bytes,2,opt,name=stack_id,json=stackId,proto3" json:"stack_id,omitempty"` // PathGenerator global-unique id (D29)
 	CatalogItemId string                 `protobuf:"bytes,3,opt,name=catalog_item_id,json=catalogItemId,proto3" json:"catalog_item_id,omitempty"`
-	BundleId      string                 `protobuf:"bytes,4,opt,name=bundle_id,json=bundleId,proto3" json:"bundle_id,omitempty"` // empty = no bundle
-	Layer         string                 `protobuf:"bytes,5,opt,name=layer,proto3" json:"layer,omitempty"`                       // denormalized layer slug
+	SpaceId       string                 `protobuf:"bytes,4,opt,name=space_id,json=spaceId,proto3" json:"space_id,omitempty"` // empty = no space
+	Layer         string                 `protobuf:"bytes,5,opt,name=layer,proto3" json:"layer,omitempty"`                    // denormalized layer slug
 	Component     string                 `protobuf:"bytes,6,opt,name=component,proto3" json:"component,omitempty"`
 	Env           string                 `protobuf:"bytes,7,opt,name=env,proto3" json:"env,omitempty"`
 	TenantId      string                 `protobuf:"bytes,8,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
@@ -2428,9 +2428,9 @@ func (x *Stack) GetCatalogItemId() string {
 	return ""
 }
 
-func (x *Stack) GetBundleId() string {
+func (x *Stack) GetSpaceId() string {
 	if x != nil {
-		return x.BundleId
+		return x.SpaceId
 	}
 	return ""
 }
@@ -2636,15 +2636,15 @@ var File_platform_v1_lifecycle_dto_proto protoreflect.FileDescriptor
 
 const file_platform_v1_lifecycle_dto_proto_rawDesc = "" +
 	"\n" +
-	"\x1fplatform/v1/lifecycle/dto.proto\x12\x1caether.platform.v1.lifecycle\x1a\x1cplatform/v1/common/dto.proto\x1a\x1dplatform/v1/common/enum.proto\"\x92\a\n" +
+	"\x1fplatform/v1/lifecycle/dto.proto\x12\x1caether.platform.v1.lifecycle\x1a\x1cplatform/v1/common/dto.proto\x1a\x1dplatform/v1/common/enum.proto\"\x90\a\n" +
 	"\x10LifecycleRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12@\n" +
 	"\x06status\x18\x02 \x01(\x0e2(.aether.platform.v1.common.RequestStatusR\x06status\x12&\n" +
 	"\x0fcatalog_item_id\x18\x03 \x01(\tR\rcatalogItemId\x12\x15\n" +
 	"\x06env_id\x18\x04 \x01(\tR\x05envId\x12\x17\n" +
 	"\ateam_id\x18\x05 \x01(\tR\x06teamId\x12\x1b\n" +
-	"\ttenant_id\x18\x06 \x01(\tR\btenantId\x12\x1b\n" +
-	"\tbundle_id\x18\a \x01(\tR\bbundleId\x12_\n" +
+	"\ttenant_id\x18\x06 \x01(\tR\btenantId\x12\x19\n" +
+	"\bspace_id\x18\a \x01(\tR\aspaceId\x12_\n" +
 	"\vform_values\x18\b \x03(\v2>.aether.platform.v1.lifecycle.LifecycleRequest.FormValuesEntryR\n" +
 	"formValues\x12\x1b\n" +
 	"\tform_hash\x18\t \x01(\tR\bformHash\x12@\n" +
@@ -2750,13 +2750,13 @@ const file_platform_v1_lifecycle_dto_proto_rawDesc = "" +
 	"\bdecision\x18\x02 \x01(\x0e2+.aether.platform.v1.common.ApprovalDecisionR\bdecision\x12\x18\n" +
 	"\acomment\x18\x03 \x01(\tR\acomment\x12\x1d\n" +
 	"\n" +
-	"decided_at\x18\x04 \x01(\tR\tdecidedAt\"\xbe\x04\n" +
+	"decided_at\x18\x04 \x01(\tR\tdecidedAt\"\xbc\x04\n" +
 	"\x14CreateRequestRequest\x12&\n" +
 	"\x0fcatalog_item_id\x18\x01 \x01(\tR\rcatalogItemId\x12\x15\n" +
 	"\x06env_id\x18\x02 \x01(\tR\x05envId\x12\x17\n" +
 	"\ateam_id\x18\x03 \x01(\tR\x06teamId\x12\x1b\n" +
-	"\ttenant_id\x18\x04 \x01(\tR\btenantId\x12\x1b\n" +
-	"\tbundle_id\x18\x05 \x01(\tR\bbundleId\x12c\n" +
+	"\ttenant_id\x18\x04 \x01(\tR\btenantId\x12\x19\n" +
+	"\bspace_id\x18\x05 \x01(\tR\aspaceId\x12c\n" +
 	"\vform_values\x18\x06 \x03(\v2B.aether.platform.v1.lifecycle.CreateRequestRequest.FormValuesEntryR\n" +
 	"formValues\x12@\n" +
 	"\x06source\x18\a \x01(\x0e2(.aether.platform.v1.common.RequestSourceR\x06source\x12l\n" +
@@ -2859,12 +2859,12 @@ const file_platform_v1_lifecycle_dto_proto_rawDesc = "" +
 	"\x03run\x18\x01 \x01(\v2).aether.platform.v1.lifecycle.ApprovalRunR\x03run\x12C\n" +
 	"\x05nodes\x18\x02 \x03(\v2-.aether.platform.v1.lifecycle.ApprovalNodeRunR\x05nodes\x12R\n" +
 	"\tdecisions\x18\x03 \x03(\v24.aether.platform.v1.lifecycle.ApprovalDecisionRecordR\tdecisions\x12%\n" +
-	"\x0ecorrelation_id\x18\x04 \x01(\tR\rcorrelationId\"\x8b\x05\n" +
+	"\x0ecorrelation_id\x18\x04 \x01(\tR\rcorrelationId\"\x89\x05\n" +
 	"\x05Stack\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x19\n" +
 	"\bstack_id\x18\x02 \x01(\tR\astackId\x12&\n" +
-	"\x0fcatalog_item_id\x18\x03 \x01(\tR\rcatalogItemId\x12\x1b\n" +
-	"\tbundle_id\x18\x04 \x01(\tR\bbundleId\x12\x14\n" +
+	"\x0fcatalog_item_id\x18\x03 \x01(\tR\rcatalogItemId\x12\x19\n" +
+	"\bspace_id\x18\x04 \x01(\tR\aspaceId\x12\x14\n" +
 	"\x05layer\x18\x05 \x01(\tR\x05layer\x12\x1c\n" +
 	"\tcomponent\x18\x06 \x01(\tR\tcomponent\x12\x10\n" +
 	"\x03env\x18\a \x01(\tR\x03env\x12\x1b\n" +

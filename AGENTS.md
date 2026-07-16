@@ -5,6 +5,28 @@
 ## 项目背景
 
 - **上游引擎**:`../terramate/`(开源 Terramate CLI)。平台通过 `exec` 调用 `terramate` CLI 进行编排执行(决策 D1),**不 import terramate 内部包**。
+
+## 核心术语表（vs Terramate vs 业界）
+
+本项目有 5 个核心概念，部分与 Terramate 同名但语义不同。**MUST 理解区别，不得混用**：
+
+| 我们的术语 | Terramate 对应 | 业界(Spacelift) | 是什么 |
+|-----------|---------------|-----------------|--------|
+| **module** | — | module | 注册表里的原子层 Terraform 模块（terraform-alicloud-modules/atomic/rds）|
+| **component** | component | — | stack 里实际部署的模块实例（stacks.component="rds"）。**1 stack = 1 component**（平台化防爆炸设计，D6+D25）|
+| **stack** | stack | stack | 部署单元 = 1 目录 + 1 独立 state + 1 审批 + 1 回滚。Terramate 原生概念，我们对齐 |
+| **space** | ~~bundle~~（不同语义！） | space | 路径分组（项目组/产品线的命名空间）。**Terramate 的 bundle 是组合模板（我们叫 blueprint），和我们的 space 完全不同**。原名 bundle，2026-07-16 改名 space 避免混淆 |
+| **blueprint** | bundle (Catalyst) | blueprint | 组合模板（一次申请多个 atomic module + 参数映射 → codegen 展开成 N 个独立 stack）。非 MVP（B2 设计定稿）|
+
+**关键关系**：
+- `space`（路径分组，无 state）──1:N──→ `stack`（有独立 state）──1:1──→ `component`（模块实例）
+- `blueprint`（组合模板）──展开──→ N 个 `stack`（每 stack 独立 state，不共享）
+- **1 stack = 1 component 是有意识的设计**（防爆炸：独立 state + 独立审批 + 独立回滚），不是 Terramate 的限制（Terramate 支持 1:N，但我们选 1:1）
+
+**命名规则**：
+- 表名用复数：`spaces`、`stacks`、`modules`
+- FK 字段：`space_id`（不是 `bundle_id`）
+- PathGenerator 模板变量：`{{.space}}`（不是 `{{.bundle}}`）
 - **方法论**:OpenSpec v1.5.0(`schema: spec-driven`),所有变更走 `openspec/changes/<change>/` 流程。
 - **当前 change**:
   - `openspec/changes/iac-self-service-platform/`(主设计:决策 D1–D30,22 份能力规格,23 份设计文档,6 份架构评审)
