@@ -48,9 +48,13 @@ type LifecycleRequest struct {
 	// current_stage: human-readable pipeline stage within the current
 	// status (e.g. "codegen", "plan", "apply"). Coarse-grained UI hint;
 	// the authoritative state is `status` + `version` (docs/00 GetRequest).
-	CurrentStage  string `protobuf:"bytes,20,opt,name=current_stage,json=currentStage,proto3" json:"current_stage,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	CurrentStage string `protobuf:"bytes,20,opt,name=current_stage,json=currentStage,proto3" json:"current_stage,omitempty"`
+	// resolved_params_json: D28 provenance audit. Each resolved variable
+	// carries {value, source, rank, overridden_from, user_attempted_override}.
+	// Approvers need this to understand "where did this vpc_id come from".
+	ResolvedParamsJson string `protobuf:"bytes,21,opt,name=resolved_params_json,json=resolvedParamsJson,proto3" json:"resolved_params_json,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *LifecycleRequest) Reset() {
@@ -223,6 +227,13 @@ func (x *LifecycleRequest) GetCurrentStage() string {
 	return ""
 }
 
+func (x *LifecycleRequest) GetResolvedParamsJson() string {
+	if x != nil {
+		return x.ResolvedParamsJson
+	}
+	return ""
+}
+
 type LifecycleEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -231,6 +242,13 @@ type LifecycleEvent struct {
 	Actor         *common.Actor          `protobuf:"bytes,4,opt,name=actor,proto3" json:"actor,omitempty"`
 	OccurredAt    string                 `protobuf:"bytes,5,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
 	CorrelationId string                 `protobuf:"bytes,6,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	// State-transition trajectory (docs/00 §3 events endpoint semantics).
+	// from_status/to_status form the state-machine arc; stage + message
+	// give human-readable context for the frontend timeline view.
+	FromStatus    string `protobuf:"bytes,7,opt,name=from_status,json=fromStatus,proto3" json:"from_status,omitempty"`
+	ToStatus      string `protobuf:"bytes,8,opt,name=to_status,json=toStatus,proto3" json:"to_status,omitempty"`
+	Stage         string `protobuf:"bytes,9,opt,name=stage,proto3" json:"stage,omitempty"`
+	Message       string `protobuf:"bytes,10,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -307,6 +325,34 @@ func (x *LifecycleEvent) GetCorrelationId() string {
 	return ""
 }
 
+func (x *LifecycleEvent) GetFromStatus() string {
+	if x != nil {
+		return x.FromStatus
+	}
+	return ""
+}
+
+func (x *LifecycleEvent) GetToStatus() string {
+	if x != nil {
+		return x.ToStatus
+	}
+	return ""
+}
+
+func (x *LifecycleEvent) GetStage() string {
+	if x != nil {
+		return x.Stage
+	}
+	return ""
+}
+
+func (x *LifecycleEvent) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 type PlanArtifact struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -318,8 +364,20 @@ type PlanArtifact struct {
 	StorageUri        string                 `protobuf:"bytes,7,opt,name=storage_uri,json=storageUri,proto3" json:"storage_uri,omitempty"`
 	ExpiresAt         string                 `protobuf:"bytes,8,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	CreatedAt         string                 `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// D21 plan/apply decoupling version-consistency fields (docs/00 §4.4,
+	// docs/09 §5.2, docs/12 invariant 0). Apply sandbox MUST verify these
+	// match the plan-time values before executing — prevents stale/tampered
+	// plan application.
+	Sha256               string `protobuf:"bytes,10,opt,name=sha256,proto3" json:"sha256,omitempty"`                                                           // plan binary hash (tamper check)
+	PinnedCommit         string `protobuf:"bytes,11,opt,name=pinned_commit,json=pinnedCommit,proto3" json:"pinned_commit,omitempty"`                           // apply must checkout same commit
+	ToolchainProfileHash string `protobuf:"bytes,12,opt,name=toolchain_profile_hash,json=toolchainProfileHash,proto3" json:"toolchain_profile_hash,omitempty"` // apply TF profile must match
+	ProviderLockHash     string `protobuf:"bytes,13,opt,name=provider_lock_hash,json=providerLockHash,proto3" json:"provider_lock_hash,omitempty"`             // apply .terraform.lock.hcl must match
+	TfVersionSha256      string `protobuf:"bytes,14,opt,name=tf_version_sha256,json=tfVersionSha256,proto3" json:"tf_version_sha256,omitempty"`                // apply terraform binary must match
+	StackId              string `protobuf:"bytes,15,opt,name=stack_id,json=stackId,proto3" json:"stack_id,omitempty"`                                          // PathGenerator output (docs/09 §5.2)
+	StateKey             string `protobuf:"bytes,16,opt,name=state_key,json=stateKey,proto3" json:"state_key,omitempty"`                                       // PathGenerator output
+	SizeBytes            int64  `protobuf:"varint,17,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`                                   // plan file size
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *PlanArtifact) Reset() {
@@ -413,6 +471,62 @@ func (x *PlanArtifact) GetCreatedAt() string {
 		return x.CreatedAt
 	}
 	return ""
+}
+
+func (x *PlanArtifact) GetSha256() string {
+	if x != nil {
+		return x.Sha256
+	}
+	return ""
+}
+
+func (x *PlanArtifact) GetPinnedCommit() string {
+	if x != nil {
+		return x.PinnedCommit
+	}
+	return ""
+}
+
+func (x *PlanArtifact) GetToolchainProfileHash() string {
+	if x != nil {
+		return x.ToolchainProfileHash
+	}
+	return ""
+}
+
+func (x *PlanArtifact) GetProviderLockHash() string {
+	if x != nil {
+		return x.ProviderLockHash
+	}
+	return ""
+}
+
+func (x *PlanArtifact) GetTfVersionSha256() string {
+	if x != nil {
+		return x.TfVersionSha256
+	}
+	return ""
+}
+
+func (x *PlanArtifact) GetStackId() string {
+	if x != nil {
+		return x.StackId
+	}
+	return ""
+}
+
+func (x *PlanArtifact) GetStateKey() string {
+	if x != nil {
+		return x.StateKey
+	}
+	return ""
+}
+
+func (x *PlanArtifact) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
 }
 
 type PlanSummary struct {
@@ -570,7 +684,11 @@ type ApprovalRun struct {
 	FinishedAt  string `protobuf:"bytes,9,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
 	// expires_at: when the run (or its current node) times out and
 	// escalates / auto-rejects (docs/12 §2.3 on_timeout).
-	ExpiresAt     string `protobuf:"bytes,10,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	ExpiresAt string `protobuf:"bytes,10,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	// version: optimistic lock for DecideApproval (CONC-003, docs/12a §5).
+	// Client must pass expected_run_version = current version; server
+	// rejects if stale (concurrent decision already advanced the version).
+	Version       int32 `protobuf:"varint,11,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -673,6 +791,13 @@ func (x *ApprovalRun) GetExpiresAt() string {
 		return x.ExpiresAt
 	}
 	return ""
+}
+
+func (x *ApprovalRun) GetVersion() int32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
 }
 
 // ApprovalNodeRun is the runtime state of one node within an approval
@@ -2229,7 +2354,7 @@ var File_platform_v1_lifecycle_dto_proto protoreflect.FileDescriptor
 
 const file_platform_v1_lifecycle_dto_proto_rawDesc = "" +
 	"\n" +
-	"\x1fplatform/v1/lifecycle/dto.proto\x12\x1caether.platform.v1.lifecycle\x1a\x1cplatform/v1/common/dto.proto\x1a\x1dplatform/v1/common/enum.proto\"\xe0\x06\n" +
+	"\x1fplatform/v1/lifecycle/dto.proto\x12\x1caether.platform.v1.lifecycle\x1a\x1cplatform/v1/common/dto.proto\x1a\x1dplatform/v1/common/enum.proto\"\x92\a\n" +
 	"\x10LifecycleRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12@\n" +
 	"\x06status\x18\x02 \x01(\x0e2(.aether.platform.v1.common.RequestStatusR\x06status\x12&\n" +
@@ -2254,10 +2379,11 @@ const file_platform_v1_lifecycle_dto_proto_rawDesc = "" +
 	"\aversion\x18\x11 \x01(\x05R\aversion\x12%\n" +
 	"\x0ecorrelation_id\x18\x12 \x01(\tR\rcorrelationId\x12!\n" +
 	"\frequester_id\x18\x13 \x01(\tR\vrequesterId\x12#\n" +
-	"\rcurrent_stage\x18\x14 \x01(\tR\fcurrentStage\x1a=\n" +
+	"\rcurrent_stage\x18\x14 \x01(\tR\fcurrentStage\x120\n" +
+	"\x14resolved_params_json\x18\x15 \x01(\tR\x12resolvedParamsJson\x1a=\n" +
 	"\x0fFormValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xde\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xcc\x02\n" +
 	"\x0eLifecycleEvent\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -2267,7 +2393,13 @@ const file_platform_v1_lifecycle_dto_proto_rawDesc = "" +
 	"\x05actor\x18\x04 \x01(\v2 .aether.platform.v1.common.ActorR\x05actor\x12\x1f\n" +
 	"\voccurred_at\x18\x05 \x01(\tR\n" +
 	"occurredAt\x12%\n" +
-	"\x0ecorrelation_id\x18\x06 \x01(\tR\rcorrelationId\"\xf1\x02\n" +
+	"\x0ecorrelation_id\x18\x06 \x01(\tR\rcorrelationId\x12\x1f\n" +
+	"\vfrom_status\x18\a \x01(\tR\n" +
+	"fromStatus\x12\x1b\n" +
+	"\tto_status\x18\b \x01(\tR\btoStatus\x12\x14\n" +
+	"\x05stage\x18\t \x01(\tR\x05stage\x12\x18\n" +
+	"\amessage\x18\n" +
+	" \x01(\tR\amessage\"\x95\x05\n" +
 	"\fPlanArtifact\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -2281,7 +2413,17 @@ const file_platform_v1_lifecycle_dto_proto_rawDesc = "" +
 	"\n" +
 	"expires_at\x18\b \x01(\tR\texpiresAt\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\t \x01(\tR\tcreatedAt\"\x99\x01\n" +
+	"created_at\x18\t \x01(\tR\tcreatedAt\x12\x16\n" +
+	"\x06sha256\x18\n" +
+	" \x01(\tR\x06sha256\x12#\n" +
+	"\rpinned_commit\x18\v \x01(\tR\fpinnedCommit\x124\n" +
+	"\x16toolchain_profile_hash\x18\f \x01(\tR\x14toolchainProfileHash\x12,\n" +
+	"\x12provider_lock_hash\x18\r \x01(\tR\x10providerLockHash\x12*\n" +
+	"\x11tf_version_sha256\x18\x0e \x01(\tR\x0ftfVersionSha256\x12\x19\n" +
+	"\bstack_id\x18\x0f \x01(\tR\astackId\x12\x1b\n" +
+	"\tstate_key\x18\x10 \x01(\tR\bstateKey\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x11 \x01(\x03R\tsizeBytes\"\x99\x01\n" +
 	"\vPlanSummary\x12(\n" +
 	"\x10resources_to_add\x18\x01 \x01(\x05R\x0eresourcesToAdd\x12.\n" +
 	"\x13resources_to_change\x18\x02 \x01(\x05R\x11resourcesToChange\x120\n" +
@@ -2292,7 +2434,7 @@ const file_platform_v1_lifecycle_dto_proto_rawDesc = "" +
 	"\x06passed\x18\x02 \x01(\bR\x06passed\x12\x16\n" +
 	"\x06policy\x18\x03 \x01(\tR\x06policy\x12\x18\n" +
 	"\amessage\x18\x04 \x01(\tR\amessage\x12C\n" +
-	"\bseverity\x18\x05 \x01(\x0e2'.aether.platform.v1.common.GateSeverityR\bseverity\"\x86\x03\n" +
+	"\bseverity\x18\x05 \x01(\x0e2'.aether.platform.v1.common.GateSeverityR\bseverity\"\xa0\x03\n" +
 	"\vApprovalRun\x12\x15\n" +
 	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12D\n" +
 	"\x06status\x18\x02 \x01(\x0e2,.aether.platform.v1.common.ApprovalRunStatusR\x06status\x12\x1d\n" +
@@ -2310,7 +2452,8 @@ const file_platform_v1_lifecycle_dto_proto_rawDesc = "" +
 	"finishedAt\x12\x1d\n" +
 	"\n" +
 	"expires_at\x18\n" +
-	" \x01(\tR\texpiresAt\"\x9d\x02\n" +
+	" \x01(\tR\texpiresAt\x12\x18\n" +
+	"\aversion\x18\v \x01(\x05R\aversion\"\x9d\x02\n" +
 	"\x0fApprovalNodeRun\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12?\n" +
 	"\x04mode\x18\x02 \x01(\x0e2+.aether.platform.v1.common.ApprovalNodeModeR\x04mode\x12#\n" +

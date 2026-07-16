@@ -40,6 +40,10 @@ message LifecycleRequest {
   // status (e.g. "codegen", "plan", "apply"). Coarse-grained UI hint;
   // the authoritative state is `status` + `version` (docs/00 GetRequest).
   string current_stage = 20;
+  // resolved_params_json: D28 provenance audit. Each resolved variable
+  // carries {value, source, rank, overridden_from, user_attempted_override}.
+  // Approvers need this to understand "where did this vpc_id come from".
+  string resolved_params_json = 21;
 }
 
 message LifecycleEvent {
@@ -49,6 +53,13 @@ message LifecycleEvent {
   aether.platform.v1.common.Actor actor = 4;
   string occurred_at = 5;
   string correlation_id = 6;
+  // State-transition trajectory (docs/00 §3 events endpoint semantics).
+  // from_status/to_status form the state-machine arc; stage + message
+  // give human-readable context for the frontend timeline view.
+  string from_status = 7;
+  string to_status = 8;
+  string stage = 9;
+  string message = 10;
 }
 
 message PlanArtifact {
@@ -61,6 +72,18 @@ message PlanArtifact {
   string storage_uri = 7;
   string expires_at = 8;
   string created_at = 9;
+  // D21 plan/apply decoupling version-consistency fields (docs/00 §4.4,
+  // docs/09 §5.2, docs/12 invariant 0). Apply sandbox MUST verify these
+  // match the plan-time values before executing — prevents stale/tampered
+  // plan application.
+  string sha256 = 10;                    // plan binary hash (tamper check)
+  string pinned_commit = 11;             // apply must checkout same commit
+  string toolchain_profile_hash = 12;    // apply TF profile must match
+  string provider_lock_hash = 13;        // apply .terraform.lock.hcl must match
+  string tf_version_sha256 = 14;         // apply terraform binary must match
+  string stack_id = 15;                  // PathGenerator output (docs/09 §5.2)
+  string state_key = 16;                 // PathGenerator output
+  int64 size_bytes = 17;                 // plan file size
 }
 
 message PlanSummary {
@@ -96,6 +119,10 @@ message ApprovalRun {
   // expires_at: when the run (or its current node) times out and
   // escalates / auto-rejects (docs/12 §2.3 on_timeout).
   string expires_at = 10;
+  // version: optimistic lock for DecideApproval (CONC-003, docs/12a §5).
+  // Client must pass expected_run_version = current version; server
+  // rejects if stale (concurrent decision already advanced the version).
+  int32 version = 11;
 }
 
 // ApprovalNodeRun is the runtime state of one node within an approval

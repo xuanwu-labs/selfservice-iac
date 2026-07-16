@@ -93,6 +93,12 @@ const (
 	RequestStatus_REQUEST_STATUS_FAILED_TERMINAL   RequestStatus = 14
 	RequestStatus_REQUEST_STATUS_WAITING_MANUAL    RequestStatus = 15
 	RequestStatus_REQUEST_STATUS_RECONCILE_PENDING RequestStatus = 16
+	// Health/policy blocked states (doc 12a RLC-111/112/115, Phase 1 acceptance).
+	// External-system-caused blocks that auto-resume on recovery (unlike
+	// waiting_manual which needs human action).
+	RequestStatus_REQUEST_STATUS_BLOCKED_POLICY       RequestStatus = 17
+	RequestStatus_REQUEST_STATUS_BLOCKED_STATE_HEALTH RequestStatus = 18
+	RequestStatus_REQUEST_STATUS_PAUSED_DRIFT         RequestStatus = 19
 )
 
 // Enum value maps for RequestStatus.
@@ -115,25 +121,31 @@ var (
 		14: "REQUEST_STATUS_FAILED_TERMINAL",
 		15: "REQUEST_STATUS_WAITING_MANUAL",
 		16: "REQUEST_STATUS_RECONCILE_PENDING",
+		17: "REQUEST_STATUS_BLOCKED_POLICY",
+		18: "REQUEST_STATUS_BLOCKED_STATE_HEALTH",
+		19: "REQUEST_STATUS_PAUSED_DRIFT",
 	}
 	RequestStatus_value = map[string]int32{
-		"REQUEST_STATUS_UNSPECIFIED":       0,
-		"REQUEST_STATUS_SUBMITTED":         1,
-		"REQUEST_STATUS_GENERATING":        2,
-		"REQUEST_STATUS_PENDING_ADMISSION": 3,
-		"REQUEST_STATUS_PLANNING":          4,
-		"REQUEST_STATUS_PLAN_READY":        5,
-		"REQUEST_STATUS_PENDING_APPROVAL":  6,
-		"REQUEST_STATUS_APPLYING":          7,
-		"REQUEST_STATUS_RECONCILING":       8,
-		"REQUEST_STATUS_SUCCEEDED":         9,
-		"REQUEST_STATUS_REJECTED":          10,
-		"REQUEST_STATUS_CANCELLED":         11,
-		"REQUEST_STATUS_EXPIRED":           12,
-		"REQUEST_STATUS_FAILED_RETRYABLE":  13,
-		"REQUEST_STATUS_FAILED_TERMINAL":   14,
-		"REQUEST_STATUS_WAITING_MANUAL":    15,
-		"REQUEST_STATUS_RECONCILE_PENDING": 16,
+		"REQUEST_STATUS_UNSPECIFIED":          0,
+		"REQUEST_STATUS_SUBMITTED":            1,
+		"REQUEST_STATUS_GENERATING":           2,
+		"REQUEST_STATUS_PENDING_ADMISSION":    3,
+		"REQUEST_STATUS_PLANNING":             4,
+		"REQUEST_STATUS_PLAN_READY":           5,
+		"REQUEST_STATUS_PENDING_APPROVAL":     6,
+		"REQUEST_STATUS_APPLYING":             7,
+		"REQUEST_STATUS_RECONCILING":          8,
+		"REQUEST_STATUS_SUCCEEDED":            9,
+		"REQUEST_STATUS_REJECTED":             10,
+		"REQUEST_STATUS_CANCELLED":            11,
+		"REQUEST_STATUS_EXPIRED":              12,
+		"REQUEST_STATUS_FAILED_RETRYABLE":     13,
+		"REQUEST_STATUS_FAILED_TERMINAL":      14,
+		"REQUEST_STATUS_WAITING_MANUAL":       15,
+		"REQUEST_STATUS_RECONCILE_PENDING":    16,
+		"REQUEST_STATUS_BLOCKED_POLICY":       17,
+		"REQUEST_STATUS_BLOCKED_STATE_HEALTH": 18,
+		"REQUEST_STATUS_PAUSED_DRIFT":         19,
 	}
 )
 
@@ -333,6 +345,9 @@ const (
 	ArtifactStatus_ARTIFACT_STATUS_READY       ArtifactStatus = 1
 	ArtifactStatus_ARTIFACT_STATUS_EXPIRED     ArtifactStatus = 2
 	ArtifactStatus_ARTIFACT_STATUS_CONSUMED    ArtifactStatus = 3
+	// Plan was superseded by a newer plan (drift guard re-plan, or approval
+	// reject followed by re-plan). Kept for audit, not applyable (doc 12 §3.5).
+	ArtifactStatus_ARTIFACT_STATUS_SUPERSEDED ArtifactStatus = 4
 )
 
 // Enum value maps for ArtifactStatus.
@@ -342,12 +357,14 @@ var (
 		1: "ARTIFACT_STATUS_READY",
 		2: "ARTIFACT_STATUS_EXPIRED",
 		3: "ARTIFACT_STATUS_CONSUMED",
+		4: "ARTIFACT_STATUS_SUPERSEDED",
 	}
 	ArtifactStatus_value = map[string]int32{
 		"ARTIFACT_STATUS_UNSPECIFIED": 0,
 		"ARTIFACT_STATUS_READY":       1,
 		"ARTIFACT_STATUS_EXPIRED":     2,
 		"ARTIFACT_STATUS_CONSUMED":    3,
+		"ARTIFACT_STATUS_SUPERSEDED":  4,
 	}
 )
 
@@ -486,21 +503,32 @@ type CatalogItemStatus int32
 
 const (
 	CatalogItemStatus_CATALOG_ITEM_STATUS_UNSPECIFIED CatalogItemStatus = 0
-	CatalogItemStatus_CATALOG_ITEM_STATUS_ACTIVE      CatalogItemStatus = 1
-	CatalogItemStatus_CATALOG_ITEM_STATUS_DEPRECATED  CatalogItemStatus = 2
+	// Lifecycle: draft → active → deprecated → archived (doc 19 §1).
+	// blocked = security/compliance/toolchain issue (doc 19 §1).
+	CatalogItemStatus_CATALOG_ITEM_STATUS_DRAFT      CatalogItemStatus = 1
+	CatalogItemStatus_CATALOG_ITEM_STATUS_ACTIVE     CatalogItemStatus = 2
+	CatalogItemStatus_CATALOG_ITEM_STATUS_DEPRECATED CatalogItemStatus = 3
+	CatalogItemStatus_CATALOG_ITEM_STATUS_ARCHIVED   CatalogItemStatus = 4
+	CatalogItemStatus_CATALOG_ITEM_STATUS_BLOCKED    CatalogItemStatus = 5
 )
 
 // Enum value maps for CatalogItemStatus.
 var (
 	CatalogItemStatus_name = map[int32]string{
 		0: "CATALOG_ITEM_STATUS_UNSPECIFIED",
-		1: "CATALOG_ITEM_STATUS_ACTIVE",
-		2: "CATALOG_ITEM_STATUS_DEPRECATED",
+		1: "CATALOG_ITEM_STATUS_DRAFT",
+		2: "CATALOG_ITEM_STATUS_ACTIVE",
+		3: "CATALOG_ITEM_STATUS_DEPRECATED",
+		4: "CATALOG_ITEM_STATUS_ARCHIVED",
+		5: "CATALOG_ITEM_STATUS_BLOCKED",
 	}
 	CatalogItemStatus_value = map[string]int32{
 		"CATALOG_ITEM_STATUS_UNSPECIFIED": 0,
-		"CATALOG_ITEM_STATUS_ACTIVE":      1,
-		"CATALOG_ITEM_STATUS_DEPRECATED":  2,
+		"CATALOG_ITEM_STATUS_DRAFT":       1,
+		"CATALOG_ITEM_STATUS_ACTIVE":      2,
+		"CATALOG_ITEM_STATUS_DEPRECATED":  3,
+		"CATALOG_ITEM_STATUS_ARCHIVED":    4,
+		"CATALOG_ITEM_STATUS_BLOCKED":     5,
 	}
 )
 
@@ -696,6 +724,9 @@ const (
 	ApprovalGate_APPROVAL_GATE_UNSPECIFIED ApprovalGate = 0
 	ApprovalGate_APPROVAL_GATE_PRE_PLAN    ApprovalGate = 1
 	ApprovalGate_APPROVAL_GATE_PRE_APPLY   ApprovalGate = 2
+	// Retroactive approval for break-glass runs (D30). Marks a run created
+	// after an emergency apply to satisfy the 24h retroactive-approval window.
+	ApprovalGate_APPROVAL_GATE_BREAK_GLASS_RETROACTIVE ApprovalGate = 3
 )
 
 // Enum value maps for ApprovalGate.
@@ -704,11 +735,13 @@ var (
 		0: "APPROVAL_GATE_UNSPECIFIED",
 		1: "APPROVAL_GATE_PRE_PLAN",
 		2: "APPROVAL_GATE_PRE_APPLY",
+		3: "APPROVAL_GATE_BREAK_GLASS_RETROACTIVE",
 	}
 	ApprovalGate_value = map[string]int32{
-		"APPROVAL_GATE_UNSPECIFIED": 0,
-		"APPROVAL_GATE_PRE_PLAN":    1,
-		"APPROVAL_GATE_PRE_APPLY":   2,
+		"APPROVAL_GATE_UNSPECIFIED":             0,
+		"APPROVAL_GATE_PRE_PLAN":                1,
+		"APPROVAL_GATE_PRE_APPLY":               2,
+		"APPROVAL_GATE_BREAK_GLASS_RETROACTIVE": 3,
 	}
 )
 
@@ -739,30 +772,42 @@ func (ApprovalGate) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{12}
 }
 
-// ApprovalNodeMode is the countersign mode of an approval node, as
-// declared in the approval flow DSL (docs/12 §2.3).
+// ApprovalNodeMode is the decision semantics of an approval node, as
+// declared in the approval flow DSL (docs/12 §2.3). The engine uses mode +
+// required_count to determine if a node is satisfied:
+//
+//	any      = at least 1 approver (required_count ignored, treated as 1)
+//	all      = all assigned approvers (required_count = total assignees)
+//	majority = >50% of assignees (required_count = ceil(N/2))
+//	quorum   = at least required_count approvers (count>=N expressed as quorum+N)
+//
+// Conditional routing (next_node based on outcome) is handled in the DSL,
+// not in this enum — mode is purely the decision-aggregation rule.
 type ApprovalNodeMode int32
 
 const (
 	ApprovalNodeMode_APPROVAL_NODE_MODE_UNSPECIFIED ApprovalNodeMode = 0
-	ApprovalNodeMode_APPROVAL_NODE_MODE_SINGLE      ApprovalNodeMode = 1
-	ApprovalNodeMode_APPROVAL_NODE_MODE_COUNTERSIGN ApprovalNodeMode = 2
-	ApprovalNodeMode_APPROVAL_NODE_MODE_CONDITIONAL ApprovalNodeMode = 3
+	ApprovalNodeMode_APPROVAL_NODE_MODE_ANY         ApprovalNodeMode = 1
+	ApprovalNodeMode_APPROVAL_NODE_MODE_ALL         ApprovalNodeMode = 2
+	ApprovalNodeMode_APPROVAL_NODE_MODE_MAJORITY    ApprovalNodeMode = 3
+	ApprovalNodeMode_APPROVAL_NODE_MODE_QUORUM      ApprovalNodeMode = 4
 )
 
 // Enum value maps for ApprovalNodeMode.
 var (
 	ApprovalNodeMode_name = map[int32]string{
 		0: "APPROVAL_NODE_MODE_UNSPECIFIED",
-		1: "APPROVAL_NODE_MODE_SINGLE",
-		2: "APPROVAL_NODE_MODE_COUNTERSIGN",
-		3: "APPROVAL_NODE_MODE_CONDITIONAL",
+		1: "APPROVAL_NODE_MODE_ANY",
+		2: "APPROVAL_NODE_MODE_ALL",
+		3: "APPROVAL_NODE_MODE_MAJORITY",
+		4: "APPROVAL_NODE_MODE_QUORUM",
 	}
 	ApprovalNodeMode_value = map[string]int32{
 		"APPROVAL_NODE_MODE_UNSPECIFIED": 0,
-		"APPROVAL_NODE_MODE_SINGLE":      1,
-		"APPROVAL_NODE_MODE_COUNTERSIGN": 2,
-		"APPROVAL_NODE_MODE_CONDITIONAL": 3,
+		"APPROVAL_NODE_MODE_ANY":         1,
+		"APPROVAL_NODE_MODE_ALL":         2,
+		"APPROVAL_NODE_MODE_MAJORITY":    3,
+		"APPROVAL_NODE_MODE_QUORUM":      4,
 	}
 )
 
@@ -862,7 +907,7 @@ const file_platform_v1_common_enum_proto_rawDesc = "" +
 	"\x16ACTOR_TYPE_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10ACTOR_TYPE_HUMAN\x10\x01\x12\x11\n" +
 	"\rACTOR_TYPE_AI\x10\x02\x12\x15\n" +
-	"\x11ACTOR_TYPE_SYSTEM\x10\x03*\xb7\x04\n" +
+	"\x11ACTOR_TYPE_SYSTEM\x10\x03*\xa4\x05\n" +
 	"\rRequestStatus\x12\x1e\n" +
 	"\x1aREQUEST_STATUS_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18REQUEST_STATUS_SUBMITTED\x10\x01\x12\x1d\n" +
@@ -881,7 +926,10 @@ const file_platform_v1_common_enum_proto_rawDesc = "" +
 	"\x1fREQUEST_STATUS_FAILED_RETRYABLE\x10\r\x12\"\n" +
 	"\x1eREQUEST_STATUS_FAILED_TERMINAL\x10\x0e\x12!\n" +
 	"\x1dREQUEST_STATUS_WAITING_MANUAL\x10\x0f\x12$\n" +
-	" REQUEST_STATUS_RECONCILE_PENDING\x10\x10*\xab\x01\n" +
+	" REQUEST_STATUS_RECONCILE_PENDING\x10\x10\x12!\n" +
+	"\x1dREQUEST_STATUS_BLOCKED_POLICY\x10\x11\x12'\n" +
+	"#REQUEST_STATUS_BLOCKED_STATE_HEALTH\x10\x12\x12\x1f\n" +
+	"\x1bREQUEST_STATUS_PAUSED_DRIFT\x10\x13*\xab\x01\n" +
 	"\rRequestSource\x12\x1e\n" +
 	"\x1aREQUEST_SOURCE_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12REQUEST_SOURCE_WEB\x10\x01\x12\x16\n" +
@@ -898,12 +946,13 @@ const file_platform_v1_common_enum_proto_rawDesc = "" +
 	"\x1bAPPROVAL_RUN_STATUS_PENDING\x10\x01\x12 \n" +
 	"\x1cAPPROVAL_RUN_STATUS_APPROVED\x10\x02\x12 \n" +
 	"\x1cAPPROVAL_RUN_STATUS_REJECTED\x10\x03\x12\x1f\n" +
-	"\x1bAPPROVAL_RUN_STATUS_EXPIRED\x10\x04*\x87\x01\n" +
+	"\x1bAPPROVAL_RUN_STATUS_EXPIRED\x10\x04*\xa7\x01\n" +
 	"\x0eArtifactStatus\x12\x1f\n" +
 	"\x1bARTIFACT_STATUS_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15ARTIFACT_STATUS_READY\x10\x01\x12\x1b\n" +
 	"\x17ARTIFACT_STATUS_EXPIRED\x10\x02\x12\x1c\n" +
-	"\x18ARTIFACT_STATUS_CONSUMED\x10\x03*a\n" +
+	"\x18ARTIFACT_STATUS_CONSUMED\x10\x03\x12\x1e\n" +
+	"\x1aARTIFACT_STATUS_SUPERSEDED\x10\x04*a\n" +
 	"\fGateSeverity\x12\x1d\n" +
 	"\x19GATE_SEVERITY_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13GATE_SEVERITY_ERROR\x10\x01\x12\x19\n" +
@@ -913,11 +962,14 @@ const file_platform_v1_common_enum_proto_rawDesc = "" +
 	" MODULE_STATUS_PENDING_VALIDATION\x10\x01\x12\x1b\n" +
 	"\x17MODULE_STATUS_VALIDATED\x10\x02\x12#\n" +
 	"\x1fMODULE_STATUS_VALIDATION_FAILED\x10\x03\x12\x1c\n" +
-	"\x18MODULE_STATUS_DEPRECATED\x10\x04*|\n" +
+	"\x18MODULE_STATUS_DEPRECATED\x10\x04*\xde\x01\n" +
 	"\x11CatalogItemStatus\x12#\n" +
-	"\x1fCATALOG_ITEM_STATUS_UNSPECIFIED\x10\x00\x12\x1e\n" +
-	"\x1aCATALOG_ITEM_STATUS_ACTIVE\x10\x01\x12\"\n" +
-	"\x1eCATALOG_ITEM_STATUS_DEPRECATED\x10\x02*m\n" +
+	"\x1fCATALOG_ITEM_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
+	"\x19CATALOG_ITEM_STATUS_DRAFT\x10\x01\x12\x1e\n" +
+	"\x1aCATALOG_ITEM_STATUS_ACTIVE\x10\x02\x12\"\n" +
+	"\x1eCATALOG_ITEM_STATUS_DEPRECATED\x10\x03\x12 \n" +
+	"\x1cCATALOG_ITEM_STATUS_ARCHIVED\x10\x04\x12\x1f\n" +
+	"\x1bCATALOG_ITEM_STATUS_BLOCKED\x10\x05*m\n" +
 	"\vCardinality\x12\x1b\n" +
 	"\x17CARDINALITY_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12CARDINALITY_SINGLE\x10\x01\x12\x14\n" +
@@ -932,16 +984,18 @@ const file_platform_v1_common_enum_proto_rawDesc = "" +
 	"\x12CloudAccountStatus\x12$\n" +
 	" CLOUD_ACCOUNT_STATUS_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bCLOUD_ACCOUNT_STATUS_ACTIVE\x10\x01\x12\"\n" +
-	"\x1eCLOUD_ACCOUNT_STATUS_SUSPENDED\x10\x02*f\n" +
+	"\x1eCLOUD_ACCOUNT_STATUS_SUSPENDED\x10\x02*\x91\x01\n" +
 	"\fApprovalGate\x12\x1d\n" +
 	"\x19APPROVAL_GATE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16APPROVAL_GATE_PRE_PLAN\x10\x01\x12\x1b\n" +
-	"\x17APPROVAL_GATE_PRE_APPLY\x10\x02*\x9d\x01\n" +
+	"\x17APPROVAL_GATE_PRE_APPLY\x10\x02\x12)\n" +
+	"%APPROVAL_GATE_BREAK_GLASS_RETROACTIVE\x10\x03*\xae\x01\n" +
 	"\x10ApprovalNodeMode\x12\"\n" +
-	"\x1eAPPROVAL_NODE_MODE_UNSPECIFIED\x10\x00\x12\x1d\n" +
-	"\x19APPROVAL_NODE_MODE_SINGLE\x10\x01\x12\"\n" +
-	"\x1eAPPROVAL_NODE_MODE_COUNTERSIGN\x10\x02\x12\"\n" +
-	"\x1eAPPROVAL_NODE_MODE_CONDITIONAL\x10\x03*\xe6\x01\n" +
+	"\x1eAPPROVAL_NODE_MODE_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16APPROVAL_NODE_MODE_ANY\x10\x01\x12\x1a\n" +
+	"\x16APPROVAL_NODE_MODE_ALL\x10\x02\x12\x1f\n" +
+	"\x1bAPPROVAL_NODE_MODE_MAJORITY\x10\x03\x12\x1d\n" +
+	"\x19APPROVAL_NODE_MODE_QUORUM\x10\x04*\xe6\x01\n" +
 	"\x12ApprovalNodeStatus\x12$\n" +
 	" APPROVAL_NODE_STATUS_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cAPPROVAL_NODE_STATUS_PENDING\x10\x01\x12!\n" +

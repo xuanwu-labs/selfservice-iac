@@ -143,6 +143,158 @@ config.yaml                   ← 非敏感默认值(端口, 日志级别, OTel 
 | `AETHER_OTEL_ENDPOINT` | OTLP collector 地址(空=noop) |
 | `AETHER_CONNECT_ENABLED` | Connect 开关(false=纯 HTTP) |
 | `DOCKER_HOST` | testcontainers Docker 地址(测试用) |
+| `TESTCONTAINERS_RYUK_DISABLED` | 禁用 ryuk reaper(远程 Docker 必设) |
+
+## 远程 Docker 测试环境操作流程
+
+测试依赖 testcontainers-go 启动 PG 容器，需要 Docker daemon。本地无 Docker 时，
+通过远程 Docker daemon（socat TCP proxy）运行。远程主机：`192.168.31.33`（CentOS 7）。
+
+### 架构
+
+```
+本机 (Windows)                          远程主机 192.168.31.33 (CentOS 7)
+┌─────────────────┐                    ┌──────────────────────────────────┐
+│ go test         │  DOCKER_HOST ──→   │ socat proxy (容器)               │
+│ testcontainers  │  tcp:23750         │   0.0.0.0:23750 → /var/run/      │
+│                 │                    │                     docker.sock   │
+│                 │                    │ Docker daemon (主机服务)          │
+│                 │                    │   ├─ aether-postgres (dev PG)     │
+│                 │                    │   └─ postgres:16-alpine (测试 PG) │
+└─────────────────┘                    └──────────────────────────────────┘
+```
+
+- **socat proxy**：远程 Docker daemon 只监听 Unix socket，socat 容器把它转成 TCP 端口 23750
+- **dev PG**（aether-postgres）：开发用的持久 PG（端口 5433），config.yaml 指向它
+- **测试 PG**（testcontainers 临时创建）：每个测试隔离的 PG 实例，测试结束自动销毁
+
+### 环境变量（在 `server/.env` 或 shell 中设置）
+
+```bash
+# 远程 Docker daemon 的 socat TCP proxy 地址
+export DOCKER_HOST=tcp://192.168.31.33:23750
+# 远程 Docker 无法拉取 ryuk 镜像时必须禁用（ryuk 是 testcontainers 的清理 sidecar）
+export TESTCONTAINERS_RYUK_DISABLED=true
+```
+
+`.env.example` 已包含这两个变量的模板。`.env` 文件被 gitignore，需手动创建：
+```bash
+cp server/.env.example server/.env  # 然后按需修改
+```
+
+### 首次部署（在远程主机上执行一次）
+
+通过 SSH 连到远程主机后执行：
+
+```bash
+ssh root@192.168.31.33
+
+# 1. 确保 Docker 服务运行
+sudo systemctl start docker
+sudo systemctl enable docker  # 开机自启
+
+# 2. 部署 socat proxy（Docker API TCP 桥）
+docker run -d --name docker-api-proxy --restart unless-stopped \
+  -p 23750:2375 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  alpine/socat -d -d TCP-LISTEN:2375,fork,reuseaddr UNIX-CONNECT:/var/run/docker.sock
+
+# 3. 部署 dev PG（CentOS 7 必须 seccomp=unconfined，否则 PG 16 initdb 失败）
+docker run -d --name aether-postgres --restart unless-stopped \
+  -p 5433:5432 \
+  --security-opt seccomp=unconfined \
+  -e POSTGRES_USER=aether \
+  -e POSTGRES_PASSWORD=aether_dev_2026 \
+  -e POSTGRES_DB=aether_dev \
+  postgres:16-alpine
+```
+
+- `--restart unless-stopped`：主机重启后自动恢复（两个容器都设了）
+- 端口 23750 是约定（避免与 Docker TLS 2376 冲突）
+- `seccomp=unconfined`：CentOS 7 默认 seccomp 拒绝 PG 16 initdb 的 syscall
+
+### 日常验证连通性
+
+```bash
+# 从本机检查 Docker proxy 可达
+curl -s http://192.168.31.33:23750/_ping  # 应返回 OK
+
+# 从本机检查 dev PG 可达
+# (无 psql 时用 Go 的 /dev/tcp 探测)
+timeout 2 bash -c "echo > /dev/tcp/192.168.31.33/5433" && echo "PG OPEN" || echo "PG CLOSED"
+```
+
+### 跑测试
+
+```bash
+cd server
+
+# 短测试（不依赖 Docker，快速验证逻辑）
+make test
+# 等同: go test -race -short ./...
+
+# 全量测试（含 testcontainers PG，需 Docker proxy 可达）
+make test-db
+# 等同: go test -race -p 1 ./...
+
+# 只跑迁移测试
+go test -v -count=1 -timeout=180s ./cmd/migrate/...
+```
+
+`make test-db` 需要 `DOCKER_HOST` + `TESTCONTAINERS_RYUK_DISABLED` 已在环境中
+（`.env` 或 shell export）。Makefile 不自动加载 `.env`——在 shell 里 `source .env`
+或直接 export。
+
+### 故障排查
+
+**症状：端口 23750 或 5433 不可达**
+
+```bash
+# 1. SSH 到远程主机检查
+ssh root@192.168.31.33
+
+# 2. 检查 Docker 服务
+systemctl is-active docker  # 应为 active
+
+# 3. 检查容器状态
+docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+# 应看到 docker-api-proxy (Up) + aether-postgres (Up)
+
+# 4. 如果容器没了（被误删或机器重启后没恢复），重建：
+docker run -d --name docker-api-proxy --restart unless-stopped \
+  -p 23750:2375 -v /var/run/docker.sock:/var/run/docker.sock \
+  alpine/socat -d -d TCP-LISTEN:2375,fork,reuseaddr UNIX-CONNECT:/var/run/docker.sock
+
+docker run -d --name aether-postgres --restart unless-stopped \
+  -p 5433:5432 --security-opt seccomp=unconfined \
+  -e POSTGRES_USER=aether -e POSTGRES_PASSWORD=aether_dev_2026 \
+  -e POSTGRES_DB=aether_dev postgres:16-alpine
+```
+
+**症状：testcontainers 报 "no space left on device"**
+
+测试容器积累占满了远程主机磁盘：
+```bash
+ssh root@192.168.31.33 "docker container prune -f && docker image prune -f"
+```
+
+**症状：testcontainers 报 ryuk 超时**
+
+远程 Docker 拉不到 ryuk 镜像。确认 `TESTCONTAINERS_RYUK_DISABLED=true` 已设置。
+
+### 注意事项
+
+1. **不要误删 socat proxy 容器**：清理测试容器时**只删 postgres 测试容器**，不删
+   `docker-api-proxy` 和 `aether-postgres`。testcontainers 创建的容器名含 `testdb_` 前缀，
+   可据此区分。
+2. **磁盘空间**：远程主机磁盘有限（CentOS 7 虚拟机），testcontainers 每次测试创建
+   临时 PG 容器，正常会自动销毁。如果 ryuk 被禁用（`RYUK_DISABLED=true`），临时容器
+   不会自动清理——定期手动 prune。
+3. **CentOS 7 seccomp**：PG 16 的 initdb 用了 CentOS 7 默认 seccomp 拒绝的 syscall。
+   `testdb.go` 的 `startContainer()` 已设 `seccomp=unconfined`（针对 testcontainers
+   创建的 PG）；dev PG 容器也需手动加 `--security-opt seccomp=unconfined`。
+4. **Makefile 不自动加载 .env**：`make test-db` 不会读 `.env` 文件。需要在 shell 里
+   `export DOCKER_HOST=...` 或 `source .env` 后再跑。
 
 ## Connect 服务扩展指南
 

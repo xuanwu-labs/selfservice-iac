@@ -8,10 +8,361 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type Team struct {
+type ApprovalDecision struct {
+	ID         int64              `json:"id"`
+	NodeRunID  int64              `json:"node_run_id"`
+	ApproverID string             `json:"approver_id"`
+	Decision   string             `json:"decision"`
+	Comment    string             `json:"comment"`
+	DecidedAt  pgtype.Timestamptz `json:"decided_at"`
+}
+
+type ApprovalFlow struct {
 	ID        int64              `json:"id"`
 	Name      string             `json:"name"`
-	Slug      string             `json:"slug"`
+	Trigger   string             `json:"trigger"`
+	DslYaml   string             `json:"dsl_yaml"`
+	Version   int32              `json:"version"`
+	Active    bool               `json:"active"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type ApprovalNodeRun struct {
+	ID            int64              `json:"id"`
+	RunID         int64              `json:"run_id"`
+	NodeID        string             `json:"node_id"`
+	Mode          string             `json:"mode"`
+	DecidedCount  int32              `json:"decided_count"`
+	RequiredCount int32              `json:"required_count"`
+	Status        string             `json:"status"`
+	TimeoutAt     pgtype.Timestamptz `json:"timeout_at"`
+}
+
+type ApprovalRun struct {
+	ID          int64              `json:"id"`
+	RequestID   int64              `json:"request_id"`
+	FlowID      int64              `json:"flow_id"`
+	Gate        string             `json:"gate"`
+	CurrentNode string             `json:"current_node"`
+	Status      string             `json:"status"`
+	DecidedBy   string             `json:"decided_by"`
+	DecidedAt   pgtype.Timestamptz `json:"decided_at"`
+	StartedAt   pgtype.Timestamptz `json:"started_at"`
+	FinishedAt  pgtype.Timestamptz `json:"finished_at"`
+	ExpiresAt   pgtype.Timestamptz `json:"expires_at"`
+}
+
+type AuditLog struct {
+	ID             int64              `json:"id"`
+	ActorID        string             `json:"actor_id"`
+	ActorType      string             `json:"actor_type"`
+	Action         string             `json:"action"`
+	TargetType     string             `json:"target_type"`
+	TargetID       string             `json:"target_id"`
+	BeforeJson     []byte             `json:"before_json"`
+	AfterJson      []byte             `json:"after_json"`
+	AiMetadataJson []byte             `json:"ai_metadata_json"`
+	CorrelationID  string             `json:"correlation_id"`
+	OccurredAt     pgtype.Timestamptz `json:"occurred_at"`
+}
+
+type Bundle struct {
+	ID             int64              `json:"id"`
+	Name           string             `json:"name"`
+	ProjectID      int64              `json:"project_id"`
+	LayerLogicalID *string            `json:"layer_logical_id"`
+	RepoPath       string             `json:"repo_path"`
+	TagsJson       []byte             `json:"tags_json"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt      pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type CatalogItem struct {
+	ID                     int64              `json:"id"`
+	ModuleVersionID        int64              `json:"module_version_id"`
+	DisplayName            string             `json:"display_name"`
+	Description            string             `json:"description"`
+	Category               string             `json:"category"`
+	Status                 string             `json:"status"`
+	FormSchemaJson         []byte             `json:"form_schema_json"`
+	DefaultsJson           []byte             `json:"defaults_json"`
+	Cardinality            string             `json:"cardinality"`
+	InstanceKey            string             `json:"instance_key"`
+	PerInstanceFieldsJson  []byte             `json:"per_instance_fields_json"`
+	SharedFieldsJson       []byte             `json:"shared_fields_json"`
+	LayerLogicalID         *string            `json:"layer_logical_id"`
+	StackGrouping          string             `json:"stack_grouping"`
+	OwnerTeamID            int64              `json:"owner_team_id"`
+	DefaultTagsJson        []byte             `json:"default_tags_json"`
+	UserAllowedTagKeysJson []byte             `json:"user_allowed_tag_keys_json"`
+	VisibilityJson         []byte             `json:"visibility_json"`
+	CreatedAt              pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt              pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt              pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type CloudAccount struct {
+	ID                  int64              `json:"id"`
+	Provider            string             `json:"provider"`
+	AccountID           string             `json:"account_id"`
+	Alias               string             `json:"alias"`
+	DisplayName         string             `json:"display_name"`
+	Status              string             `json:"status"`
+	DefaultRegion       string             `json:"default_region"`
+	RegionsJson         []byte             `json:"regions_json"`
+	CredentialsRef      string             `json:"credentials_ref"`
+	BillingEnabled      bool               `json:"billing_enabled"`
+	DefaultTeamID       *int64             `json:"default_team_id"`
+	TagsJson            []byte             `json:"tags_json"`
+	BootstrapStatus     string             `json:"bootstrap_status"`
+	OidcTrustConfigured bool               `json:"oidc_trust_configured"`
+	StateBackendID      *int64             `json:"state_backend_id"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+}
+
+type GateResult struct {
+	ID          int64              `json:"id"`
+	RequestID   int64              `json:"request_id"`
+	GateID      string             `json:"gate_id"`
+	Passed      bool               `json:"passed"`
+	Policy      string             `json:"policy"`
+	Message     string             `json:"message"`
+	Severity    string             `json:"severity"`
+	EvaluatedAt pgtype.Timestamptz `json:"evaluated_at"`
+}
+
+type LayerLogicalRef struct {
+	LogicalID          string             `json:"logical_id"`
+	CurrentDisplayName string             `json:"current_display_name"`
+	Notes              string             `json:"notes"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+}
+
+type LayerRuleSetVersion struct {
+	VersionID    int32              `json:"version_id"`
+	LayersJson   []byte             `json:"layers_json"`
+	Status       string             `json:"status"`
+	IsDefault    bool               `json:"is_default"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	CreatedBy    string             `json:"created_by"`
+	SupersededAt pgtype.Timestamptz `json:"superseded_at"`
+	SupersededBy *int32             `json:"superseded_by"`
+}
+
+type Module struct {
+	ID          int64              `json:"id"`
+	Name        string             `json:"name"`
+	GitSource   string             `json:"git_source"`
+	Provider    string             `json:"provider"`
+	Layer       string             `json:"layer"`
+	OwnerTeamID int64              `json:"owner_team_id"`
+	Status      string             `json:"status"`
+	Description string             `json:"description"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+type ModuleDependency struct {
+	ID              int64              `json:"id"`
+	ModuleVersionID int64              `json:"module_version_id"`
+	VariableName    string             `json:"variable_name"`
+	DependsOnLayer  string             `json:"depends_on_layer"`
+	DependsOnModule string             `json:"depends_on_module"`
+	OutputKey       string             `json:"output_key"`
+	Required        bool               `json:"required"`
+	Description     string             `json:"description"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+}
+
+type ModuleVersion struct {
+	ID                    int64              `json:"id"`
+	ModuleID              int64              `json:"module_id"`
+	Version               string             `json:"version"`
+	CommitSha             string             `json:"commit_sha"`
+	ProvidersJson         []byte             `json:"providers_json"`
+	VariablesContractJson []byte             `json:"variables_contract_json"`
+	IsCurrent             bool               `json:"is_current"`
+	RegisteredAt          pgtype.Timestamptz `json:"registered_at"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+}
+
+type OutboxEvent struct {
+	ID            int64              `json:"id"`
+	EventID       string             `json:"event_id"`
+	AggregateType string             `json:"aggregate_type"`
+	AggregateID   string             `json:"aggregate_id"`
+	EventType     string             `json:"event_type"`
+	PayloadJson   []byte             `json:"payload_json"`
+	Status        string             `json:"status"`
+	RetryCount    int32              `json:"retry_count"`
+	NextRetryAt   pgtype.Timestamptz `json:"next_retry_at"`
+	CorrelationID string             `json:"correlation_id"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	ProcessedAt   pgtype.Timestamptz `json:"processed_at"`
+}
+
+type PlanArtifact struct {
+	ID                   int64              `json:"id"`
+	RequestID            int64              `json:"request_id"`
+	Status               string             `json:"status"`
+	PlanHash             string             `json:"plan_hash"`
+	StorageUri           string             `json:"storage_uri"`
+	Sha256               string             `json:"sha256"`
+	SizeBytes            int64              `json:"size_bytes"`
+	PinnedCommit         string             `json:"pinned_commit"`
+	ToolchainProfileHash string             `json:"toolchain_profile_hash"`
+	ProviderLockHash     string             `json:"provider_lock_hash"`
+	TfVersionSha256      string             `json:"tf_version_sha256"`
+	StackID              string             `json:"stack_id"`
+	StateKey             string             `json:"state_key"`
+	ResourcesToAdd       int32              `json:"resources_to_add"`
+	ResourcesToChange    int32              `json:"resources_to_change"`
+	ResourcesToDestroy   int32              `json:"resources_to_destroy"`
+	CostEstimateCents    int64              `json:"cost_estimate_cents"`
+	ExpiresAt            pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+}
+
+type Project struct {
+	ID        int64              `json:"id"`
+	Name      string             `json:"name"`
+	TeamID    int64              `json:"team_id"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type Request struct {
+	ID                    int64              `json:"id"`
+	CatalogItemID         int64              `json:"catalog_item_id"`
+	BundleID              *int64             `json:"bundle_id"`
+	EnvID                 string             `json:"env_id"`
+	TenantID              string             `json:"tenant_id"`
+	TeamID                int64              `json:"team_id"`
+	RequesterID           string             `json:"requester_id"`
+	Kind                  string             `json:"kind"`
+	Source                string             `json:"source"`
+	Status                string             `json:"status"`
+	CurrentStage          string             `json:"current_stage"`
+	FormValuesJson        []byte             `json:"form_values_json"`
+	FormHash              string             `json:"form_hash"`
+	ResolvedParamsJson    []byte             `json:"resolved_params_json"`
+	IdempotencyKey        string             `json:"idempotency_key"`
+	PinnedCommit          *string            `json:"pinned_commit"`
+	PlanArtifactID        *int64             `json:"plan_artifact_id"`
+	CostEstimateCents     int64              `json:"cost_estimate_cents"`
+	CostCurrency          string             `json:"cost_currency"`
+	CorrelationID         string             `json:"correlation_id"`
+	RetryCount            int32              `json:"retry_count"`
+	Version               int32              `json:"version"`
+	LayerRuleSetVersionID *int32             `json:"layer_rule_set_version_id"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
+}
+
+type RequestEvent struct {
+	ID            int64              `json:"id"`
+	RequestID     int64              `json:"request_id"`
+	EventType     string             `json:"event_type"`
+	Stage         string             `json:"stage"`
+	FromStatus    *string            `json:"from_status"`
+	ToStatus      *string            `json:"to_status"`
+	ActorID       string             `json:"actor_id"`
+	ActorType     string             `json:"actor_type"`
+	Message       string             `json:"message"`
+	CorrelationID string             `json:"correlation_id"`
+	OccurredAt    pgtype.Timestamptz `json:"occurred_at"`
+}
+
+type Stack struct {
+	ID                    int64              `json:"id"`
+	BundleID              *int64             `json:"bundle_id"`
+	CatalogItemID         int64              `json:"catalog_item_id"`
+	LayerLogicalID        *string            `json:"layer_logical_id"`
+	LayerRuleSetVersionID *int32             `json:"layer_rule_set_version_id"`
+	OwnerTeamID           int64              `json:"owner_team_id"`
+	Layer                 string             `json:"layer"`
+	Component             string             `json:"component"`
+	Env                   string             `json:"env"`
+	TenantID              string             `json:"tenant_id"`
+	StackID               string             `json:"stack_id"`
+	RepoPath              string             `json:"repo_path"`
+	StateKey              string             `json:"state_key"`
+	TerramateTagsJson     []byte             `json:"terramate_tags_json"`
+	StateBackendID        *int64             `json:"state_backend_id"`
+	PinnedCommit          string             `json:"pinned_commit"`
+	MigrationStatus       string             `json:"migration_status"`
+	SunsetDeadline        pgtype.Timestamptz `json:"sunset_deadline"`
+	Version               int32              `json:"version"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
+}
+
+type StackDependency struct {
+	ID           int64              `json:"id"`
+	FromStackID  int64              `json:"from_stack_id"`
+	ToStackID    int64              `json:"to_stack_id"`
+	Kind         string             `json:"kind"`
+	VariableName string             `json:"variable_name"`
+	OutputKey    string             `json:"output_key"`
+	InjectAs     string             `json:"inject_as"`
+	Status       string             `json:"status"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
+type StateBackend struct {
+	ID             int64              `json:"id"`
+	Name           string             `json:"name"`
+	Kind           string             `json:"kind"`
+	Bucket         string             `json:"bucket"`
+	Region         string             `json:"region"`
+	Endpoint       string             `json:"endpoint"`
+	Encrypt        bool               `json:"encrypt"`
+	LockTable      string             `json:"lock_table"`
+	AccessStyle    string             `json:"access_style"`
+	CredentialsRef string             `json:"credentials_ref"`
+	IsDefault      bool               `json:"is_default"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Team struct {
+	ID         int64              `json:"id"`
+	Name       string             `json:"name"`
+	Slug       string             `json:"slug"`
+	Kind       string             `json:"kind"`
+	Status     string             `json:"status"`
+	TagsJson   []byte             `json:"tags_json"`
+	PolicyJson []byte             `json:"policy_json"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt  pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type Workspace struct {
+	ID            int64              `json:"id"`
+	Name          string             `json:"name"`
+	RemoteUrl     string             `json:"remote_url"`
+	DefaultBranch string             `json:"default_branch"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
+type WorkspaceCheckout struct {
+	ID                int64              `json:"id"`
+	WorkspaceID       int64              `json:"workspace_id"`
+	NodeID            string             `json:"node_id"`
+	WorktreePath      string             `json:"worktree_path"`
+	Branch            string             `json:"branch"`
+	PinnedCommit      string             `json:"pinned_commit"`
+	Purpose           string             `json:"purpose"`
+	LeasedByRequestID *int64             `json:"leased_by_request_id"`
+	LeasedUntil       pgtype.Timestamptz `json:"leased_until"`
+	Status            string             `json:"status"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
 }
