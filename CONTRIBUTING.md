@@ -89,7 +89,7 @@ Aether server 采用 **领域核心顶层分层**(`core/` 为一等公民,`inter
 | `pkg/db/` | sqlc 输入(`queries/`)与输出(`generated/`) | ❌ 手写查询逻辑 |
 | `internal/` | 私有基建(config/otel/errors/cli/cmdutil/...) | ❌ 业务逻辑 |
 
-**数据访问路径**:`core/store`(薄包装)→ `data/`(pgxpool)→ `pkg/db/generated`(sqlc `*Queries`)。
+**数据访问路径**（混合范式：ferret Repo struct × DIP 可演进 × sqlc SQL-as-truth）：`core/<domain>/`（业务层，通过 wire 注入 Repo struct）→ `data/repo/`（Repo struct 薄包装 `*generated.Queries` + 跨表事务 WithTx + 动态查询 query_wrapper）→ `pkg/db/generated`（sqlc `*Queries`）→ `data/`（pgxpool 池）。core 不直接 import `pkg/db`（DIP 依赖方向正确）；需要测试/mock 时在 core 提取小 interface（Go 隐式 interface，无需改 data 层）。
 
 ## D1 边界(关键架构守护)
 
