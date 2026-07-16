@@ -159,7 +159,7 @@ Agent 调用 skill 两种方式：
 | **批量阈值** | 单工单影响资源数 > 阈值（默认 50）或 stack > 5 | 强制审批 + 走灰度（先 plan 一批，验证再 apply 剩余）|
 | **敏感字段写** | 改动 `sensitive=true` 字段（db_password/access_key 等） | 强制审批 + 双签（运维 + 资源 owner）|
 | **生产环境** | env=prod 且 action=destroy/replace | 强制审批 + 时间窗（仅维护窗口）|
-| **预算越限** | Infracost 预估超 team/bundle 预算阈值 | 升级到成本审批节点（D18）|
+| **预算越限** | Infracost 预估超 team/space 预算阈值 | 升级到成本审批节点（D18）|
 
 **强制人工审批的执行机制**：
 - AI actor（`actor_type=ai`）的工单**自动跳过 OPA 自动放行逻辑**（即使 OPA 判低危，AI 触发的高危场景也走人工）。

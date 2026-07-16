@@ -21,7 +21,7 @@ message LifecycleRequest {
   string env_id = 4;
   string team_id = 5;
   string tenant_id = 6;
-  string bundle_id = 7;
+  string space_id = 7;
   map<string, string> form_values = 8;
   string form_hash = 9;
   aether.platform.v1.common.RequestSource source = 10;
@@ -153,7 +153,7 @@ message CreateRequestRequest {
   string env_id = 2;
   string team_id = 3;
   string tenant_id = 4;
-  string bundle_id = 5;
+  string space_id = 5;
   map<string, string> form_values = 6;
   aether.platform.v1.common.RequestSource source = 7;
   map<string, string> source_context = 8;
@@ -329,7 +329,7 @@ message Stack {
   string id = 1;
   string stack_id = 2;                    // PathGenerator global-unique id (D29)
   string catalog_item_id = 3;
-  string bundle_id = 4;                   // empty = no bundle
+  string space_id = 4;                   // empty = no space
   string layer = 5;                       // denormalized layer slug
   string component = 6;
   string env = 7;

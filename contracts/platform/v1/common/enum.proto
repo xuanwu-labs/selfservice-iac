@@ -109,13 +109,13 @@ enum Cardinality {
 // StackGranularity is the D24 stack-grouping strategy declared on a
 // catalog item. Determines how codegen partitions instances into stacks:
 //   per-component = one stack per component (default, smallest blast radius)
-//   per-bundle    = one stack per bundle (coarser, for tightly coupled sets)
+//   per-space    = one stack per space (coarser, for tightly coupled sets)
 //   per-team      = one stack per team (coarsest, rarely used)
 //   custom        = path_template override (advanced, admin-only)
 enum StackGranularity {
   STACK_GRANULARITY_UNSPECIFIED = 0;
   STACK_GRANULARITY_PER_COMPONENT = 1;
-  STACK_GRANULARITY_PER_BUNDLE = 2;
+  STACK_GRANULARITY_PER_SPACE = 2;
   STACK_GRANULARITY_PER_TEAM = 3;
   STACK_GRANULARITY_CUSTOM = 4;
 }

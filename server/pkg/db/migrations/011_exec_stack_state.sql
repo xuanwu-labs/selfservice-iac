@@ -155,14 +155,14 @@ CREATE TRIGGER trg_workspace_checkouts_updated_at
 -- =====================================================================
 -- 5. stacks: generated stack identity (D29 stack.tm.hcl mirror).
 --    The codegen output contract (doc 09 section 5.1) produces a stack per
---    catalog item per (tenant, env, team, bundle). This table persists the
+--    catalog item per (tenant, env, team, space). This table persists the
 --    PathGenerator outputs (repo_path, state_key, stack_id, tags) so the
 --    platform can reconcile "DB metadata <-> repo dir <-> remote state key"
 --    (doc 04 section 2.3, doc 10 section 4).
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS stacks (
     id                            BIGINT       PRIMARY KEY,       -- snowflake ID
-    bundle_id                     BIGINT       NULL REFERENCES bundles(id) ON DELETE RESTRICT,      -- optional bundle grouping
+    space_id                     BIGINT       NULL REFERENCES spaces(id) ON DELETE RESTRICT,      -- optional space grouping
     catalog_item_id               BIGINT       NOT NULL REFERENCES catalog_items(id) ON DELETE RESTRICT,  -- source catalog item
     layer_logical_id              TEXT         NULL REFERENCES layer_logical_refs(logical_id) ON DELETE RESTRICT,  -- layer identity (D24/D26)
     layer_rule_set_version_id     INTEGER      NULL REFERENCES layer_rule_set_versions(version_id) ON DELETE RESTRICT,  -- pinned rule set (D26)
@@ -187,7 +187,7 @@ CREATE TABLE IF NOT EXISTS stacks (
 
 COMMENT ON TABLE stacks IS 'Generated stack identity (D29 stack.tm.hcl mirror). Persisted PathGenerator outputs (repo_path, state_key, stack_id, tags) for reconcile of DB metadata <-> repo dir <-> remote state key.';
 COMMENT ON COLUMN stacks.id IS 'Snowflake ID (app-generated BIGINT, no DB autoincrement).';
-COMMENT ON COLUMN stacks.bundle_id IS 'Optional bundle grouping. FK bundles(id) ON DELETE RESTRICT.';
+COMMENT ON COLUMN stacks.space_id IS 'Optional space grouping. FK spaces(id) ON DELETE RESTRICT.';
 COMMENT ON COLUMN stacks.catalog_item_id IS 'Source catalog item. FK catalog_items(id) ON DELETE RESTRICT.';
 COMMENT ON COLUMN stacks.layer_logical_id IS 'Layer identity (stable across rule-set versions, D24/D26). FK layer_logical_refs(logical_id).';
 COMMENT ON COLUMN stacks.layer_rule_set_version_id IS 'Pinned layer rule set at creation time (D26, immutable). FK layer_rule_set_versions(version_id).';
@@ -208,7 +208,7 @@ COMMENT ON COLUMN stacks.version IS 'Optimistic lock; bumped on each regen.';
 COMMENT ON COLUMN stacks.created_at IS 'Record creation time.';
 COMMENT ON COLUMN stacks.updated_at IS 'Auto-maintained by set_updated_at() trigger.';
 
-CREATE INDEX IF NOT EXISTS ix_stacks_bundle_id ON stacks(bundle_id);
+CREATE INDEX IF NOT EXISTS ix_stacks_space_id ON stacks(space_id);
 CREATE INDEX IF NOT EXISTS ix_stacks_catalog_item_id ON stacks(catalog_item_id);
 CREATE INDEX IF NOT EXISTS ix_stacks_layer_logical_id ON stacks(layer_logical_id);
 CREATE INDEX IF NOT EXISTS ix_stacks_owner_team_id ON stacks(owner_team_id);
@@ -277,7 +277,7 @@ DROP INDEX IF EXISTS ix_stacks_env;
 DROP INDEX IF EXISTS ix_stacks_owner_team_id;
 DROP INDEX IF EXISTS ix_stacks_layer_logical_id;
 DROP INDEX IF EXISTS ix_stacks_catalog_item_id;
-DROP INDEX IF EXISTS ix_stacks_bundle_id;
+DROP INDEX IF EXISTS ix_stacks_space_id;
 DROP TABLE IF EXISTS stacks;
 
 DROP TRIGGER IF EXISTS trg_workspace_checkouts_updated_at ON workspace_checkouts;

@@ -221,7 +221,7 @@ Terramate 是纯 CLI 编排引擎，定位是"面向会写 HCL 的工程师"。�
 - **影响**：新增 `platform/internal/cli` + `platform/internal/identity/aksk` + `platform/internal/mcp` + `platform/internal/skills`；高危操作强制人工审批，agent 不豁免治理。详见 `docs/17-平台CLI与AI原生扩展.md`。
 
 ### D18 — CMDB 与 FinOps：资源实例索引 + 强制 tag + 双成本源 + 预算治理
-- **决策**：①CMDB 作为 state 的可查询索引视图层（**不复制 state 全文**），apply 成功后 ingester 从 state JSON 解析资源 upsert `resources` 表，关联 stack / bundle / team / layer；**ingester 补偿机制**（§2.8-3）：apply 成功但 ingester 失败 → 异步 retry 3 次 → 仍失败入 dead-letter queue → 定期 reconcile job 从 state 重建 resources（对账 state JSON vs CMDB records，差异 → upsert/标记 stale）；②强制 tag 策略，平台给所有生成资源打 `platform-team/bundle/stack/managed` 标签，catalog 注册校验含 tag（或 codegen 自动注入），作为成本归集与孤儿检测的锚点；③FinOps 双成本源：Infracost 预估（申请时 + 未出账）+ 云账单 API（实际，按 tag 归集），统一 `cost_records` 用 `cost_source` 区分；④预算治理 `cost_budgets`（team / bundle / stack / layer × 月度，多级阈值），申请时预估超预算触发**成本双阈值**（>2x cap S6 拒绝 / 1x~2x cap 标记 cost_overrun 透传 pre-apply 升级审批）；⑤漂移引擎 + 云侧资源清单对比 CMDB 发现孤儿资源，优化建议引擎产出 rightsize / release / reserved-instance / tag-missing 并可一键转申请。
+- **决策**：①CMDB 作为 state 的可查询索引视图层（**不复制 state 全文**），apply 成功后 ingester 从 state JSON 解析资源 upsert `resources` 表，关联 stack / space / team / layer；**ingester 补偿机制**（§2.8-3）：apply 成功但 ingester 失败 → 异步 retry 3 次 → 仍失败入 dead-letter queue → 定期 reconcile job 从 state 重建 resources（对账 state JSON vs CMDB records，差异 → upsert/标记 stale）；②强制 tag 策略，平台给所有生成资源打 `platform-team/space/stack/managed` 标签，catalog 注册校验含 tag（或 codegen 自动注入），作为成本归集与孤儿检测的锚点；③FinOps 双成本源：Infracost 预估（申请时 + 未出账）+ 云账单 API（实际，按 tag 归集），统一 `cost_records` 用 `cost_source` 区分；④预算治理 `cost_budgets`（team / space / stack / layer × 月度，多级阈值），申请时预估超预算触发**成本双阈值**（>2x cap S6 拒绝 / 1x~2x cap 标记 cost_overrun 透传 pre-apply 升级审批）；⑤漂移引擎 + 云侧资源清单对比 CMDB 发现孤儿资源，优化建议引擎产出 rightsize / release / reserved-instance / tag-missing 并可一键转申请。
 - **理由**：CMDB 不复制 state（state 是执行面真相源）只做查询索引，避免双写不一致；强制 tag 是多云成本归集与孤儿检测的事实手段（借鉴云厂商 Tag 策略 + Spot.io / Flexera）；Infracost 用于决策时预估，云账单用于实际核销，二者互补；预算联审批使成本治理嵌入变更流程而非事后报表。
 - **备选**：①CMDB 全量存 state（双写不一致风险，敏感字段泄露面大）②无 tag 依赖命名 / 正则匹配归集（脆弱、多云难统一）③仅 Infracost 无账单（滞后 / 不准，无法核销）④FinOps 独立报表系统不联审批（治标不治本，成本失控仍发生）。
 - **影响**：新增 `platform/internal/cmdb` + `platform/internal/finops` + 云账单拉取 job；强制 tag 策略需模块库配合（catalog 注册校验）。详见 `docs/14-CMDB与FinOps.md`。
@@ -266,10 +266,10 @@ Terramate 是纯 CLI 编排引擎，定位是"面向会写 HCL 的工程师"。�
      | 层 | 作用域 | 用途 | 形态 | 谁配置 |
      |----|--------|------|------|--------|
      | **Bootstrap / Admin**（引导） | 每云账号 **1 套** | 开通云账号、IAM 配置、配 OIDC trust、读账单、建子角色 | 长期 AK/SK（vault 级，**双人审批 + 周期轮换 + 全审计**） | 平台运维（仅 1–2 名守护人） |
-     | **执行凭据**（Execution） | **per-team / per-bundle × per-cloud_account** | 平台代跑 `terraform/terramate` 时 assume 的 IAM 身份 | **OIDC 联邦优先**（短期 ephemeral STS，**无长期 AK/SK**）；fallback 长期 AK/SK（强制轮换） | 平台运维 + 团队 owner |
+     | **执行凭据**（Execution） | **per-team / per-space × per-cloud_account** | 平台代跑 `terraform/terramate` 时 assume 的 IAM 身份 | **OIDC 联邦优先**（短期 ephemeral STS，**无长期 AK/SK**）；fallback 长期 AK/SK（强制轮换） | 平台运维 + 团队 owner |
      | **个人**（Personal） | 每用户 | UI 操作 RBAC、查看、审批、提交申请 | **平台身份（OIDC token）/ 不发云 AK/SK** | 用户自助（无云凭据） |
      - **个人 MUST NOT 持有执行云凭据**——平台执行（平台代跑 terraform），不是人手跑；个人只走 RBAC。
-     - **per-team 不是 per-person**：①执行主体是平台不是人；②team/bundle = 治理 + 成本归集 + 爆炸半径边界；③审计可追溯"哪个团队的执行身份动了什么资源"。
+     - **per-team 不是 per-person**：①执行主体是平台不是人；②team/space = 治理 + 成本归集 + 爆炸半径边界；③审计可追溯"哪个团队的执行身份动了什么资源"。
   2. **团队↔云账号授权（`team_cloud_grants`，驱动申请过滤）**：`team_cloud_grants(team_id, cloud_account_id, allowed_layers, iam_role_template, budget_quota, expires_at)`——显式声明"哪个团队可在哪个云账号下申请哪些层的资源"。**申请入口 `GET /catalog` 按调用者团队 join 此表过滤**：只展示该团队被授权的云账号 + catalog 项；无 grant 的云厂商/账号**不出现**在申请表单的"目标云"下拉。这就是"看部门开通了哪些云厂商/账号"的实现。
   3. **OIDC 联邦优先（业界共识）**：平台作 Trusted OIDC Issuer（每云账号配 `oidc:platform.example/assume-role/<team>` trust policy），Executor 执行时拿平台内部 short-lived token 换云 STS（aws `AssumeRoleWithWebIdentity` / alicloud `AssumeRoleWithOIDC`），**零长期凭据、按需签发、自然过期**。长存 AK/SK 仅作 fallback（云不支持 OIDC / 离线）。**业界**：Spacelift/Env0/Terraform Cloud/HashiCorp Vault 全部 OIDC-first（"动态凭据"是事实标准）。
   4. **凭据注入 Executor（不入 git/日志/codegen）**：
@@ -298,14 +298,14 @@ Terramate 是纯 CLI 编排引擎，定位是"面向会写 HCL 的工程师"。�
 - **备选**：①仅手动安装（运维负担重、版本易漂）②仅 docker daemon 构建（K8s/daemonless 场景受限）③无执行前校验（不兼容到 plan 才报错，体验差）。
 - **影响**：新增 `platform/internal/installer`（节点工具链 reconcile + manifest）+ `platform/internal/executor/imagebuilder`（Dockerfile 渲染 + BuildDriver：docker/buildah/kaniko）+ 版本校验三时机接入 registry/catalog/orchestrator；`toolchain_manifest`（节点级，DB + 节点本地双写）；镜像灰度 CI。详见 `docs/11-工具链版本与执行隔离.md` §2/§3.3/§5。
 
-### D24 — stack 模型可配置化：Layer 规则模型（默认三层）+ PathGenerator 模板 + bundle 可选 + StackGranularity 策略
+### D24 — stack 模型可配置化：Layer 规则模型（默认三层）+ PathGenerator 模板 + space 可选 + StackGranularity 策略
 - **决策（四段）**：
   1. **Layer 规则模型（DB 表 `layers`，不硬编码层名）**：层定义全部可配置——`name` / `order`（层序，决定依赖方向）/ `owning_team_pattern`（如 `dba|middleware` 表达"DBA + 中间件两部门并列同层"）/ `path_template`（Go text/template）/ `depends_on`（下层依赖）。**出厂默认 = 三层**（Global/Middleware/Application），管理员可增删层（如加"security/compliance"第 4 层、或合并成 2 层）、改路径模板、改依赖方向。
-  2. **PathGenerator（codegen 调用，路径不硬编码）**：`PathGenerator(layer.path_template, stack_metadata)` 渲染 stack 目录路径与 state key。模板变量：`env / team / bundle / component / layer / layer_order / custom_kv`。codegen MUST 调用 PathGenerator，MUST NOT 字符串拼接路径。
-  3. **bundle 可选**：Application 层默认模板 `application/{{.team}}/{{if .bundle}}{{.bundle}}/{{end}}{{.component}}-{{.env}}`——小业务部门直接 `<team>/<component>`，大业务部门多产品线用 `<team>/<bundle>/<component>`。元数据 `stacks.bundle_id` NULL 表示无 bundle。两种路径平台都识别。
-  4. **StackGranularity 策略（stack 粒度可配）**：默认 `per-component`（一个组件一个 stack，控制爆炸半径）；可选 `per-bundle` / `per-team` / `custom`（catalog 项声明 `stack_grouping`，如简单 SLB 规则 per-component，复杂微服务全套 per-bundle）。
-- **理由**：业界（Spacelift space + stack 模板 / TFC workspace naming policy / Env0 project + environment / Atlantis 目录组织）**都不硬编码层名**，硬编码限制企业组织多样性（4 层加合规层 / 2 层简化 / Middleware 拆数据+消息两层等现实诉求）。bundle 强制反而给小团队添堵。PathGenerator 让"路径规则变更"成配置而非代码改动。
-- **备选**：①硬编码三层（限制组织多样性，被否）②bundle 强制（小团队负担）③无 PathGenerator 直接字符串拼接（路径规则变更需改代码，被否）。
+  2. **PathGenerator（codegen 调用，路径不硬编码）**：`PathGenerator(layer.path_template, stack_metadata)` 渲染 stack 目录路径与 state key。模板变量：`env / team / space / component / layer / layer_order / custom_kv`。codegen MUST 调用 PathGenerator，MUST NOT 字符串拼接路径。
+  3. **space 可选**：Application 层默认模板 `application/{{.team}}/{{if .space}}{{.space}}/{{end}}{{.component}}-{{.env}}`——小业务部门直接 `<team>/<component>`，大业务部门多产品线用 `<team>/<space>/<component>`。元数据 `stacks.space_id` NULL 表示无 space。两种路径平台都识别。
+  4. **StackGranularity 策略（stack 粒度可配）**：默认 `per-component`（一个组件一个 stack，控制爆炸半径）；可选 `per-space` / `per-team` / `custom`（catalog 项声明 `stack_grouping`，如简单 SLB 规则 per-component，复杂微服务全套 per-space）。
+- **理由**：业界（Spacelift space + stack 模板 / TFC workspace naming policy / Env0 project + environment / Atlantis 目录组织）**都不硬编码层名**，硬编码限制企业组织多样性（4 层加合规层 / 2 层简化 / Middleware 拆数据+消息两层等现实诉求）。space 强制反而给小团队添堵。PathGenerator 让"路径规则变更"成配置而非代码改动。
+- **备选**：①硬编码三层（限制组织多样性，被否）②space 强制（小团队负担）③无 PathGenerator 直接字符串拼接（路径规则变更需改代码，被否）。
 - **影响**：新增 `platform/internal/stackmodel`（Layer 规则集版本化引擎 + PathGenerator + StackGranularity 评估器 + MigrationPlanner/StateMover/Rollback/Sunset，D26）；DB 加 `layer_rule_set_versions` + `layer_logical_refs` + `stack_grouping_rules` 表（D24+D26）；catalog 项加 `layer_logical_id`（稳定身份，不直接绑版本）+ `stack_grouping` 字段；stacks 表加 `layer_rule_set_version_id` pin（D26）；codegen 接 PathGenerator（specs/05）。详见 `docs/02` §7 + `docs/04` §2.9。
 
 ### D25 — 模块零侵入：cardinality 调用方注入，模块定义单实例语义
@@ -372,7 +372,7 @@ Terramate 是纯 CLI 编排引擎，定位是"面向会写 HCL 的工程师"。�
 
 ### D27 — 环境与租户网络模型：Environment/Tenant 一等对象 + EnvironmentTenantBinding 三元组 + VPC-per-tenant-env 默认 + Account-per-tenant escape hatch + VPC 仍是 Global 层 stack（不引入新抽象）
 
-回应：D1-D26 覆盖了 layer / stack / bundle / team / cloud_account 五个维度，但**多租户、多独立 VPC、env 维度授权全部空白**。当前 `stacks.env` 只是反规范化字符串，没有 env/tenant/VPC 的绑定关系，无法回答"这个团队在 prod 环境用哪个 VPC、哪段子网"、"外部客户 corp-a 怎么独立隔离"。
+回应：D1-D26 覆盖了 layer / stack / space / team / cloud_account 五个维度，但**多租户、多独立 VPC、env 维度授权全部空白**。当前 `stacks.env` 只是反规范化字符串，没有 env/tenant/VPC 的绑定关系，无法回答"这个团队在 prod 环境用哪个 VPC、哪段子网"、"外部客户 corp-a 怎么独立隔离"。
 
 **（1）Environment 是一等治理对象，不是 stack 字段**。`environments` 表存：env_logical_id（dev/staging/prod/dr）+ stage 分类 + cloud_account_id + region + 默认 tag_namespace + network_topology 模式。`stacks.env` 字段保留为反规范化便利，权威以 `environments` 表为准（参考 Spacelift「environment = label + Contexts」与 TFC workspace + variable set 的分层）。**理由**：env 决定治理强度（prod 强审批 / dev 自动放行）、网络位置、成本预算基线——这些是「治理对象」属性，不该散落在每个 stack 上重复配置。
 
@@ -402,7 +402,7 @@ Terramate 是纯 CLI 编排引擎，定位是"面向会写 HCL 的工程师"。�
 
 ### D28 — 标签分层与参数解析管道：Tag 7 层来源 + 参数 9 阶段解析 + Provenance 审计 + 校验门 + 冲突规则明确化
 
-回应：docs/14 §3 定义了 4 个 platform-mandated tag（platform-managed/team/bundle/stack），但**没有定义 tag 来源分层**——env/tenant/team/catalog/user 谁先谁后？docs/09 表单 tags 字段与 specs/05 强制注入互相冲突（用户填了被覆盖，体验割裂）。specs/05 定义了参数合并的 4 来源 + 优先级，但**缺 env/tenant/team/layer-rule 4 个业界必有的来源层**，**没有 provenance 审计字段**——无法回答"这个 vpc_id 值哪来的、为什么 encrypt=true"。
+回应：docs/14 §3 定义了 4 个 platform-mandated tag（platform-managed/team/space/stack），但**没有定义 tag 来源分层**——env/tenant/team/catalog/user 谁先谁后？docs/09 表单 tags 字段与 specs/05 强制注入互相冲突（用户填了被覆盖，体验割裂）。specs/05 定义了参数合并的 4 来源 + 优先级，但**缺 env/tenant/team/layer-rule 4 个业界必有的来源层**，**没有 provenance 审计字段**——无法回答"这个 vpc_id 值哪来的、为什么 encrypt=true"。
 
 **（1）Tag 来源分层 = 7 层，优先级递减，但 L1 永远赢**：
 
@@ -411,7 +411,7 @@ Terramate 是纯 CLI 编排引擎，定位是"面向会写 HCL 的工程师"。�
 | **L1 platform-mandated** | 平台常量 | `platform-managed=true` | 不可改（D7 强制注入） |
 | **L2 env** | `environments.tag_namespace_json` | `env=prod`, `cost-center=CC-P-01` | 平台运维 |
 | **L3 tenant** | `tenants.tag_namespace_json` | `tenant=corp-a`, `compliance=pci-dss` | 平台运维 |
-| **L4 team/bundle** | `teams.tags_json` + `bundles.tags_json` | `platform-team=dba`, `platform-bundle=orders` | 团队 owner |
+| **L4 team/space** | `teams.tags_json` + `spaces.tags_json` | `platform-team=dba`, `platform-space=orders` | 团队 owner |
 | **L5 stack** | codegen 自动派生 | `platform-stack=rds-orders-prod` | 自动 |
 | **L6 catalog defaults** | `catalog_items.default_tags_json` | `app=order-service` | catalog 注册者 |
 | **L7 user form** | `requests.form_json.tags` | `owner=zhangsan` | 申请者（受白名单约束） |
@@ -491,7 +491,7 @@ Terramate 是纯 CLI 编排引擎，定位是"面向会写 HCL 的工程师"。�
   ├── middleware/                          ← Middleware 层
   │   └── {tenant}/{component}-{env}/      ← DBA/中间件团队管
   └── application/                         ← Application 层
-      └── {tenant}/{team}/[bundle/]{component}-{env}/
+      └── {tenant}/{team}/[space/]{component}-{env}/
   ```
 - **Terramate 使用边界（4 个场景，不重写）**：
   | 场景 | Terramate 能力 | 平台如何调用 |

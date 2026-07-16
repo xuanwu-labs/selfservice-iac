@@ -154,13 +154,13 @@ deleted_at TIMESTAMPTZ NULL,
 
 > **P0 修复（对账 skill UNIQUE NULLs）**：软删除 + 唯一性用 **partial unique index**，**不用** `deleted_at` 进 UNIQUE 列。
 >
-> 旧写法（错）：`CONSTRAINT uq_stacks_path UNIQUE (bundle_id, component, env, deleted_at)` —— PG 默认允许多个 NULL，未删行（deleted_at NULL）多行共存，唯一性实际不成立。
+> 旧写法（错）：`CONSTRAINT uq_stacks_path UNIQUE (space_id, component, env, deleted_at)` —— PG 默认允许多个 NULL，未删行（deleted_at NULL）多行共存，唯一性实际不成立。
 >
 > 正确写法（skill 软删业界标准，GitHub/Linear 同款）：
 > ```sql
 > -- 只约束未删行；删了可重建同名
 > CREATE UNIQUE INDEX uq_stacks_path_active
->     ON stacks (bundle_id, component, env)
+>     ON stacks (space_id, component, env)
 >     WHERE deleted_at IS NULL;
 > ```
 > 命名约定：`uq_<table>_<cols>_active`（`_active` 后缀表明只约束未删行）。
@@ -220,9 +220,9 @@ teams(id, name, slug, kind[platform|dba|middleware|business], status[active|depr
   -- 唯一: uq_teams_slug_active ON (slug) WHERE deleted_at IS NULL
 projects(id, name, team_id FK→teams, created_at, updated_at, deleted_at)
   -- FK 索引: ix_projects_team_id
-bundles(id, name, project_id FK→projects, layer_logical_id FK→layer_logical_refs,
+spaces(id, name, project_id FK→projects, layer_logical_id FK→layer_logical_refs,
         repo_path, tags_json, created_at, updated_at, deleted_at)
-  -- FK 索引: ix_bundles_project_id, ix_bundles_layer_logical_id
+  -- FK 索引: ix_spaces_project_id, ix_spaces_layer_logical_id
 ```
 **对账 docs**：teams 加 status（doc 04 §2.1 + 业务生命周期）；policy_json 是 doc 08 S6 team 策略落点（allowed_regions/cost_cap/mandatory_tags）。
 
@@ -255,7 +255,7 @@ catalog_items(id, module_version_id FK→module_versions, display_name, descript
   cardinality TEXT CHECK(cardinality IN ('single','list','map')),   -- D25
   instance_key, per_instance_fields_json, shared_fields_json,
   layer_logical_id FK→layer_logical_refs, stack_grouping TEXT CHECK(stack_grouping IN
-    ('per-component','per-bundle','per-team','custom')),   -- D24
+    ('per-component','per-space','per-team','custom')),   -- D24
   owner_team_id FK→teams, default_tags_json,   -- L6 catalog defaults（doc 08）
   user_allowed_tag_keys_json,   -- L7 用户 tag 白名单（doc 08）
   visibility_json,   -- 团可见性（team_ids 数组）
@@ -269,7 +269,7 @@ catalog_items(id, module_version_id FK→module_versions, display_name, descript
 #### A4. 工单生命周期（4 张）
 ```
 requests(
-  id, catalog_item_id FK→catalog_items, bundle_id FK→bundles nullable,
+  id, catalog_item_id FK→catalog_items, space_id FK→spaces nullable,
   env_id, tenant_id, team_id FK→teams, requester_id,
   kind TEXT CHECK(kind IN ('standard','drift_remediation','legacy_import','maintenance_apply')),
   source TEXT CHECK(source IN ('web','cli','cicd','ai','gateway')),
@@ -376,7 +376,7 @@ workspace_checkouts(id, workspace_id FK→workspaces, node_id, worktree_path, br
   status CHECK(active|released|stale), created_at, updated_at)
   -- 每工单独占 worktree；pinned_commit 是 requests.pinned_commit 的归属目标（消除孤儿）。
   -- 索引: ix_workspace_checkouts_status（重启 reconcile 扫 stale，doc 10 §4）
-stacks(id, bundle_id FK→bundles nullable, catalog_item_id FK→catalog_items,
+stacks(id, space_id FK→spaces nullable, catalog_item_id FK→catalog_items,
   layer_logical_id FK→layer_logical_refs, layer_rule_set_version_id FK→layer_rule_set_versions(version_id),
   owner_team_id FK→teams, layer, component, env, tenant_id DEFAULT 'platform-default',
   stack_id, repo_path, state_key, terramate_tags_json,
@@ -452,7 +452,7 @@ catalog_blueprints(id, name, display_name, description, category,
   owner_team_id FK→teams, layer_logical_id FK→layer_logical_refs nullable,
   visibility_json, version INT DEFAULT 1, created_at, updated_at, deleted_at)
   -- 组合模板：用户一次申请一套资源（如"订单微服务套件"= VPC+RDS+Redis+ECS+SLB）。
-  -- 与 bundles（路径分组）正交：bundles 管"目录/成本/标签分组"，
+  -- 与 spaces（路径分组）正交：spaces 管"目录/成本/标签分组"，
   -- catalog_blueprints 管"一次申请多个 catalog_item 的模板 + 参数映射"。
   -- 编排顺序由 stacks 的 stack.tm.hcl after/watch 表达（Terramate DAG），本表只管模板定义。
 catalog_blueprint_items(id, blueprint_id FK→catalog_blueprints CASCADE,
@@ -463,8 +463,8 @@ catalog_blueprint_items(id, blueprint_id FK→catalog_blueprints CASCADE,
   required BOOL DEFAULT TRUE,       -- false=可选加购
   created_at)
 ```
-**设计依据**（2026-07-16 架构审查）：用户场景"一次申请一套组合"当前无产品入口——catalog_items 是单 atomic，bundles 是路径分组，stack_dependencies 是运行时关系。组合模板填补"设计时模板 + 参数映射"缺口，codegen 展开后生成 N 个 stack，每 stack 仍独立 state/审批/回滚（防爆炸）。
-**与 Terramate bundle 的区分**：Terramate bundle 是静态 HCL 求值（cty.Value 单次计算），无 provenance/拒绝门；Aether blueprint 的参数映射走 codegen 9 阶段管道（每 item 参数经 S1-S9 合并 + provenance 审计）。MPL-2.0 开源无商业限制，但技术不匹配（静态 vs 9 阶段动态），故自研表。
+**设计依据**（2026-07-16 架构审查）：用户场景"一次申请一套组合"当前无产品入口——catalog_items 是单 atomic，spaces 是路径分组，stack_dependencies 是运行时关系。组合模板填补"设计时模板 + 参数映射"缺口，codegen 展开后生成 N 个 stack，每 stack 仍独立 state/审批/回滚（防爆炸）。
+**与 Terramate space 的区分**：Terramate space 是静态 HCL 求值（cty.Value 单次计算），无 provenance/拒绝门；Aether blueprint 的参数映射走 codegen 9 阶段管道（每 item 参数经 S1-S9 合并 + provenance 审计）。MPL-2.0 开源无商业限制，但技术不匹配（静态 vs 9 阶段动态），故自研表。
 
 #### B2a. stack 注册表（已于 2026-07-16 提升至 A9 MVP）
 > stacks + stack_dependencies 已在 A9 落迁移（含补 layer_logical_id + layer_rule_set_version_id 闭合动态分层链路）。此处保留索引。
@@ -496,7 +496,7 @@ identities(id, external_id, display_name, email, provider_name FK→oidc_provide
 sessions(id, identity_id FK→identities, idp_session_id, issued_at, expires_at, revoked_at)
   -- FK 索引: ix_sessions_identity_id
 role_bindings(id, subject_id, role,
-  scope_type TEXT CHECK(scope_type IN ('team','project','bundle','stack','layer')),
+  scope_type TEXT CHECK(scope_type IN ('team','project','space','stack','layer')),
   scope_id, actions_json)
   -- 索引: ix_role_bindings_(subject_id), ix_role_bindings_(scope_type, scope_id)
 emergency_runs(id, request_id FK→requests, break_glass_operator_ids_json, reason, recording_url,
@@ -599,7 +599,7 @@ runbooks(runbook_id PK, title, severity TEXT CHECK(severity IN ('p0','p1','p2'))
 #### B8. 分层迁移（Phase 2-3 实现，docs/04 §2.9）
 ```
 stack_grouping_rules(id, scope_type TEXT CHECK(scope_type IN ('catalog_item','layer','global')),
-  scope_id, granularity TEXT CHECK(granularity IN ('per-component','per-bundle','per-team','custom')),
+  scope_id, granularity TEXT CHECK(granularity IN ('per-component','per-space','per-team','custom')),
   custom_rule_json, priority INT, created_at, updated_at)
 layer_migrations(id, from_version_id FK→layer_rule_set_versions, to_version_id FK→layer_rule_set_versions,
   batch_id, stack_id FK→stacks, tier TEXT CHECK(tier IN ('1','2','3')),
@@ -611,24 +611,24 @@ layer_migrations(id, from_version_id FK→layer_rule_set_versions, to_version_id
 
 #### B9. CMDB 与 FinOps（Wave 4 实现，docs/04 §2.11 + docs/14）
 ```
-resources(id, stack_id FK→stacks nullable, bundle_id FK→bundles nullable,
+resources(id, stack_id FK→stacks nullable, space_id FK→spaces nullable,
   team_id FK→teams nullable, tenant_id,   -- doc 07 §7 tenant_id 反规范化（租户级成本归集）
   layer, address, type, cloud_provider, region, cloud_resource_id, name,
   tags_json, attributes_json, monthly_cost_estimate_cents, currency, managed BOOL,
   status TEXT CHECK(status IN ('active','drifted','orphan','destroyed')),   -- doc 14 §2
   first_seen_at, last_synced_at, created_at, updated_at)
-  -- FK 索引: ix_resources_stack_id, ix_resources_bundle_id, ix_resources_team_id
+  -- FK 索引: ix_resources_stack_id, ix_resources_space_id, ix_resources_team_id
   -- GIN: ix_resources_tags ON (tags_json)（成本归集锚点，doc 18）
 resource_relations(id, source_resource_id FK→resources, target_resource_id FK→resources,
   relation_type, created_at)
   -- doc 14 §2 资源关系图（dependency/contains/part-of）
   -- FK 索引: ix_resource_relations_source, ix_resource_relations_target
-cost_records(id, period_month, team_id FK→teams, bundle_id FK→bundles, stack_id FK→stacks,
+cost_records(id, period_month, team_id FK→teams, space_id FK→spaces, stack_id FK→stacks,
   resource_id FK→resources nullable,   -- nullable：unallocated cost（doc 14 §2）
   cloud_provider, service_code, amount_cents, currency,
   cost_source TEXT CHECK(cost_source IN ('bill','estimate')), tags_json, recorded_at, created_at)
   -- FK 索引: ix_cost_records_resource_id, ix_cost_records_(team_id, period_month)
-cost_budgets(id, scope_type TEXT CHECK(scope_type IN ('team','bundle','stack','layer')),
+cost_budgets(id, scope_type TEXT CHECK(scope_type IN ('team','space','stack','layer')),
   scope_id, period_month, budget_cents, alert_thresholds_json,
   alert_status TEXT CHECK(alert_status IN ('ok','warning','exceeded')), created_at, updated_at)
 finops_recommendations(id,
@@ -643,13 +643,13 @@ finops_recommendations(id,
 
 #### B10. 云凭据管理（Wave 5 实现，docs/04 §2.12 权威）
 ```
-team_cloud_grants(id, team_id FK→teams, bundle_id FK→bundles nullable,
+team_cloud_grants(id, team_id FK→teams, space_id FK→spaces nullable,
   cloud_account_id FK→cloud_accounts, allowed_layers_json, iam_role_template,
   budget_quota_cents, expires_at, env_scope_json, granted_by, granted_at, created_at, updated_at)
   -- FK 索引: ix_team_cloud_grants_team_id, ix_team_cloud_grants_cloud_account_id
   -- GIN: ix_team_cloud_grants_env_scope ON (env_scope_json)（doc 06 §8 JSON_CONTAINS 查询）
 cloud_credentials(id, cloud_account_id FK→cloud_accounts, team_id FK→teams nullable,
-  bundle_id FK→bundles nullable,
+  space_id FK→spaces nullable,
   credential_type TEXT CHECK(credential_type IN ('bootstrap','execution_long_lived','execution_oidc')),
   name, secret_ref, iam_role_assumed,
   status TEXT CHECK(status IN ('active','rotating','revoked','expired')),
@@ -680,7 +680,7 @@ environment_tenant_bindings(id, env_id FK→environments, tenant_id FK→tenants
 
 #### B12. 标签策略（Wave 7 实现，docs/04 §2.14）
 ```
-tag_policies(id, scope_type TEXT CHECK(scope_type IN ('platform','env','tenant','team','bundle','catalog_item')),
+tag_policies(id, scope_type TEXT CHECK(scope_type IN ('platform','env','tenant','team','space','catalog_item')),
   scope_id, tag_namespace_json, mandatory_keys_json, user_allowed_tag_keys_json,
   version INT, created_at, updated_at)
 tag_policy_versions(id, tag_policy_id FK→tag_policies, version INT,
@@ -713,7 +713,7 @@ gate_events(id, request_id FK→requests,
 #### B14. 存量导入（Wave 5 实现，docs/04 §2.16 + docs/15）
 ```
 import_jobs(id, request_id FK→requests nullable, module_version_id FK→module_versions,
-  catalog_item_id FK→catalog_items, bundle_id FK→bundles nullable, requester_id,
+  catalog_item_id FK→catalog_items, space_id FK→spaces nullable, requester_id,
   lifecycle TEXT CHECK(lifecycle IN ('discovered','candidate','imported-limited','managed-readonly',
     'managed-changeable','standard','failed')),   -- doc 15 §1 七态
   status TEXT CHECK(status IN ('pending','running','waiting-review','succeeded','failed','cancelled')),

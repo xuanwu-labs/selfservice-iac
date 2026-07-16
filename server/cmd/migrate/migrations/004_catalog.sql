@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS catalog_items (
     shared_fields_json          JSONB        NOT NULL DEFAULT '{}',            -- D25: fields shared across all instances
     layer_logical_id            TEXT         NULL,                             -- FK added by 010_layers; layer this catalog item belongs to
     stack_grouping              TEXT         NOT NULL DEFAULT 'per-component'
-                                CHECK (stack_grouping IN ('per-component', 'per-bundle', 'per-team', 'custom')),  -- D24 StackGranularity
+                                CHECK (stack_grouping IN ('per-component', 'per-space', 'per-team', 'custom')),  -- D24 StackGranularity
     owner_team_id               BIGINT       NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,  -- team responsible for this catalog item
     default_tags_json           JSONB        NOT NULL DEFAULT '{}',            -- L6 catalog default tags (doc 08 tag 7-layer model)
     user_allowed_tag_keys_json  JSONB        NOT NULL DEFAULT '[]',            -- L7 user tag whitelist (doc 08; empty = no custom tags allowed)
@@ -46,7 +46,7 @@ COMMENT ON COLUMN catalog_items.instance_key IS 'D25: variable name used as the 
 COMMENT ON COLUMN catalog_items.per_instance_fields_json IS 'D25: fields that vary per instance (read from each.value).';
 COMMENT ON COLUMN catalog_items.shared_fields_json IS 'D25: fields shared across all instances.';
 COMMENT ON COLUMN catalog_items.layer_logical_id IS 'Layer this catalog item belongs to. FK added by 010_layers (layer_logical_refs).';
-COMMENT ON COLUMN catalog_items.stack_grouping IS 'D24 StackGranularity: per-component|per-bundle|per-team|custom.';
+COMMENT ON COLUMN catalog_items.stack_grouping IS 'D24 StackGranularity: per-component|per-space|per-team|custom.';
 COMMENT ON COLUMN catalog_items.owner_team_id IS 'Team responsible for this catalog item. FK teams(id) ON DELETE RESTRICT.';
 COMMENT ON COLUMN catalog_items.default_tags_json IS 'L6 catalog default tags (doc 08 tag 7-layer model).';
 COMMENT ON COLUMN catalog_items.user_allowed_tag_keys_json IS 'L7 user tag whitelist (doc 08; empty = no custom tags allowed).';

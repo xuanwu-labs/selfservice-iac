@@ -4,7 +4,7 @@
     "description": "RunPlan: Terramate wraps terraform plan",
     "action": "RunPlan",
     "workdir": "/workspaces/application/platform-default/team-a/orders/ecs-prod",
-    "scope_tags": ["layer:application", "env:dev", "team:team-a", "bundle:orders"],
+    "scope_tags": ["layer:application", "env:dev", "team:team-a", "space:orders"],
     "inputs": {
       "toolchain": {"terramate": "0.17", "terraform": "1.9"},
       "provider_lock": "aws@~>5.0"

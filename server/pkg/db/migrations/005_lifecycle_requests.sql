@@ -7,7 +7,7 @@
 CREATE TABLE IF NOT EXISTS requests (
     id                          BIGINT       PRIMARY KEY,                       -- snowflake ID
     catalog_item_id             BIGINT       NOT NULL REFERENCES catalog_items(id) ON DELETE RESTRICT,  -- FK catalog_items - what is being requested
-    bundle_id                   BIGINT       NULL REFERENCES bundles(id) ON DELETE RESTRICT,  -- FK bundles - request grouping (nullable for single item)
+    space_id                   BIGINT       NULL REFERENCES spaces(id) ON DELETE RESTRICT,  -- FK spaces - request grouping (nullable for single item)
     env_id                      TEXT         NOT NULL,                          -- MVP dangling string (envs table is B11)
     tenant_id                   TEXT         NOT NULL,                          -- MVP dangling string (tenants table is B11)
     team_id                     BIGINT       NOT NULL REFERENCES teams(id) ON DELETE RESTRICT,  -- FK teams - owning team
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS requests (
 COMMENT ON TABLE requests IS 'Lifecycle request state machine (19 statuses, doc 00 §5 + doc 12a). The central entity for provisioning.';
 COMMENT ON COLUMN requests.id IS 'Snowflake ID (app-generated BIGINT, no DB autoincrement).';
 COMMENT ON COLUMN requests.catalog_item_id IS 'What is being requested. FK catalog_items(id) ON DELETE RESTRICT.';
-COMMENT ON COLUMN requests.bundle_id IS 'Request grouping (nullable for single item). FK bundles(id) ON DELETE RESTRICT.';
+COMMENT ON COLUMN requests.space_id IS 'Request grouping (nullable for single item). FK spaces(id) ON DELETE RESTRICT.';
 COMMENT ON COLUMN requests.env_id IS 'MVP dangling string (envs table is B11).';
 COMMENT ON COLUMN requests.tenant_id IS 'MVP dangling string (tenants table is B11).';
 COMMENT ON COLUMN requests.team_id IS 'Owning team. FK teams(id) ON DELETE RESTRICT.';
@@ -71,7 +71,7 @@ COMMENT ON COLUMN requests.created_at IS 'Row creation time.';
 COMMENT ON COLUMN requests.updated_at IS 'Last update time (trigger-maintained).';
 
 CREATE INDEX IF NOT EXISTS ix_requests_catalog_item_id ON requests(catalog_item_id);
-CREATE INDEX IF NOT EXISTS ix_requests_bundle_id ON requests(bundle_id);
+CREATE INDEX IF NOT EXISTS ix_requests_space_id ON requests(space_id);
 CREATE INDEX IF NOT EXISTS ix_requests_team_id ON requests(team_id);
 CREATE INDEX IF NOT EXISTS ix_requests_plan_artifact_id ON requests(plan_artifact_id);
 CREATE INDEX IF NOT EXISTS ix_requests_layer_rule_set_version_id ON requests(layer_rule_set_version_id);
@@ -128,6 +128,6 @@ DROP INDEX IF EXISTS ix_requests_status;
 DROP INDEX IF EXISTS ix_requests_layer_rule_set_version_id;
 DROP INDEX IF EXISTS ix_requests_plan_artifact_id;
 DROP INDEX IF EXISTS ix_requests_team_id;
-DROP INDEX IF EXISTS ix_requests_bundle_id;
+DROP INDEX IF EXISTS ix_requests_space_id;
 DROP INDEX IF EXISTS ix_requests_catalog_item_id;
 DROP TABLE IF EXISTS requests;

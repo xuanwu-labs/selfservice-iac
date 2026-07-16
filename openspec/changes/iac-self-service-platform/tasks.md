@@ -74,13 +74,15 @@
 ## 01-平台骨架与适配器接口
 
 > **路径对齐**：原 `platform/` 已演进为 `server/`（见 docs/03 §演进注记、design D2）。业务域落 `server/core/`，基建落 `server/internal/`。task 1.1 的二进制骨架已由脚手架阶段完成（`server/cmd/{server,aether,migrate}`），本模块聚焦适配器接口 + TerramateAdapter。
+>
+> **实现状态**：task 1.2-1.5 已由子提案 `w1-adapter-interfaces` 完成（feat/w1-adapter-interfaces 分支，15/15 tasks done）。task 1.6（配置脚本）推迟到 W2。
 
-- [x] 1.1 ~~新增 `platform/` 顶层目录与 `platform/cmd/platform` 主二进制骨架~~ → **已由脚手架完成**：`server/cmd/server`（HTTP server 启停/健康检查/配置加载）、`server/cmd/aether`（CLI）、`server/cmd/migrate`（迁移 runner，go:embed）
-- [ ] 1.2 在 `server/core/adapters/{git,state,policy,cost,notify,cloud}` 定义可插拔适配器接口（见 docs/03 §2），各提供 noop/stub 默认实现
-- [ ] 1.3 定义 `server/core/terramate` 的 `TerramateAdapter` 接口与 exec 默认实现（封装 `terramate run/generate` 子进程调用、退出码与 stdout/stderr 捕获）—— D1 边界的代码守护
-- [ ] 1.4 修复 D1 lint：当前 `.golangci.yml` depguard 配置存在但 AGENTS.md 自认失效（terramate 不在 go.mod 时被 typechecker 静默丢弃）；补独立 lint test（如 `server/internal/audit/d1_guard_test.go`）确保 `server/**` 不得 import terramate 内部包
-- [ ] 1.5 测试：`go test ./server/core/adapters/... ./server/core/terramate/...`（接口契约 + exec 适配器用 fake terramate 脚本断言）
-- [ ] 1.6 脚本：在 `scripts/初始化/` 增加平台配置加载与适配器装配辅助脚本骨架
+- [x] 1.1 ~~新增 `platform/` 顶层目录与 `platform/cmd/platform` 二进制骨架~~ → **已由脚手架完成**：`server/cmd/server`（HTTP server 启停/健康检查/配置加载）、`server/cmd/aether`（CLI）、`server/cmd/migrate`（迁移 runner，go:embed）
+- [x] 1.2 在 `server/core/adapters/{git,state,policy,cost,notify,cloud}` 定义可插拔适配器接口（见 docs/03 §2），各提供 noop/stub 默认实现 ← 完成于 `w1-adapter-interfaces`
+- [x] 1.3 定义 `server/core/terramate` 的 `TerramateAdapter` 接口与 exec 默认实现（封装 `terramate run/generate` 子进程调用、退出码与 stdout/stderr 捕获）—— D1 边界的代码守护 ← 完成于 `w1-adapter-interfaces`
+- [x] 1.4 修复 D1 lint：当前 `.golangci.yml` depguard 配置存在但 AGENTS.md 自认失效（terramate 不在 go.mod 时被 typechecker 静默丢弃）；补独立 lint test（如 `server/internal/audit/d1_guard_test.go`）确保 `server/**` 不得 import terramate 内部包 ← 完成于 `w1-adapter-interfaces`
+- [x] 1.5 测试：`go test ./server/core/adapters/... ./server/core/terramate/...`（接口契约 + exec 适配器用 fake terramate 脚本断言）← 完成于 `w1-adapter-interfaces`
+- [ ] 1.6 脚本：在 `scripts/初始化/` 增加平台配置加载与适配器装配辅助脚本骨架 ← 推迟到 W2
 
 ## 02-元数据存储与迁移
 

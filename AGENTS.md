@@ -5,6 +5,28 @@
 ## 项目背景
 
 - **上游引擎**:`../terramate/`(开源 Terramate CLI)。平台通过 `exec` 调用 `terramate` CLI 进行编排执行(决策 D1),**不 import terramate 内部包**。
+
+## 核心术语表（vs Terramate vs 业界）
+
+本项目有 5 个核心概念，部分与 Terramate 同名但语义不同。**MUST 理解区别，不得混用**：
+
+| 我们的术语 | Terramate 对应 | 业界(Spacelift) | 是什么 |
+|-----------|---------------|-----------------|--------|
+| **module** | — | module | 注册表里的原子层 Terraform 模块（terraform-alicloud-modules/atomic/rds）|
+| **component** | component | — | stack 里实际部署的模块实例（stacks.component="rds"）。**1 stack = 1 component**（平台化防爆炸设计，D6+D25）|
+| **stack** | stack | stack | 部署单元 = 1 目录 + 1 独立 state + 1 审批 + 1 回滚。Terramate 原生概念，我们对齐 |
+| **space** | ~~bundle~~（不同语义！） | space | 路径分组（项目组/产品线的命名空间）。**Terramate 的 bundle 是组合模板（我们叫 blueprint），和我们的 space 完全不同**。原名 bundle，2026-07-16 改名 space 避免混淆 |
+| **blueprint** | bundle (Catalyst) | blueprint | 组合模板（一次申请多个 atomic module + 参数映射 → codegen 展开成 N 个独立 stack）。非 MVP（B2 设计定稿）|
+
+**关键关系**：
+- `space`（路径分组，无 state）──1:N──→ `stack`（有独立 state）──1:1──→ `component`（模块实例）
+- `blueprint`（组合模板）──展开──→ N 个 `stack`（每 stack 独立 state，不共享）
+- **1 stack = 1 component 是有意识的设计**（防爆炸：独立 state + 独立审批 + 独立回滚），不是 Terramate 的限制（Terramate 支持 1:N，但我们选 1:1）
+
+**命名规则**：
+- 表名用复数：`spaces`、`stacks`、`modules`
+- FK 字段：`space_id`（不是 `bundle_id`）
+- PathGenerator 模板变量：`{{.space}}`（不是 `{{.bundle}}`）
 - **方法论**:OpenSpec v1.5.0(`schema: spec-driven`),所有变更走 `openspec/changes/<change>/` 流程。
 - **当前 change**:
   - `openspec/changes/iac-self-service-platform/`(主设计:决策 D1–D30,22 份能力规格,23 份设计文档,6 份架构评审)
@@ -49,9 +71,22 @@ selfservice-iac/
 - **tasks** 按 `## 01-功能模块` 分组,按依赖排序,每个 task 必须配测试任务,最后一个 task 跑 `make build` + `make test`。
 - 产物目录:`changes/<change>/{proposal.md, design.md, tasks.md, specs/, docs/, scripts/}`。
 
-## Git 提交语言（开源规范，强制）
+## 语言规范（开源项目，权威定义在 config.yaml rules）
 
-**所有 commit message 必须全英文**（subject + body）。这是开源项目的基本要求。中文文档内容（docs/*.md、migration SQL 的 PG COMMENT、代码注释引用中文 doc）不在此限制内——限制的是 git commit message。详见 `server/AGENTS.md` 的 "Git 提交规范" 段。
+| 产出类型 | 语言 | 原因 |
+|---------|------|------|
+| **OpenSpec 文档**（proposal/design/tasks/specs 内容） | **中文** | 维护者要读、要审，中文更高效 |
+| **spec.md 结构标记**（ADDED Requirements / Requirement / Scenario / WHEN / THEN） | **英文** | OpenSpec CLI parser 要求，改了不认 |
+| **Scenario 标题 + WHEN/THEN 后的描述内容** | **中文** | 结构标记英文，内容中文（如 `#### Scenario: 未配置时返回错误` + `**WHEN** GitProvider 是 noop stub`） |
+| **代码注释**（Go 注释） | **英文** | 开源标准，面向全球贡献者 |
+| **commit message** | **英文** | 开源标准 |
+| **proto 注释** | **英文** | 开源标准 |
+
+详见 `openspec/config.yaml` 的 `rules.git` → "语言规范（开源项目）" 段。
+
+## Git 提交语言
+
+**所有 commit message 必须全英文**（subject + body）。详见 `server/AGENTS.md` 的 "Git 提交规范" 段。
 
 ## 分支策略（一个功能一个分支——最高优先级）
 
@@ -63,6 +98,69 @@ selfservice-iac/
 - **不在 main 直接提交**；所有改动走 feature 分支。
 - **只有跨功能的独立紧急修复**（main 上的生产 bug，不属于任何进行中的功能）才用 `fix/<描述>` 短命分支。
 - **分支命名**：`<type>/<简短描述>`，type = feat/fix/chore/docs/refactor/test。
+
+## OpenSpec 生命周期纪律（最高优先级，agent MUST 遵守）
+
+**agent 开始工作前 MUST 先读 `openspec/config.yaml` 的 `rules` 段**——特别是 `lifecycle-ownership` 规则。关键纪律：
+
+### 必须使用 `/opsx:` 命令操作 OpenSpec 生命周期
+
+本项目有 5 个 slash command 封装了 OpenSpec 工作流（`.zcode/commands/opsx/`）。**agent MUST 使用这些命令，不得手动建目录/手写文件替代。**
+
+| 命令 | 用途 | 何时用 |
+|------|------|--------|
+| `/opsx:propose <name>` | 新建 change + 用 CLI 脚手架生成全部 artifacts | 维护者说"新建提案/new change" |
+| `/opsx:apply <name>` | 实现 tasks（写代码 + 勾 `[x]`）| 维护者说"apply/开始实现" |
+| `/opsx:archive <name>` | 归档完成的 change（specs 并入主线 + 移到 archive/）| 维护者说"归档/archive" |
+| `/opsx:sync <name>` | delta specs 同步到主 specs（通常跟 archive 一起）| 维护者说"sync" |
+| `/opsx:explore <topic>` | 探索模式（思考/调研，不写代码）| 维护者说"explore/思考" |
+
+**禁止的做法**：
+- ❌ 手动 `mkdir changes/<name>/` + 手写 proposal/design/tasks —— 必须用 `/opsx:propose`（它调 `openspec new change` 脚手架 + `openspec instructions` 拿 template）
+- ❌ 手动勾 tasks `[x]` —— 必须在 `/opsx:apply` 流程中完成
+- ❌ 手动 `mv` 归档 —— 必须用 `/opsx:archive`
+
+**允许的做法（微调不需要命令）**：
+- ✅ `/opsx:propose` 后微调 artifacts 内容（改 proposal/design/tasks/specs）→ **直接编辑文件 + git commit**，不需要任何 `/opsx:` 命令
+- ✅ `/opsx:apply` 过程中发现设计问题需要改 artifacts → **直接编辑文件 + git commit**，apply 文档明确允许 "suggest updating artifacts"
+- ✅ `/opsx:explore` 讨论后想更新 artifacts → **直接编辑文件 + git commit**
+
+> **关键区分**：`/opsx:` 命令管**生命周期阶段切换**（propose→apply→sync→archive）；artifact **内容编辑**随时可直接改文件 + commit。需要命令的阶段切换有 4 个：
+> - **新建 change** → `/opsx:propose`（CLI 脚手架 + instructions template）
+> - **开始实现** → `/opsx:apply`（写代码 + 勾 tasks）
+> - **同步 specs** → `/opsx:sync`（delta specs 合并到主 specs，通常跟 archive 一起）
+> - **归档 change** → `/opsx:archive`（change 移到 archive/）
+>
+> 中间的微调、修正、补充都**直接编辑文件 + commit**，不需要命令。
+
+### 子提案与主提案的同步规则
+
+本项目有一个**主提案**（`iac-self-service-platform`，含全部 W1-W8 模块的 specs + tasks）和多个**子提案**（如 `w1-adapter-interfaces`、`w1-db-store`，每个对应一个 W1 模块）。
+
+**子提案完成时 MUST 同步主提案**：
+- 子提案 `/opsx:archive` 时（不是 apply 时），**手动编辑主提案 tasks.md**，把对应的 task 组勾 `[x]` + 标注"已归档于 w1-xxx"
+  - 例：`w1-adapter-interfaces` archive 时 → 编辑 `iac-self-service-platform/tasks.md` 把 `## 01-平台骨架与适配器接口` 的 1.2-1.6 勾 `[x]`
+  - **同步时机是 archive，不是 apply**——apply 只是实现完成，archive 才是正式交付
+- **这是手动编辑（直接改文件 + commit），不需要 `/opsx:` 命令**
+
+**子提案与主提案的 capability 命名**：
+- 子提案的 capability 名（如 `adapter-interfaces`）独立于主提案的 spec 文件名（如 `01-模块注册.md`）
+- 子提案归档时，`/opsx:sync` 把子提案的 delta specs 合并到主 specs（`openspec/specs/adapter-interfaces/spec.md`）
+- 主提案 `iac-self-service-platform/specs/` 下的 22 个文件是**人类阅读的能力设计参考**（历史遗留，CLI 不解析），不代表 CLI 可识别的 delta spec
+
+### 生命周期发起权
+
+1. **propose / apply / archive / sync 四个生命周期动作必须由维护者显式发起**。agent 不得擅自执行。
+   - **propose**：维护者说"新建提案" → agent 用 `/opsx:propose` 命令。**不能自己写代码**——代码是 apply 阶段的事。
+   - **apply**：维护者说"apply/开始实现" → agent 用 `/opsx:apply` 命令开始写代码。
+   - **archive**：维护者确认"做完了" → agent 用 `/opsx:archive` 命令归档。
+2. **agent 不得在 propose 阶段写实现代码**。propose 只产文档。代码在 apply 后才写。
+3. **openspec validate MUST 通过**才能推进。
+4. 若 agent 认为某 change 应推进，需向维护者说明依据并**等待明确指令**，而非直接执行。
+
+> **反面教材 1**：agent 在维护者只说"新建提案"时，不仅建了提案还直接写了实现代码 + 标记 tasks 完成——违反了 propose→apply 的先后顺序。
+>
+> **反面教材 2**：agent 手动 `mkdir` + 手写 proposal/design/tasks/specs 文件，没用 `/opsx:propose` 命令——导致 spec 目录结构错误（`specs/01-xxx.md` 而非 `specs/<capability>/spec.md`）、template 格式没遵循。正确做法是用 `/opsx:propose`，它会调 `openspec new change` + `openspec instructions` 拿正确的 template。
 
 ## 边界
 
@@ -79,11 +177,11 @@ selfservice-iac/
 
 OpenSpec 流程 `propose → apply → sync → archive` 中,**改变 change 状态的动作必须由维护者(人类)发起**,agent 只能在维护者指令下执行具体工作。
 
-| 动作 | 谁发起 | agent 能做什么 |
-|---|---|---|
-| **propose**(新建 change) | 🔒 维护者 | 起草 proposal/design/tasks **内容**;新建 change 目录/分支由维护者指令触发 |
-| **apply**(实现 tasks) | 🔒 维护者 | 写代码、跑测试、改文档(在维护者明确指令"开始实现 X"之后) |
-| **archive**(归档 change) | 🔒 维护者 | 验证 task 完成度、报告状态;归档操作由维护者指令触发 |
-| **sync**(specs 并入主线) | 🔒 维护者 | 跟随 archive 一起做 |
+| 动作 | 谁发起 | agent 能做什么 | 用的命令 |
+|---|---|---|---|
+| **propose**(新建 change) | 🔒 维护者 | 用 `/opsx:propose` 命令调 CLI 脚手架生成 artifacts | `/opsx:propose <name>` |
+| **apply**(实现 tasks) | 🔒 维护者 | 用 `/opsx:apply` 命令写代码、跑测试、勾 tasks | `/opsx:apply <name>` |
+| **archive**(归档 change) | 🔒 维护者 | 用 `/opsx:archive` 命令归档 + 同步 specs | `/opsx:archive <name>` |
+| **sync**(specs 并入主线) | 🔒 维护者 | 用 `/opsx:sync` 命令（通常跟 archive 一起）| `/opsx:sync <name>` |
 
 **红线**:agent 不得擅自新建 change、不得擅自归档、不得擅自把 change 标记完成或重新定义验收范围。这三类动作改变仓库结构语义,必须反映维护者真实意图。若 agent 判断某 change 应推进,需说明依据并等待指令。
