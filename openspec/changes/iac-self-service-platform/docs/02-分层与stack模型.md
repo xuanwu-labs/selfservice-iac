@@ -46,6 +46,29 @@ application/platform-default/team-b/
 
 **同 stack 内多实例（5 台 ECS、3 个 Kafka Topic）用 Terraform `for_each`/`count`**，不拆 stack（避免 stack/state 爆炸，详见 §5）。
 
+**1:1 粒度的业界依据**（客观论证，对齐 Terramate 官方 + Spacelift 共识）：
+
+| 维度 | 证据 |
+|------|------|
+| Terramate 官方推荐 | ["How to structure and size Terraform Stacks"](https://terramate.io/rethinking-iac/how-to-structure-and-size-terraform-stacks/) 明确推荐 **Service Stack 模式**（one stack per service and environment）。1 component = 1 stack 对齐该模式的中位粒度。 |
+| Spacelift 业界实践 | 社区共识 "one Spacelift stack per enabled root module"（masterpoint.io automation）；2025 趋势是拆 stack 不是合并（addshore.com "splitting a stack in 2"），核心理由是 blast radius + 独立审批 + 变更检测。 |
+| 不是过度拆分 | component 允许 `for_each` 多实例（5 台 ECS = 1 stack），不等于"每资源一个 stack"（那才是 Microservice Stack 过度拆分）。 |
+| blueprint 补偿 | 组合申请（一次 N 个资源）用 blueprint 展开 N stack + DAG 排序，用户体验不退化。 |
+
+**结论**：1:1 在"独立生命周期 + 独立 state + 独立审批"三要素下是最优，前提是 blueprint（组合模板）+ stack_dependencies（DAG）+ Terramate `--parallel N`（并行）三者配合（见 §5 + docs/06）。
+
+### 1.3 space 不支持嵌套（重要约束）
+
+> **约束**：space 是**单层可选**的路径分组，不支持任意层级嵌套（即不能 `orders/prod/ecs-prod/` 这种 space 下再嵌套 space）。
+
+| 场景 | 正确做法 | 错误做法 |
+|------|---------|---------|
+| 业务部门下多个团队/产品线 | `team`（路径第 2 段）+ `space`（路径第 3 段）两层组合 | ❌ 用 space 嵌套表达 |
+| 需要 3+ 层级（大部门→子部门→产品线） | 用 `tags_json` 表达深层归属（如 `division=ecommerce-domestic`），路径保持 2 层 | ❌ space 嵌套 |
+| SaaS 多租户频繁 3+ 层 | 未来扩展 space 为 `ltree + parent_id`（非 MVP，YAGNI）| ❌ MVP 就引入树形 |
+
+**理由**：① 当前 `spaces` 表无 `parent_id`、非 ltree（doc 04）；② PathGenerator 契约是 `[space/]` 单段；③ 嵌套会引入 RBAC 继承 + 审批路由复杂度，MVP 不值得；④ 90% 业务场景两层够用。
+
 ## 2. 目录布局（确定性路径）
 
 > **权威 Path Contract**：本节以 `design.md` D29 为准。工作仓库采用单仓 + layer-first 拓扑；`tenant/env/team/space/component` 是路径和 Terramate tags 的维度，但不再保留 tenant-first 或 legacy `globals/<env>` 作为并列模板。PathGenerator 必须一次性输出 `repo_path`、`state_key`、`stack_id`、Terramate tags，四者共同构成 stack 身份契约。
