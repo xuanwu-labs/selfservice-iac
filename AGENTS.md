@@ -116,9 +116,9 @@ selfservice-iac/
 本项目有一个**主提案**（`iac-self-service-platform`，含全部 W1-W8 模块的 specs + tasks）和多个**子提案**（如 `w1-adapter-interfaces`、`w1-db-store`，每个对应一个 W1 模块）。
 
 **子提案完成时 MUST 同步主提案**：
-- 子提案 `/opsx:apply` 完成后，**手动编辑主提案 tasks.md**，把对应的 task 组勾 `[x]`
-  - 例：`w1-adapter-interfaces` 完成 → 编辑 `iac-self-service-platform/tasks.md` 把 `## 01-平台骨架与适配器接口` 的 1.2-1.6 勾 `[x]`
-- 子提案 `/opsx:archive` 后，主提案 tasks.md 的对应模块标注"已归档于 w1-xxx"
+- 子提案 `/opsx:archive` 时（不是 apply 时），**手动编辑主提案 tasks.md**，把对应的 task 组勾 `[x]` + 标注"已归档于 w1-xxx"
+  - 例：`w1-adapter-interfaces` archive 时 → 编辑 `iac-self-service-platform/tasks.md` 把 `## 01-平台骨架与适配器接口` 的 1.2-1.6 勾 `[x]`
+  - **同步时机是 archive，不是 apply**——apply 只是实现完成，archive 才是正式交付
 - **这是手动编辑（直接改文件 + commit），不需要 `/opsx:` 命令**
 
 **子提案与主提案的 capability 命名**：
