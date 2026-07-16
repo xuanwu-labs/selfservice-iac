@@ -30,6 +30,12 @@ message CatalogItem {
   aether.platform.v1.registry.ModuleVersion module_version = 6;
   string form_schema_json = 7;
   map<string, string> default_tags = 8;
+  // owner_team_id: team responsible for this catalog item (DB NOT NULL).
+  string owner_team_id = 9;
+  // stack_grouping: D24 StackGranularity. Drives PathGenerator stack partitioning.
+  aether.platform.v1.common.StackGranularity stack_grouping = 10;
+  // layer_logical_id: stable layer identity (D24/D26). FK layer_logical_refs.
+  string layer_logical_id = 11;
 }
 
 // ModuleDependencyInfo is the consumer-side view of a module's
@@ -115,6 +121,8 @@ message PublishCatalogItemRequest {
   repeated string visible_to_teams = 12;
   string layer_logical_id = 13;
   map<string, string> default_tags = 14;
+  // owner_team_id: team that owns this catalog item (DB NOT NULL).
+  string owner_team_id = 15;
 }
 
 message PublishCatalogItemResponse {

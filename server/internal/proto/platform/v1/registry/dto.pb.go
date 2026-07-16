@@ -23,16 +23,22 @@ const (
 )
 
 type Module struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	GitSource     string                 `protobuf:"bytes,4,opt,name=git_source,json=gitSource,proto3" json:"git_source,omitempty"`
-	Provider      string                 `protobuf:"bytes,5,opt,name=provider,proto3" json:"provider,omitempty"`
-	Status        common.ModuleStatus    `protobuf:"varint,6,opt,name=status,proto3,enum=aether.platform.v1.common.ModuleStatus" json:"status,omitempty"`
-	Versions      []*ModuleVersion       `protobuf:"bytes,7,rep,name=versions,proto3" json:"versions,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     string                 `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Id          string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name        string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	GitSource   string                 `protobuf:"bytes,4,opt,name=git_source,json=gitSource,proto3" json:"git_source,omitempty"`
+	Provider    string                 `protobuf:"bytes,5,opt,name=provider,proto3" json:"provider,omitempty"`
+	Status      common.ModuleStatus    `protobuf:"varint,6,opt,name=status,proto3,enum=aether.platform.v1.common.ModuleStatus" json:"status,omitempty"`
+	Versions    []*ModuleVersion       `protobuf:"bytes,7,rep,name=versions,proto3" json:"versions,omitempty"`
+	CreatedAt   string                 `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt   string                 `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// module_path: subdir within the git repo (e.g. "atomic/rds"). Empty = root.
+	// Maps to modules.module_path column (DB NOT NULL DEFAULT ”).
+	ModulePath string `protobuf:"bytes,10,opt,name=module_path,json=modulePath,proto3" json:"module_path,omitempty"`
+	// owner_team_id: team responsible for this module. Maps to
+	// modules.owner_team_id (DB NOT NULL). Required at registration.
+	OwnerTeamId   string `protobuf:"bytes,11,opt,name=owner_team_id,json=ownerTeamId,proto3" json:"owner_team_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -126,6 +132,20 @@ func (x *Module) GetCreatedAt() string {
 func (x *Module) GetUpdatedAt() string {
 	if x != nil {
 		return x.UpdatedAt
+	}
+	return ""
+}
+
+func (x *Module) GetModulePath() string {
+	if x != nil {
+		return x.ModulePath
+	}
+	return ""
+}
+
+func (x *Module) GetOwnerTeamId() string {
+	if x != nil {
+		return x.OwnerTeamId
 	}
 	return ""
 }
@@ -303,13 +323,16 @@ func (x *ModuleDependency) GetRequired() bool {
 }
 
 type RegisterModuleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GitSource     string                 `protobuf:"bytes,1,opt,name=git_source,json=gitSource,proto3" json:"git_source,omitempty"`
-	ModulePath    string                 `protobuf:"bytes,2,opt,name=module_path,json=modulePath,proto3" json:"module_path,omitempty"`
-	Version       string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
-	Provider      string                 `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`
-	Name          string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	GitSource   string                 `protobuf:"bytes,1,opt,name=git_source,json=gitSource,proto3" json:"git_source,omitempty"`
+	ModulePath  string                 `protobuf:"bytes,2,opt,name=module_path,json=modulePath,proto3" json:"module_path,omitempty"`
+	Version     string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	Provider    string                 `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`
+	Name        string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
+	Description string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
+	// owner_team_id: team that owns this module (DB NOT NULL). The caller
+	// must be a member of this team or an admin.
+	OwnerTeamId   string `protobuf:"bytes,7,opt,name=owner_team_id,json=ownerTeamId,proto3" json:"owner_team_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -382,6 +405,13 @@ func (x *RegisterModuleRequest) GetName() string {
 func (x *RegisterModuleRequest) GetDescription() string {
 	if x != nil {
 		return x.Description
+	}
+	return ""
+}
+
+func (x *RegisterModuleRequest) GetOwnerTeamId() string {
+	if x != nil {
+		return x.OwnerTeamId
 	}
 	return ""
 }
@@ -738,7 +768,7 @@ var File_platform_v1_registry_dto_proto protoreflect.FileDescriptor
 
 const file_platform_v1_registry_dto_proto_rawDesc = "" +
 	"\n" +
-	"\x1eplatform/v1/registry/dto.proto\x12\x1baether.platform.v1.registry\x1a\x1cplatform/v1/common/dto.proto\x1a\x1dplatform/v1/common/enum.proto\"\xd0\x02\n" +
+	"\x1eplatform/v1/registry/dto.proto\x12\x1baether.platform.v1.registry\x1a\x1cplatform/v1/common/dto.proto\x1a\x1dplatform/v1/common/enum.proto\"\x95\x03\n" +
 	"\x06Module\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -751,7 +781,11 @@ const file_platform_v1_registry_dto_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\b \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\t \x01(\tR\tupdatedAt\"\x96\x02\n" +
+	"updated_at\x18\t \x01(\tR\tupdatedAt\x12\x1f\n" +
+	"\vmodule_path\x18\n" +
+	" \x01(\tR\n" +
+	"modulePath\x12\"\n" +
+	"\rowner_team_id\x18\v \x01(\tR\vownerTeamId\"\x96\x02\n" +
 	"\rModuleVersion\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12\x1d\n" +
 	"\n" +
@@ -767,7 +801,7 @@ const file_platform_v1_registry_dto_proto_rawDesc = "" +
 	"\x11depends_on_module\x18\x04 \x01(\tR\x0fdependsOnModule\x12\x1d\n" +
 	"\n" +
 	"output_key\x18\x05 \x01(\tR\toutputKey\x12\x1a\n" +
-	"\brequired\x18\x06 \x01(\bR\brequired\"\xc3\x01\n" +
+	"\brequired\x18\x06 \x01(\bR\brequired\"\xe7\x01\n" +
 	"\x15RegisterModuleRequest\x12\x1d\n" +
 	"\n" +
 	"git_source\x18\x01 \x01(\tR\tgitSource\x12\x1f\n" +
@@ -776,7 +810,8 @@ const file_platform_v1_registry_dto_proto_rawDesc = "" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x12\x1a\n" +
 	"\bprovider\x18\x04 \x01(\tR\bprovider\x12\x12\n" +
 	"\x04name\x18\x05 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x06 \x01(\tR\vdescription\"U\n" +
+	"\vdescription\x18\x06 \x01(\tR\vdescription\x12\"\n" +
+	"\rowner_team_id\x18\a \x01(\tR\vownerTeamId\"U\n" +
 	"\x16RegisterModuleResponse\x12;\n" +
 	"\x06module\x18\x01 \x01(\v2#.aether.platform.v1.registry.ModuleR\x06module\"\xd3\x01\n" +
 	"\x12ListModulesRequest\x12F\n" +

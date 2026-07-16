@@ -32,6 +32,12 @@ message Module {
   repeated ModuleVersion versions = 7;
   string created_at = 8;
   string updated_at = 9;
+  // module_path: subdir within the git repo (e.g. "atomic/rds"). Empty = root.
+  // Maps to modules.module_path column (DB NOT NULL DEFAULT '').
+  string module_path = 10;
+  // owner_team_id: team responsible for this module. Maps to
+  // modules.owner_team_id (DB NOT NULL). Required at registration.
+  string owner_team_id = 11;
 }
 
 message ModuleVersion {
@@ -65,6 +71,9 @@ message RegisterModuleRequest {
   string provider = 4;
   string name = 5;
   string description = 6;
+  // owner_team_id: team that owns this module (DB NOT NULL). The caller
+  // must be a member of this team or an admin.
+  string owner_team_id = 7;
 }
 
 message RegisterModuleResponse {

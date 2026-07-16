@@ -315,3 +315,46 @@ message GetApprovalRunResponse {
   repeated ApprovalDecisionRecord decisions = 3;
   string correlation_id = 4;
 }
+
+// ============================================================
+// Stack domain objects (execution plane, migration 011 MVP).
+// A Stack is the codegen-produced deployment unit: one directory in
+// the infra-repo with its own stack.tm.hcl, state_key, and Terramate
+// tags. StackDependency captures the runtime cross-layer wiring that
+// Terramate's after/watch DAG consumes. These messages back the
+// ListStacks / GetStack RPCs used by the UI to show deployed state.
+// ============================================================
+
+message Stack {
+  string id = 1;
+  string stack_id = 2;                    // PathGenerator global-unique id (D29)
+  string catalog_item_id = 3;
+  string bundle_id = 4;                   // empty = no bundle
+  string layer = 5;                       // denormalized layer slug
+  string component = 6;
+  string env = 7;
+  string tenant_id = 8;
+  string owner_team_id = 9;
+  string repo_path = 10;                  // relative dir in infra-repo
+  string state_key = 11;                  // remote state key (D6)
+  // terramate_tags: the tags array written into stack.tm.hcl for
+  // `terramate run --tags` filtering (D29). At least layer/tenant/env/team.
+  repeated string terramate_tags = 12;
+  string state_backend_id = 13;           // empty = use platform default
+  string pinned_commit = 14;              // last commit touching this stack
+  aether.platform.v1.common.StackMigrationStatus migration_status = 15;
+  string sunset_deadline = 16;            // empty if not deprecated
+  int32 version = 17;                     // optimistic lock
+  string created_at = 18;
+  string updated_at = 19;
+}
+
+message StackDependency {
+  string id = 1;
+  string from_stack_id = 2;               // downstream stack (depends on)
+  string to_stack_id = 3;                 // upstream stack (depended upon)
+  aether.platform.v1.common.StackDependencyKind kind = 4;
+  string variable_name = 5;               // downstream var receiving upstream output
+  string output_key = 6;                  // upstream output key
+  string inject_as = 7;                   // data block alias in generated main.tf
+}

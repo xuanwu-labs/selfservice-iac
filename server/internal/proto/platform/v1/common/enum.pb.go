@@ -611,6 +611,180 @@ func (Cardinality) EnumDescriptor() ([]byte, []int) {
 	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{9}
 }
 
+// StackGranularity is the D24 stack-grouping strategy declared on a
+// catalog item. Determines how codegen partitions instances into stacks:
+//
+//	per-component = one stack per component (default, smallest blast radius)
+//	per-bundle    = one stack per bundle (coarser, for tightly coupled sets)
+//	per-team      = one stack per team (coarsest, rarely used)
+//	custom        = path_template override (advanced, admin-only)
+type StackGranularity int32
+
+const (
+	StackGranularity_STACK_GRANULARITY_UNSPECIFIED   StackGranularity = 0
+	StackGranularity_STACK_GRANULARITY_PER_COMPONENT StackGranularity = 1
+	StackGranularity_STACK_GRANULARITY_PER_BUNDLE    StackGranularity = 2
+	StackGranularity_STACK_GRANULARITY_PER_TEAM      StackGranularity = 3
+	StackGranularity_STACK_GRANULARITY_CUSTOM        StackGranularity = 4
+)
+
+// Enum value maps for StackGranularity.
+var (
+	StackGranularity_name = map[int32]string{
+		0: "STACK_GRANULARITY_UNSPECIFIED",
+		1: "STACK_GRANULARITY_PER_COMPONENT",
+		2: "STACK_GRANULARITY_PER_BUNDLE",
+		3: "STACK_GRANULARITY_PER_TEAM",
+		4: "STACK_GRANULARITY_CUSTOM",
+	}
+	StackGranularity_value = map[string]int32{
+		"STACK_GRANULARITY_UNSPECIFIED":   0,
+		"STACK_GRANULARITY_PER_COMPONENT": 1,
+		"STACK_GRANULARITY_PER_BUNDLE":    2,
+		"STACK_GRANULARITY_PER_TEAM":      3,
+		"STACK_GRANULARITY_CUSTOM":        4,
+	}
+)
+
+func (x StackGranularity) Enum() *StackGranularity {
+	p := new(StackGranularity)
+	*p = x
+	return p
+}
+
+func (x StackGranularity) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (StackGranularity) Descriptor() protoreflect.EnumDescriptor {
+	return file_platform_v1_common_enum_proto_enumTypes[10].Descriptor()
+}
+
+func (StackGranularity) Type() protoreflect.EnumType {
+	return &file_platform_v1_common_enum_proto_enumTypes[10]
+}
+
+func (x StackGranularity) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use StackGranularity.Descriptor instead.
+func (StackGranularity) EnumDescriptor() ([]byte, []int) {
+	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{10}
+}
+
+// StackMigrationStatus is the D26 Tier classification for a stack under a
+// layer-rule-set version change. Drives the StateMover / sunset lifecycle.
+type StackMigrationStatus int32
+
+const (
+	StackMigrationStatus_STACK_MIGRATION_STATUS_UNSPECIFIED       StackMigrationStatus = 0
+	StackMigrationStatus_STACK_MIGRATION_STATUS_STABLE            StackMigrationStatus = 1
+	StackMigrationStatus_STACK_MIGRATION_STATUS_MIGRATION_PENDING StackMigrationStatus = 2
+	StackMigrationStatus_STACK_MIGRATION_STATUS_MIGRATING         StackMigrationStatus = 3
+	StackMigrationStatus_STACK_MIGRATION_STATUS_DEPRECATED        StackMigrationStatus = 4
+)
+
+// Enum value maps for StackMigrationStatus.
+var (
+	StackMigrationStatus_name = map[int32]string{
+		0: "STACK_MIGRATION_STATUS_UNSPECIFIED",
+		1: "STACK_MIGRATION_STATUS_STABLE",
+		2: "STACK_MIGRATION_STATUS_MIGRATION_PENDING",
+		3: "STACK_MIGRATION_STATUS_MIGRATING",
+		4: "STACK_MIGRATION_STATUS_DEPRECATED",
+	}
+	StackMigrationStatus_value = map[string]int32{
+		"STACK_MIGRATION_STATUS_UNSPECIFIED":       0,
+		"STACK_MIGRATION_STATUS_STABLE":            1,
+		"STACK_MIGRATION_STATUS_MIGRATION_PENDING": 2,
+		"STACK_MIGRATION_STATUS_MIGRATING":         3,
+		"STACK_MIGRATION_STATUS_DEPRECATED":        4,
+	}
+)
+
+func (x StackMigrationStatus) Enum() *StackMigrationStatus {
+	p := new(StackMigrationStatus)
+	*p = x
+	return p
+}
+
+func (x StackMigrationStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (StackMigrationStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_platform_v1_common_enum_proto_enumTypes[11].Descriptor()
+}
+
+func (StackMigrationStatus) Type() protoreflect.EnumType {
+	return &file_platform_v1_common_enum_proto_enumTypes[11]
+}
+
+func (x StackMigrationStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use StackMigrationStatus.Descriptor instead.
+func (StackMigrationStatus) EnumDescriptor() ([]byte, []int) {
+	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{11}
+}
+
+// StackDependencyKind is the wiring type for a runtime cross-layer
+// dependency (D29 after/watch). codegen renders the corresponding Terraform
+// construct based on this value.
+type StackDependencyKind int32
+
+const (
+	StackDependencyKind_STACK_DEPENDENCY_KIND_UNSPECIFIED  StackDependencyKind = 0
+	StackDependencyKind_STACK_DEPENDENCY_KIND_REMOTE_STATE StackDependencyKind = 1
+	StackDependencyKind_STACK_DEPENDENCY_KIND_DATA_SOURCE  StackDependencyKind = 2
+	StackDependencyKind_STACK_DEPENDENCY_KIND_WATCH_ONLY   StackDependencyKind = 3
+)
+
+// Enum value maps for StackDependencyKind.
+var (
+	StackDependencyKind_name = map[int32]string{
+		0: "STACK_DEPENDENCY_KIND_UNSPECIFIED",
+		1: "STACK_DEPENDENCY_KIND_REMOTE_STATE",
+		2: "STACK_DEPENDENCY_KIND_DATA_SOURCE",
+		3: "STACK_DEPENDENCY_KIND_WATCH_ONLY",
+	}
+	StackDependencyKind_value = map[string]int32{
+		"STACK_DEPENDENCY_KIND_UNSPECIFIED":  0,
+		"STACK_DEPENDENCY_KIND_REMOTE_STATE": 1,
+		"STACK_DEPENDENCY_KIND_DATA_SOURCE":  2,
+		"STACK_DEPENDENCY_KIND_WATCH_ONLY":   3,
+	}
+)
+
+func (x StackDependencyKind) Enum() *StackDependencyKind {
+	p := new(StackDependencyKind)
+	*p = x
+	return p
+}
+
+func (x StackDependencyKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (StackDependencyKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_platform_v1_common_enum_proto_enumTypes[12].Descriptor()
+}
+
+func (StackDependencyKind) Type() protoreflect.EnumType {
+	return &file_platform_v1_common_enum_proto_enumTypes[12]
+}
+
+func (x StackDependencyKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use StackDependencyKind.Descriptor instead.
+func (StackDependencyKind) EnumDescriptor() ([]byte, []int) {
+	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{12}
+}
+
 type CloudProvider int32
 
 const (
@@ -650,11 +824,11 @@ func (x CloudProvider) String() string {
 }
 
 func (CloudProvider) Descriptor() protoreflect.EnumDescriptor {
-	return file_platform_v1_common_enum_proto_enumTypes[10].Descriptor()
+	return file_platform_v1_common_enum_proto_enumTypes[13].Descriptor()
 }
 
 func (CloudProvider) Type() protoreflect.EnumType {
-	return &file_platform_v1_common_enum_proto_enumTypes[10]
+	return &file_platform_v1_common_enum_proto_enumTypes[13]
 }
 
 func (x CloudProvider) Number() protoreflect.EnumNumber {
@@ -663,7 +837,7 @@ func (x CloudProvider) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CloudProvider.Descriptor instead.
 func (CloudProvider) EnumDescriptor() ([]byte, []int) {
-	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{10}
+	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{13}
 }
 
 type CloudAccountStatus int32
@@ -699,11 +873,11 @@ func (x CloudAccountStatus) String() string {
 }
 
 func (CloudAccountStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_platform_v1_common_enum_proto_enumTypes[11].Descriptor()
+	return file_platform_v1_common_enum_proto_enumTypes[14].Descriptor()
 }
 
 func (CloudAccountStatus) Type() protoreflect.EnumType {
-	return &file_platform_v1_common_enum_proto_enumTypes[11]
+	return &file_platform_v1_common_enum_proto_enumTypes[14]
 }
 
 func (x CloudAccountStatus) Number() protoreflect.EnumNumber {
@@ -712,7 +886,7 @@ func (x CloudAccountStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CloudAccountStatus.Descriptor instead.
 func (CloudAccountStatus) EnumDescriptor() ([]byte, []int) {
-	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{11}
+	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{14}
 }
 
 // ApprovalGate distinguishes the two mandatory review gates in the
@@ -756,11 +930,11 @@ func (x ApprovalGate) String() string {
 }
 
 func (ApprovalGate) Descriptor() protoreflect.EnumDescriptor {
-	return file_platform_v1_common_enum_proto_enumTypes[12].Descriptor()
+	return file_platform_v1_common_enum_proto_enumTypes[15].Descriptor()
 }
 
 func (ApprovalGate) Type() protoreflect.EnumType {
-	return &file_platform_v1_common_enum_proto_enumTypes[12]
+	return &file_platform_v1_common_enum_proto_enumTypes[15]
 }
 
 func (x ApprovalGate) Number() protoreflect.EnumNumber {
@@ -769,7 +943,7 @@ func (x ApprovalGate) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ApprovalGate.Descriptor instead.
 func (ApprovalGate) EnumDescriptor() ([]byte, []int) {
-	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{12}
+	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{15}
 }
 
 // ApprovalNodeMode is the decision semantics of an approval node, as
@@ -822,11 +996,11 @@ func (x ApprovalNodeMode) String() string {
 }
 
 func (ApprovalNodeMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_platform_v1_common_enum_proto_enumTypes[13].Descriptor()
+	return file_platform_v1_common_enum_proto_enumTypes[16].Descriptor()
 }
 
 func (ApprovalNodeMode) Type() protoreflect.EnumType {
-	return &file_platform_v1_common_enum_proto_enumTypes[13]
+	return &file_platform_v1_common_enum_proto_enumTypes[16]
 }
 
 func (x ApprovalNodeMode) Number() protoreflect.EnumNumber {
@@ -835,7 +1009,7 @@ func (x ApprovalNodeMode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ApprovalNodeMode.Descriptor instead.
 func (ApprovalNodeMode) EnumDescriptor() ([]byte, []int) {
-	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{13}
+	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{16}
 }
 
 // ApprovalNodeStatus is the runtime status of a single approval node
@@ -882,11 +1056,11 @@ func (x ApprovalNodeStatus) String() string {
 }
 
 func (ApprovalNodeStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_platform_v1_common_enum_proto_enumTypes[14].Descriptor()
+	return file_platform_v1_common_enum_proto_enumTypes[17].Descriptor()
 }
 
 func (ApprovalNodeStatus) Type() protoreflect.EnumType {
-	return &file_platform_v1_common_enum_proto_enumTypes[14]
+	return &file_platform_v1_common_enum_proto_enumTypes[17]
 }
 
 func (x ApprovalNodeStatus) Number() protoreflect.EnumNumber {
@@ -895,7 +1069,7 @@ func (x ApprovalNodeStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ApprovalNodeStatus.Descriptor instead.
 func (ApprovalNodeStatus) EnumDescriptor() ([]byte, []int) {
-	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{14}
+	return file_platform_v1_common_enum_proto_rawDescGZIP(), []int{17}
 }
 
 var File_platform_v1_common_enum_proto protoreflect.FileDescriptor
@@ -974,7 +1148,24 @@ const file_platform_v1_common_enum_proto_rawDesc = "" +
 	"\x17CARDINALITY_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12CARDINALITY_SINGLE\x10\x01\x12\x14\n" +
 	"\x10CARDINALITY_LIST\x10\x02\x12\x13\n" +
-	"\x0fCARDINALITY_MAP\x10\x03*\x94\x01\n" +
+	"\x0fCARDINALITY_MAP\x10\x03*\xba\x01\n" +
+	"\x10StackGranularity\x12!\n" +
+	"\x1dSTACK_GRANULARITY_UNSPECIFIED\x10\x00\x12#\n" +
+	"\x1fSTACK_GRANULARITY_PER_COMPONENT\x10\x01\x12 \n" +
+	"\x1cSTACK_GRANULARITY_PER_BUNDLE\x10\x02\x12\x1e\n" +
+	"\x1aSTACK_GRANULARITY_PER_TEAM\x10\x03\x12\x1c\n" +
+	"\x18STACK_GRANULARITY_CUSTOM\x10\x04*\xdc\x01\n" +
+	"\x14StackMigrationStatus\x12&\n" +
+	"\"STACK_MIGRATION_STATUS_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dSTACK_MIGRATION_STATUS_STABLE\x10\x01\x12,\n" +
+	"(STACK_MIGRATION_STATUS_MIGRATION_PENDING\x10\x02\x12$\n" +
+	" STACK_MIGRATION_STATUS_MIGRATING\x10\x03\x12%\n" +
+	"!STACK_MIGRATION_STATUS_DEPRECATED\x10\x04*\xb1\x01\n" +
+	"\x13StackDependencyKind\x12%\n" +
+	"!STACK_DEPENDENCY_KIND_UNSPECIFIED\x10\x00\x12&\n" +
+	"\"STACK_DEPENDENCY_KIND_REMOTE_STATE\x10\x01\x12%\n" +
+	"!STACK_DEPENDENCY_KIND_DATA_SOURCE\x10\x02\x12$\n" +
+	" STACK_DEPENDENCY_KIND_WATCH_ONLY\x10\x03*\x94\x01\n" +
 	"\rCloudProvider\x12\x1e\n" +
 	"\x1aCLOUD_PROVIDER_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12CLOUD_PROVIDER_AWS\x10\x01\x12\x19\n" +
@@ -1016,23 +1207,26 @@ func file_platform_v1_common_enum_proto_rawDescGZIP() []byte {
 	return file_platform_v1_common_enum_proto_rawDescData
 }
 
-var file_platform_v1_common_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 15)
+var file_platform_v1_common_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 18)
 var file_platform_v1_common_enum_proto_goTypes = []any{
-	(ActorType)(0),          // 0: aether.platform.v1.common.ActorType
-	(RequestStatus)(0),      // 1: aether.platform.v1.common.RequestStatus
-	(RequestSource)(0),      // 2: aether.platform.v1.common.RequestSource
-	(ApprovalDecision)(0),   // 3: aether.platform.v1.common.ApprovalDecision
-	(ApprovalRunStatus)(0),  // 4: aether.platform.v1.common.ApprovalRunStatus
-	(ArtifactStatus)(0),     // 5: aether.platform.v1.common.ArtifactStatus
-	(GateSeverity)(0),       // 6: aether.platform.v1.common.GateSeverity
-	(ModuleStatus)(0),       // 7: aether.platform.v1.common.ModuleStatus
-	(CatalogItemStatus)(0),  // 8: aether.platform.v1.common.CatalogItemStatus
-	(Cardinality)(0),        // 9: aether.platform.v1.common.Cardinality
-	(CloudProvider)(0),      // 10: aether.platform.v1.common.CloudProvider
-	(CloudAccountStatus)(0), // 11: aether.platform.v1.common.CloudAccountStatus
-	(ApprovalGate)(0),       // 12: aether.platform.v1.common.ApprovalGate
-	(ApprovalNodeMode)(0),   // 13: aether.platform.v1.common.ApprovalNodeMode
-	(ApprovalNodeStatus)(0), // 14: aether.platform.v1.common.ApprovalNodeStatus
+	(ActorType)(0),            // 0: aether.platform.v1.common.ActorType
+	(RequestStatus)(0),        // 1: aether.platform.v1.common.RequestStatus
+	(RequestSource)(0),        // 2: aether.platform.v1.common.RequestSource
+	(ApprovalDecision)(0),     // 3: aether.platform.v1.common.ApprovalDecision
+	(ApprovalRunStatus)(0),    // 4: aether.platform.v1.common.ApprovalRunStatus
+	(ArtifactStatus)(0),       // 5: aether.platform.v1.common.ArtifactStatus
+	(GateSeverity)(0),         // 6: aether.platform.v1.common.GateSeverity
+	(ModuleStatus)(0),         // 7: aether.platform.v1.common.ModuleStatus
+	(CatalogItemStatus)(0),    // 8: aether.platform.v1.common.CatalogItemStatus
+	(Cardinality)(0),          // 9: aether.platform.v1.common.Cardinality
+	(StackGranularity)(0),     // 10: aether.platform.v1.common.StackGranularity
+	(StackMigrationStatus)(0), // 11: aether.platform.v1.common.StackMigrationStatus
+	(StackDependencyKind)(0),  // 12: aether.platform.v1.common.StackDependencyKind
+	(CloudProvider)(0),        // 13: aether.platform.v1.common.CloudProvider
+	(CloudAccountStatus)(0),   // 14: aether.platform.v1.common.CloudAccountStatus
+	(ApprovalGate)(0),         // 15: aether.platform.v1.common.ApprovalGate
+	(ApprovalNodeMode)(0),     // 16: aether.platform.v1.common.ApprovalNodeMode
+	(ApprovalNodeStatus)(0),   // 17: aether.platform.v1.common.ApprovalNodeStatus
 }
 var file_platform_v1_common_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -1052,7 +1246,7 @@ func file_platform_v1_common_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_common_enum_proto_rawDesc), len(file_platform_v1_common_enum_proto_rawDesc)),
-			NumEnums:      15,
+			NumEnums:      18,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

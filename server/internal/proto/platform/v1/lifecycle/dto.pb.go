@@ -2350,6 +2350,288 @@ func (x *GetApprovalRunResponse) GetCorrelationId() string {
 	return ""
 }
 
+type Stack struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	StackId       string                 `protobuf:"bytes,2,opt,name=stack_id,json=stackId,proto3" json:"stack_id,omitempty"` // PathGenerator global-unique id (D29)
+	CatalogItemId string                 `protobuf:"bytes,3,opt,name=catalog_item_id,json=catalogItemId,proto3" json:"catalog_item_id,omitempty"`
+	BundleId      string                 `protobuf:"bytes,4,opt,name=bundle_id,json=bundleId,proto3" json:"bundle_id,omitempty"` // empty = no bundle
+	Layer         string                 `protobuf:"bytes,5,opt,name=layer,proto3" json:"layer,omitempty"`                       // denormalized layer slug
+	Component     string                 `protobuf:"bytes,6,opt,name=component,proto3" json:"component,omitempty"`
+	Env           string                 `protobuf:"bytes,7,opt,name=env,proto3" json:"env,omitempty"`
+	TenantId      string                 `protobuf:"bytes,8,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	OwnerTeamId   string                 `protobuf:"bytes,9,opt,name=owner_team_id,json=ownerTeamId,proto3" json:"owner_team_id,omitempty"`
+	RepoPath      string                 `protobuf:"bytes,10,opt,name=repo_path,json=repoPath,proto3" json:"repo_path,omitempty"` // relative dir in infra-repo
+	StateKey      string                 `protobuf:"bytes,11,opt,name=state_key,json=stateKey,proto3" json:"state_key,omitempty"` // remote state key (D6)
+	// terramate_tags: the tags array written into stack.tm.hcl for
+	// `terramate run --tags` filtering (D29). At least layer/tenant/env/team.
+	TerramateTags   []string                    `protobuf:"bytes,12,rep,name=terramate_tags,json=terramateTags,proto3" json:"terramate_tags,omitempty"`
+	StateBackendId  string                      `protobuf:"bytes,13,opt,name=state_backend_id,json=stateBackendId,proto3" json:"state_backend_id,omitempty"` // empty = use platform default
+	PinnedCommit    string                      `protobuf:"bytes,14,opt,name=pinned_commit,json=pinnedCommit,proto3" json:"pinned_commit,omitempty"`         // last commit touching this stack
+	MigrationStatus common.StackMigrationStatus `protobuf:"varint,15,opt,name=migration_status,json=migrationStatus,proto3,enum=aether.platform.v1.common.StackMigrationStatus" json:"migration_status,omitempty"`
+	SunsetDeadline  string                      `protobuf:"bytes,16,opt,name=sunset_deadline,json=sunsetDeadline,proto3" json:"sunset_deadline,omitempty"` // empty if not deprecated
+	Version         int32                       `protobuf:"varint,17,opt,name=version,proto3" json:"version,omitempty"`                                    // optimistic lock
+	CreatedAt       string                      `protobuf:"bytes,18,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt       string                      `protobuf:"bytes,19,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *Stack) Reset() {
+	*x = Stack{}
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Stack) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Stack) ProtoMessage() {}
+
+func (x *Stack) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Stack.ProtoReflect.Descriptor instead.
+func (*Stack) Descriptor() ([]byte, []int) {
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *Stack) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Stack) GetStackId() string {
+	if x != nil {
+		return x.StackId
+	}
+	return ""
+}
+
+func (x *Stack) GetCatalogItemId() string {
+	if x != nil {
+		return x.CatalogItemId
+	}
+	return ""
+}
+
+func (x *Stack) GetBundleId() string {
+	if x != nil {
+		return x.BundleId
+	}
+	return ""
+}
+
+func (x *Stack) GetLayer() string {
+	if x != nil {
+		return x.Layer
+	}
+	return ""
+}
+
+func (x *Stack) GetComponent() string {
+	if x != nil {
+		return x.Component
+	}
+	return ""
+}
+
+func (x *Stack) GetEnv() string {
+	if x != nil {
+		return x.Env
+	}
+	return ""
+}
+
+func (x *Stack) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *Stack) GetOwnerTeamId() string {
+	if x != nil {
+		return x.OwnerTeamId
+	}
+	return ""
+}
+
+func (x *Stack) GetRepoPath() string {
+	if x != nil {
+		return x.RepoPath
+	}
+	return ""
+}
+
+func (x *Stack) GetStateKey() string {
+	if x != nil {
+		return x.StateKey
+	}
+	return ""
+}
+
+func (x *Stack) GetTerramateTags() []string {
+	if x != nil {
+		return x.TerramateTags
+	}
+	return nil
+}
+
+func (x *Stack) GetStateBackendId() string {
+	if x != nil {
+		return x.StateBackendId
+	}
+	return ""
+}
+
+func (x *Stack) GetPinnedCommit() string {
+	if x != nil {
+		return x.PinnedCommit
+	}
+	return ""
+}
+
+func (x *Stack) GetMigrationStatus() common.StackMigrationStatus {
+	if x != nil {
+		return x.MigrationStatus
+	}
+	return common.StackMigrationStatus(0)
+}
+
+func (x *Stack) GetSunsetDeadline() string {
+	if x != nil {
+		return x.SunsetDeadline
+	}
+	return ""
+}
+
+func (x *Stack) GetVersion() int32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *Stack) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *Stack) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+type StackDependency struct {
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	Id            string                     `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	FromStackId   string                     `protobuf:"bytes,2,opt,name=from_stack_id,json=fromStackId,proto3" json:"from_stack_id,omitempty"` // downstream stack (depends on)
+	ToStackId     string                     `protobuf:"bytes,3,opt,name=to_stack_id,json=toStackId,proto3" json:"to_stack_id,omitempty"`       // upstream stack (depended upon)
+	Kind          common.StackDependencyKind `protobuf:"varint,4,opt,name=kind,proto3,enum=aether.platform.v1.common.StackDependencyKind" json:"kind,omitempty"`
+	VariableName  string                     `protobuf:"bytes,5,opt,name=variable_name,json=variableName,proto3" json:"variable_name,omitempty"` // downstream var receiving upstream output
+	OutputKey     string                     `protobuf:"bytes,6,opt,name=output_key,json=outputKey,proto3" json:"output_key,omitempty"`          // upstream output key
+	InjectAs      string                     `protobuf:"bytes,7,opt,name=inject_as,json=injectAs,proto3" json:"inject_as,omitempty"`             // data block alias in generated main.tf
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StackDependency) Reset() {
+	*x = StackDependency{}
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StackDependency) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StackDependency) ProtoMessage() {}
+
+func (x *StackDependency) ProtoReflect() protoreflect.Message {
+	mi := &file_platform_v1_lifecycle_dto_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StackDependency.ProtoReflect.Descriptor instead.
+func (*StackDependency) Descriptor() ([]byte, []int) {
+	return file_platform_v1_lifecycle_dto_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *StackDependency) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *StackDependency) GetFromStackId() string {
+	if x != nil {
+		return x.FromStackId
+	}
+	return ""
+}
+
+func (x *StackDependency) GetToStackId() string {
+	if x != nil {
+		return x.ToStackId
+	}
+	return ""
+}
+
+func (x *StackDependency) GetKind() common.StackDependencyKind {
+	if x != nil {
+		return x.Kind
+	}
+	return common.StackDependencyKind(0)
+}
+
+func (x *StackDependency) GetVariableName() string {
+	if x != nil {
+		return x.VariableName
+	}
+	return ""
+}
+
+func (x *StackDependency) GetOutputKey() string {
+	if x != nil {
+		return x.OutputKey
+	}
+	return ""
+}
+
+func (x *StackDependency) GetInjectAs() string {
+	if x != nil {
+		return x.InjectAs
+	}
+	return ""
+}
+
 var File_platform_v1_lifecycle_dto_proto protoreflect.FileDescriptor
 
 const file_platform_v1_lifecycle_dto_proto_rawDesc = "" +
@@ -2577,7 +2859,39 @@ const file_platform_v1_lifecycle_dto_proto_rawDesc = "" +
 	"\x03run\x18\x01 \x01(\v2).aether.platform.v1.lifecycle.ApprovalRunR\x03run\x12C\n" +
 	"\x05nodes\x18\x02 \x03(\v2-.aether.platform.v1.lifecycle.ApprovalNodeRunR\x05nodes\x12R\n" +
 	"\tdecisions\x18\x03 \x03(\v24.aether.platform.v1.lifecycle.ApprovalDecisionRecordR\tdecisions\x12%\n" +
-	"\x0ecorrelation_id\x18\x04 \x01(\tR\rcorrelationIdB`Z^github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/lifecycle;lifecyclev1b\x06proto3"
+	"\x0ecorrelation_id\x18\x04 \x01(\tR\rcorrelationId\"\x8b\x05\n" +
+	"\x05Stack\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x19\n" +
+	"\bstack_id\x18\x02 \x01(\tR\astackId\x12&\n" +
+	"\x0fcatalog_item_id\x18\x03 \x01(\tR\rcatalogItemId\x12\x1b\n" +
+	"\tbundle_id\x18\x04 \x01(\tR\bbundleId\x12\x14\n" +
+	"\x05layer\x18\x05 \x01(\tR\x05layer\x12\x1c\n" +
+	"\tcomponent\x18\x06 \x01(\tR\tcomponent\x12\x10\n" +
+	"\x03env\x18\a \x01(\tR\x03env\x12\x1b\n" +
+	"\ttenant_id\x18\b \x01(\tR\btenantId\x12\"\n" +
+	"\rowner_team_id\x18\t \x01(\tR\vownerTeamId\x12\x1b\n" +
+	"\trepo_path\x18\n" +
+	" \x01(\tR\brepoPath\x12\x1b\n" +
+	"\tstate_key\x18\v \x01(\tR\bstateKey\x12%\n" +
+	"\x0eterramate_tags\x18\f \x03(\tR\rterramateTags\x12(\n" +
+	"\x10state_backend_id\x18\r \x01(\tR\x0estateBackendId\x12#\n" +
+	"\rpinned_commit\x18\x0e \x01(\tR\fpinnedCommit\x12Z\n" +
+	"\x10migration_status\x18\x0f \x01(\x0e2/.aether.platform.v1.common.StackMigrationStatusR\x0fmigrationStatus\x12'\n" +
+	"\x0fsunset_deadline\x18\x10 \x01(\tR\x0esunsetDeadline\x12\x18\n" +
+	"\aversion\x18\x11 \x01(\x05R\aversion\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x12 \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x13 \x01(\tR\tupdatedAt\"\x8a\x02\n" +
+	"\x0fStackDependency\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\"\n" +
+	"\rfrom_stack_id\x18\x02 \x01(\tR\vfromStackId\x12\x1e\n" +
+	"\vto_stack_id\x18\x03 \x01(\tR\ttoStackId\x12B\n" +
+	"\x04kind\x18\x04 \x01(\x0e2..aether.platform.v1.common.StackDependencyKindR\x04kind\x12#\n" +
+	"\rvariable_name\x18\x05 \x01(\tR\fvariableName\x12\x1d\n" +
+	"\n" +
+	"output_key\x18\x06 \x01(\tR\toutputKey\x12\x1b\n" +
+	"\tinject_as\x18\a \x01(\tR\binjectAsB`Z^github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/lifecycle;lifecyclev1b\x06proto3"
 
 var (
 	file_platform_v1_lifecycle_dto_proto_rawDescOnce sync.Once
@@ -2591,7 +2905,7 @@ func file_platform_v1_lifecycle_dto_proto_rawDescGZIP() []byte {
 	return file_platform_v1_lifecycle_dto_proto_rawDescData
 }
 
-var file_platform_v1_lifecycle_dto_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
+var file_platform_v1_lifecycle_dto_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
 var file_platform_v1_lifecycle_dto_proto_goTypes = []any{
 	(*LifecycleRequest)(nil),             // 0: aether.platform.v1.lifecycle.LifecycleRequest
 	(*LifecycleEvent)(nil),               // 1: aether.platform.v1.lifecycle.LifecycleEvent
@@ -2625,36 +2939,40 @@ var file_platform_v1_lifecycle_dto_proto_goTypes = []any{
 	(*ListPendingApprovalsResponse)(nil), // 29: aether.platform.v1.lifecycle.ListPendingApprovalsResponse
 	(*GetApprovalRunRequest)(nil),        // 30: aether.platform.v1.lifecycle.GetApprovalRunRequest
 	(*GetApprovalRunResponse)(nil),       // 31: aether.platform.v1.lifecycle.GetApprovalRunResponse
-	nil,                                  // 32: aether.platform.v1.lifecycle.LifecycleRequest.FormValuesEntry
-	nil,                                  // 33: aether.platform.v1.lifecycle.CreateRequestRequest.FormValuesEntry
-	nil,                                  // 34: aether.platform.v1.lifecycle.CreateRequestRequest.SourceContextEntry
-	(common.RequestStatus)(0),            // 35: aether.platform.v1.common.RequestStatus
-	(common.RequestSource)(0),            // 36: aether.platform.v1.common.RequestSource
-	(*common.Actor)(nil),                 // 37: aether.platform.v1.common.Actor
-	(common.ArtifactStatus)(0),           // 38: aether.platform.v1.common.ArtifactStatus
-	(common.GateSeverity)(0),             // 39: aether.platform.v1.common.GateSeverity
-	(common.ApprovalRunStatus)(0),        // 40: aether.platform.v1.common.ApprovalRunStatus
-	(common.ApprovalGate)(0),             // 41: aether.platform.v1.common.ApprovalGate
-	(common.ApprovalNodeMode)(0),         // 42: aether.platform.v1.common.ApprovalNodeMode
-	(common.ApprovalNodeStatus)(0),       // 43: aether.platform.v1.common.ApprovalNodeStatus
-	(common.ApprovalDecision)(0),         // 44: aether.platform.v1.common.ApprovalDecision
+	(*Stack)(nil),                        // 32: aether.platform.v1.lifecycle.Stack
+	(*StackDependency)(nil),              // 33: aether.platform.v1.lifecycle.StackDependency
+	nil,                                  // 34: aether.platform.v1.lifecycle.LifecycleRequest.FormValuesEntry
+	nil,                                  // 35: aether.platform.v1.lifecycle.CreateRequestRequest.FormValuesEntry
+	nil,                                  // 36: aether.platform.v1.lifecycle.CreateRequestRequest.SourceContextEntry
+	(common.RequestStatus)(0),            // 37: aether.platform.v1.common.RequestStatus
+	(common.RequestSource)(0),            // 38: aether.platform.v1.common.RequestSource
+	(*common.Actor)(nil),                 // 39: aether.platform.v1.common.Actor
+	(common.ArtifactStatus)(0),           // 40: aether.platform.v1.common.ArtifactStatus
+	(common.GateSeverity)(0),             // 41: aether.platform.v1.common.GateSeverity
+	(common.ApprovalRunStatus)(0),        // 42: aether.platform.v1.common.ApprovalRunStatus
+	(common.ApprovalGate)(0),             // 43: aether.platform.v1.common.ApprovalGate
+	(common.ApprovalNodeMode)(0),         // 44: aether.platform.v1.common.ApprovalNodeMode
+	(common.ApprovalNodeStatus)(0),       // 45: aether.platform.v1.common.ApprovalNodeStatus
+	(common.ApprovalDecision)(0),         // 46: aether.platform.v1.common.ApprovalDecision
+	(common.StackMigrationStatus)(0),     // 47: aether.platform.v1.common.StackMigrationStatus
+	(common.StackDependencyKind)(0),      // 48: aether.platform.v1.common.StackDependencyKind
 }
 var file_platform_v1_lifecycle_dto_proto_depIdxs = []int32{
-	35, // 0: aether.platform.v1.lifecycle.LifecycleRequest.status:type_name -> aether.platform.v1.common.RequestStatus
-	32, // 1: aether.platform.v1.lifecycle.LifecycleRequest.form_values:type_name -> aether.platform.v1.lifecycle.LifecycleRequest.FormValuesEntry
-	36, // 2: aether.platform.v1.lifecycle.LifecycleRequest.source:type_name -> aether.platform.v1.common.RequestSource
-	37, // 3: aether.platform.v1.lifecycle.LifecycleEvent.actor:type_name -> aether.platform.v1.common.Actor
-	38, // 4: aether.platform.v1.lifecycle.PlanArtifact.status:type_name -> aether.platform.v1.common.ArtifactStatus
+	37, // 0: aether.platform.v1.lifecycle.LifecycleRequest.status:type_name -> aether.platform.v1.common.RequestStatus
+	34, // 1: aether.platform.v1.lifecycle.LifecycleRequest.form_values:type_name -> aether.platform.v1.lifecycle.LifecycleRequest.FormValuesEntry
+	38, // 2: aether.platform.v1.lifecycle.LifecycleRequest.source:type_name -> aether.platform.v1.common.RequestSource
+	39, // 3: aether.platform.v1.lifecycle.LifecycleEvent.actor:type_name -> aether.platform.v1.common.Actor
+	40, // 4: aether.platform.v1.lifecycle.PlanArtifact.status:type_name -> aether.platform.v1.common.ArtifactStatus
 	3,  // 5: aether.platform.v1.lifecycle.PlanArtifact.summary:type_name -> aether.platform.v1.lifecycle.PlanSummary
-	39, // 6: aether.platform.v1.lifecycle.GateResult.severity:type_name -> aether.platform.v1.common.GateSeverity
-	40, // 7: aether.platform.v1.lifecycle.ApprovalRun.status:type_name -> aether.platform.v1.common.ApprovalRunStatus
-	41, // 8: aether.platform.v1.lifecycle.ApprovalRun.gate:type_name -> aether.platform.v1.common.ApprovalGate
-	42, // 9: aether.platform.v1.lifecycle.ApprovalNodeRun.mode:type_name -> aether.platform.v1.common.ApprovalNodeMode
-	43, // 10: aether.platform.v1.lifecycle.ApprovalNodeRun.status:type_name -> aether.platform.v1.common.ApprovalNodeStatus
-	44, // 11: aether.platform.v1.lifecycle.ApprovalDecisionRecord.decision:type_name -> aether.platform.v1.common.ApprovalDecision
-	33, // 12: aether.platform.v1.lifecycle.CreateRequestRequest.form_values:type_name -> aether.platform.v1.lifecycle.CreateRequestRequest.FormValuesEntry
-	36, // 13: aether.platform.v1.lifecycle.CreateRequestRequest.source:type_name -> aether.platform.v1.common.RequestSource
-	34, // 14: aether.platform.v1.lifecycle.CreateRequestRequest.source_context:type_name -> aether.platform.v1.lifecycle.CreateRequestRequest.SourceContextEntry
+	41, // 6: aether.platform.v1.lifecycle.GateResult.severity:type_name -> aether.platform.v1.common.GateSeverity
+	42, // 7: aether.platform.v1.lifecycle.ApprovalRun.status:type_name -> aether.platform.v1.common.ApprovalRunStatus
+	43, // 8: aether.platform.v1.lifecycle.ApprovalRun.gate:type_name -> aether.platform.v1.common.ApprovalGate
+	44, // 9: aether.platform.v1.lifecycle.ApprovalNodeRun.mode:type_name -> aether.platform.v1.common.ApprovalNodeMode
+	45, // 10: aether.platform.v1.lifecycle.ApprovalNodeRun.status:type_name -> aether.platform.v1.common.ApprovalNodeStatus
+	46, // 11: aether.platform.v1.lifecycle.ApprovalDecisionRecord.decision:type_name -> aether.platform.v1.common.ApprovalDecision
+	35, // 12: aether.platform.v1.lifecycle.CreateRequestRequest.form_values:type_name -> aether.platform.v1.lifecycle.CreateRequestRequest.FormValuesEntry
+	38, // 13: aether.platform.v1.lifecycle.CreateRequestRequest.source:type_name -> aether.platform.v1.common.RequestSource
+	36, // 14: aether.platform.v1.lifecycle.CreateRequestRequest.source_context:type_name -> aether.platform.v1.lifecycle.CreateRequestRequest.SourceContextEntry
 	0,  // 15: aether.platform.v1.lifecycle.CreateRequestResponse.request:type_name -> aether.platform.v1.lifecycle.LifecycleRequest
 	0,  // 16: aether.platform.v1.lifecycle.GetRequestResponse.request:type_name -> aether.platform.v1.lifecycle.LifecycleRequest
 	1,  // 17: aether.platform.v1.lifecycle.ListRequestEventsResponse.events:type_name -> aether.platform.v1.lifecycle.LifecycleEvent
@@ -2662,20 +2980,22 @@ var file_platform_v1_lifecycle_dto_proto_depIdxs = []int32{
 	0,  // 19: aether.platform.v1.lifecycle.StartPlanResponse.request:type_name -> aether.platform.v1.lifecycle.LifecycleRequest
 	2,  // 20: aether.platform.v1.lifecycle.GetArtifactResponse.artifact:type_name -> aether.platform.v1.lifecycle.PlanArtifact
 	4,  // 21: aether.platform.v1.lifecycle.EvaluateGateResponse.gates:type_name -> aether.platform.v1.lifecycle.GateResult
-	44, // 22: aether.platform.v1.lifecycle.DecideApprovalRequest.decision:type_name -> aether.platform.v1.common.ApprovalDecision
+	46, // 22: aether.platform.v1.lifecycle.DecideApprovalRequest.decision:type_name -> aether.platform.v1.common.ApprovalDecision
 	5,  // 23: aether.platform.v1.lifecycle.DecideApprovalResponse.run:type_name -> aether.platform.v1.lifecycle.ApprovalRun
-	35, // 24: aether.platform.v1.lifecycle.ListRequestsRequest.status_filter:type_name -> aether.platform.v1.common.RequestStatus
+	37, // 24: aether.platform.v1.lifecycle.ListRequestsRequest.status_filter:type_name -> aether.platform.v1.common.RequestStatus
 	0,  // 25: aether.platform.v1.lifecycle.ListRequestsResponse.requests:type_name -> aether.platform.v1.lifecycle.LifecycleRequest
-	41, // 26: aether.platform.v1.lifecycle.ListPendingApprovalsRequest.gate_filter:type_name -> aether.platform.v1.common.ApprovalGate
+	43, // 26: aether.platform.v1.lifecycle.ListPendingApprovalsRequest.gate_filter:type_name -> aether.platform.v1.common.ApprovalGate
 	5,  // 27: aether.platform.v1.lifecycle.ListPendingApprovalsResponse.runs:type_name -> aether.platform.v1.lifecycle.ApprovalRun
 	5,  // 28: aether.platform.v1.lifecycle.GetApprovalRunResponse.run:type_name -> aether.platform.v1.lifecycle.ApprovalRun
 	6,  // 29: aether.platform.v1.lifecycle.GetApprovalRunResponse.nodes:type_name -> aether.platform.v1.lifecycle.ApprovalNodeRun
 	7,  // 30: aether.platform.v1.lifecycle.GetApprovalRunResponse.decisions:type_name -> aether.platform.v1.lifecycle.ApprovalDecisionRecord
-	31, // [31:31] is the sub-list for method output_type
-	31, // [31:31] is the sub-list for method input_type
-	31, // [31:31] is the sub-list for extension type_name
-	31, // [31:31] is the sub-list for extension extendee
-	0,  // [0:31] is the sub-list for field type_name
+	47, // 31: aether.platform.v1.lifecycle.Stack.migration_status:type_name -> aether.platform.v1.common.StackMigrationStatus
+	48, // 32: aether.platform.v1.lifecycle.StackDependency.kind:type_name -> aether.platform.v1.common.StackDependencyKind
+	33, // [33:33] is the sub-list for method output_type
+	33, // [33:33] is the sub-list for method input_type
+	33, // [33:33] is the sub-list for extension type_name
+	33, // [33:33] is the sub-list for extension extendee
+	0,  // [0:33] is the sub-list for field type_name
 }
 
 func init() { file_platform_v1_lifecycle_dto_proto_init() }
@@ -2689,7 +3009,7 @@ func file_platform_v1_lifecycle_dto_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_platform_v1_lifecycle_dto_proto_rawDesc), len(file_platform_v1_lifecycle_dto_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   35,
+			NumMessages:   37,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
