@@ -11,7 +11,7 @@
 | 本地调试 | 工程师不想为查个 drift 开浏览器 |
 | 幂等批量 | shell 管道友好 |
 
-CLI 与 HTTP API 同源（共用 `platform/internal/api` 的 service 层），CLI 是薄封装，不重复业务逻辑。
+CLI 与 HTTP API 同源（共用 `server/internal/api` 的 service 层），CLI 是薄封装，不重复业务逻辑。
 
 ## 2. 双身份模型：人 vs 机器
 
@@ -51,7 +51,7 @@ aether ai       "<natural language intent>"              # 自然语言入口
 tm config   set-profile | get | switch
 ```
 
-- 单二进制（Go，cobra），与平台同语言，复用 `platform/internal/api` service 层。
+- 单二进制（Go，cobra），与平台同语言，复用 `server/internal/api` service 层。
 - 配置：`~/.tm/config.yaml`（profile / ak-sk 引用 / endpoint），SK 不进文件，走 env / vault / OS keychain。
 - 输出：`--output {table|json|yaml|llm}`，默认 table（人），agent 用 json/llm。
 
