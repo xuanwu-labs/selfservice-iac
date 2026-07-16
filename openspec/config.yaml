@@ -110,6 +110,11 @@ rules:
     - scope 可选，表示影响的模块（如 server、contracts、openspec）。
     - subject 用祈使句（动词开头），不超过 72 字符，结尾不加句号。
     - body 说明「做了什么 + 为什么 + 如何验证」，复杂改动分点列出。
+    # 语言规范（开源项目）
+    - **OpenSpec 产出（proposal/design/tasks/specs）用中文**——维护者要读、要审；中文更高效。
+    - **代码注释 + commit message 用英文**——开源标准，面向全球贡献者。
+    - **spec.md 的结构标记保留英文**（## ADDED Requirements、### Requirement:、#### Scenario:）——OpenSpec CLI 要求；标记内的描述内容用中文。
+    - **proto 注释全英文**（已在 contracts 段定义）。
     - 一个提交只做一件事（原子提交）；大改动拆分为多个逻辑提交，按依赖排序。
     # 合并规范
     - feature 分支合并到 main 用 `--no-ff`（保留分支历史，便于回溯里程碑）。

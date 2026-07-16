@@ -2,51 +2,51 @@
 
 ## ADDED Requirements
 
-### Requirement: Six pluggable adapter interfaces
+### Requirement: 六大可插拔适配器接口
 
-The platform SHALL define six adapter interfaces in `server/core/adapters/` following D7: GitProvider, CloudProvider, StateBackend, PolicyEngine, CostEstimator, Notifier. Each interface SHALL have a noop/stub default implementation that returns a structured error (not silent pass).
+平台 MUST 在 `server/core/adapters/` 定义 D7 六大适配器接口：GitProvider、CloudProvider、StateBackend、PolicyEngine、CostEstimator、Notifier。每个接口 MUST 有 noop/stub 默认实现，返回结构化错误（不静默通过）。
 
-#### Scenario: NoopGit returns error when not configured
+#### Scenario: NoopGit 未配置时返回错误
 
-- **WHEN** GitProvider is the noop stub
-- **AND** Clone is called
-- **THEN** it returns an error containing "git adapter not configured"
+- **WHEN** GitProvider 是 noop stub
+- **AND** 调用 Clone
+- **THEN** 返回包含 "git adapter not configured" 的错误
 
-#### Scenario: NoopPolicy returns error when not configured
+#### Scenario: NoopPolicy 未配置时返回错误
 
-- **WHEN** PolicyEngine is the noop stub
-- **AND** Evaluate is called
-- **THEN** it returns an error containing "policy adapter not configured"
+- **WHEN** PolicyEngine 是 noop stub
+- **AND** 调用 Evaluate
+- **THEN** 返回包含 "policy adapter not configured" 的错误
 
-### Requirement: TerramateAdapter exec boundary (D1)
+### Requirement: TerramateAdapter exec 边界（D1）
 
-The platform SHALL define a TerramateAdapter interface in `server/core/terramate/` that wraps the terramate CLI as a subprocess. The exec implementation SHALL set cmd.Dir to the stack directory (D29), capture stdout/stderr/exit code, respect context cancellation, and never import github.com/terramate-io/terramate internal packages.
+平台 MUST 在 `server/core/terramate/` 定义 TerramateAdapter 接口，封装 terramate CLI 作为子进程调用。exec 实现 MUST 设置 cmd.Dir 为 stack 目录（D29），捕获 stdout/stderr/exit code，尊重 context 取消，且绝不 import github.com/terramate-io/terramate 内部包。
 
-#### Scenario: TerramateAdapter runs terramate in stack dir
+#### Scenario: TerramateAdapter 在 stack 目录运行
 
-- **WHEN** Run is called with dir="/path/to/stack" and args=["run", "--tags", "env:prod", "--", "terraform", "plan"]
-- **THEN** exec.Command is invoked with cmd.Dir="/path/to/stack"
-- **AND** RunResult captures exit code, stdout, stderr
+- **WHEN** 调用 Run，dir="/path/to/stack"，args=["run", "--tags", "env:prod", "--", "terraform", "plan"]
+- **THEN** exec.Command 以 cmd.Dir="/path/to/stack" 执行
+- **AND** RunResult 捕获 exit code、stdout、stderr
 
-#### Scenario: Context cancellation propagates
+#### Scenario: Context 取消传播
 
-- **WHEN** Run is called with a cancelled context
-- **THEN** the subprocess is killed and an error is returned
+- **WHEN** 调用 Run 时 context 已取消
+- **THEN** 子进程被杀死，返回错误
 
-### Requirement: D1 boundary guard test
+### Requirement: D1 边界守护测试
 
-The platform SHALL have a test in server/internal/audit/ that walks all .go files under server/ and asserts none import github.com/terramate-io/terramate.
+平台 MUST 在 server/internal/audit/ 有一个测试，遍历 server/ 下所有 .go 文件，断言无 import github.com/terramate-io/terramate。
 
-#### Scenario: No terramate imports in server/
+#### Scenario: server/ 下无 terramate import
 
-- **WHEN** the D1 guard test runs
-- **THEN** it passes (no file under server/ imports terramate internals)
+- **WHEN** D1 守护测试运行
+- **THEN** 通过（server/ 下无文件 import terramate 内部包）
 
-### Requirement: wire ProviderSet for adapters
+### Requirement: 适配器 wire ProviderSet
 
-All six adapters SHALL be registered in a wire ProviderSet (server/core/adapters/provider.go), binding interfaces to noop defaults.
+所有六个适配器 MUST 注册在一个 wire ProviderSet（`server/core/adapters/provider.go`），绑定接口到 noop 默认实现。
 
-#### Scenario: ProviderSet binds all six interfaces
+#### Scenario: ProviderSet 绑定全部六个接口
 
-- **WHEN** wire generates the dependency graph
-- **THEN** GitProvider, CloudProvider, StateBackend, PolicyEngine, CostEstimator, Notifier are all bound to their noop stubs
+- **WHEN** wire 生成依赖图
+- **THEN** GitProvider、CloudProvider、StateBackend、PolicyEngine、CostEstimator、Notifier 全部绑定到各自的 noop stub

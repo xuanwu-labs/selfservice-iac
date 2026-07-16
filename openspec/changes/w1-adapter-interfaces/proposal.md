@@ -1,42 +1,43 @@
-# Proposal: w1-adapter-interfaces
+# 提案：w1-adapter-interfaces
 
-## What Changes
+## 变更内容
 
-Define the D7 six pluggable adapter interfaces (GitProvider, CloudProvider, StateBackend, PolicyEngine, CostEstimator, Notifier) with noop/stub default implementations, plus the TerramateAdapter exec adapter that wraps `terramate run` as a subprocess. Also add a D1 boundary guard test that enforces `server/**` MUST NOT import `github.com/terramate-io/terramate` internal packages.
+定义 D7 六大可插拔适配器接口（GitProvider、CloudProvider、StateBackend、PolicyEngine、CostEstimator、Notifier）及 noop/stub 默认实现，加上封装 `terramate run` 子进程调用的 TerramateAdapter exec 适配器。同时添加 D1 边界守护测试，确保 `server/**` 不得 import `github.com/terramate-io/terramate` 内部包。
 
-This is **W1 module 01** (platform skeleton + adapter interfaces) from the `iac-self-service-platform` tasks.md. It is the first of four W1 changes — adapter interfaces have zero dependencies and are consumed by downstream modules (03 registry uses GitProvider, 05 codegen uses StateBackend, 06 orchestrator uses TerramateAdapter).
+这是 `iac-self-service-platform` tasks.md 的 **W1 模块 01**（平台骨架与适配器接口）。W1 四个模块中的第一个——适配器接口零依赖，被下游模块消费（03 注册用 GitProvider、05 代码生成用 StateBackend、06 编排用 TerramateAdapter）。
 
-## Why
+## 为什么
 
-1. **D7 pluggability is a core user requirement** — the platform must support swapping cloud providers, policy engines (OPA), cost estimators (Infracost), and notifiers without code changes. Interface-first design makes this possible.
-2. **TerramateAdapter is the D1 boundary guardian** — the platform calls terramate via `exec` (subprocess), never via Go import. The adapter encapsulates this contract so the rest of the codebase never touches terramate internals directly.
-3. **D1 guard test closes a known gap** — `.golangci.yml` depguard is configured but non-enforcing (terramate not in go.mod → typechecker silently drops the rule). A dedicated compile-time test makes the boundary explicit and CI-enforceable.
-4. **Downstream modules cannot start without these interfaces** — W1 modules 03 (registry) and 05 (codegen, W2) depend on GitProvider/StateBackend; W2 module 06 (orchestrator) depends on TerramateAdapter.
+1. **D7 可插拔是核心用户诉求**——平台必须支持切换云厂商、策略引擎（OPA）、成本估算（Infracost）、通知渠道，且不需要改代码。接口优先设计使这成为可能。
+2. **TerramateAdapter 是 D1 边界的守护者**——平台通过 `exec`（子进程）调用 terramate，绝不通过 Go import。适配器封装这个契约，让其余代码永远不碰 terramate 内部。
+3. **D1 守护测试弥补已知缺口**——`.golangci.yml` depguard 已配置但不生效（terramate 不在 go.mod 时 typechecker 静默丢弃规则）。专用编译期测试让边界显式化、CI 可执行。
+4. **下游模块无法在接口就绪前启动**——W1 模块 03（注册）和 W2 模块 05（代码生成）依赖 GitProvider/StateBackend；W2 模块 06（编排）依赖 TerramateAdapter。
 
-## Scope
+## 范围
 
-### In scope (this change)
-- 6 adapter interfaces in `server/core/adapters/{git,state,policy,cost,notify,cloud}/` with noop defaults
-- TerramateAdapter interface + exec implementation in `server/core/terramate/`
-- D1 guard test in `server/internal/audit/`
-- wire ProviderSet wiring for all adapters
+### 本次范围内
+- `server/core/adapters/{git,state,policy,cost,notify,cloud}/` 六个适配器接口 + noop 默认实现
+- `server/core/terramate/` TerramateAdapter 接口 + exec 实现
+- `server/internal/audit/` D1 边界守护测试
+- 所有适配器的 wire ProviderSet 装配
 
-### Out of scope (later changes)
-- Real adapter implementations (actual go-git clone, OPA eval, Infracost, S3 state read) — stubs only
-- DB store layer (W1 module 02: `feat/w1-db-store`)
-- Module registry (W1 module 03: `feat/w1-module-registry`)
-- Layer model (W1 module 04: `feat/w1-layer-model`)
-- Adapter config persistence (`adapters_config` table is non-MVP)
+### 本次范围外（后续 change）
+- 适配器真实实现（go-git clone、OPA eval、Infracost、S3 state 读写）—— 本次只做 stub
+- DB store 层（W1 模块 02：`feat/w1-db-store`）
+- 模块注册（W1 模块 03：`feat/w1-module-registry`）
+- 分层模型（W1 模块 04：`feat/w1-layer-model`）
+- 适配器配置持久化（`adapters_config` 表为非 MVP）
+- 配置加载脚本（task 1.6，随 W2 实现）
 
-## Decisions
+## 决策
 
-- **No entity classes** — core uses sqlc-generated `generated.*` types directly; `internal/mapping/` handles generated↔proto conversion. This is the sqlc standard pattern (unlike ferret's hand-written ORM which needs entity classes).
-- **Noop stubs return structured errors** — stubs are not silent; they return `errors.New("adapter not configured")` so missing adapters fail loud at runtime, not silently.
-- **TerramateAdapter returns Result struct** — captures exit code, stdout, stderr, duration; enables deterministic testing with fake terramate scripts.
+- **不用 entity 类**——core 直接用 sqlc 生成的 `generated.*` 类型；`internal/mapping/` 负责 generated↔proto 转换。这是 sqlc 标准模式（不同于 ferret 手写 ORM 需要 entity 类）。
+- **Noop stub 返回结构化错误**——stub 不是静默的；返回 `errors.New("adapter not configured")` 让缺失的适配器在运行时立即失败，不静默降级。
+- **TerramateAdapter 返回 Result struct**——捕获 exit code、stdout、stderr、duration；支持用 fake terramate 脚本做确定性测试。
 
-## Impact
+## 影响
 
-- New packages: `server/core/adapters/{git,state,policy,cost,notify,cloud}/`, `server/core/terramate/`, `server/internal/audit/`
-- No existing code modified (pure additive)
-- No DB schema changes
-- No proto contract changes
+- 新增包：`server/core/adapters/{git,state,policy,cost,notify,cloud}/`、`server/core/terramate/`、`server/internal/audit/`
+- 不修改现有代码（纯增量）
+- 不改 DB schema
+- 不改 proto 契约

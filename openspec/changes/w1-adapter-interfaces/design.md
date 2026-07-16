@@ -1,39 +1,39 @@
-# Design: w1-adapter-interfaces
+# 设计：w1-adapter-interfaces
 
-> Corresponds to design.md D7 (pluggable adapters) + D1 (terramate exec boundary) + D29 (TerramateAdapter usage).
+> 对应 design.md D7（可插拔适配器）+ D1（terramate exec 边界）+ D29（TerramateAdapter 使用方式）。
 
-## 01-Adapter Interface Design
+## 01-适配器接口设计
 
-### 1.1 Directory layout
+### 1.1 目录布局
 
 ```
 server/core/adapters/
 ├── git/
-│   ├── git.go          # GitProvider interface + NoopGit
+│   ├── git.go          # GitProvider 接口 + NoopGit
 │   └── git_test.go
 ├── cloud/
-│   ├── cloud.go        # CloudProvider interface + NoopCloud
+│   ├── cloud.go        # CloudProvider 接口 + NoopCloud
 │   └── cloud_test.go
 ├── state/
-│   ├── state.go        # StateBackend interface + NoopState
+│   ├── state.go        # StateBackend 接口 + NoopState
 │   └── state_test.go
 ├── policy/
-│   ├── policy.go       # PolicyEngine interface + NoopPolicy
+│   ├── policy.go       # PolicyEngine 接口 + NoopPolicy
 │   └── policy_test.go
 ├── cost/
-│   ├── cost.go         # CostEstimator interface + NoopCost
+│   ├── cost.go         # CostEstimator 接口 + NoopCost
 │   └── cost_test.go
 ├── notify/
-│   ├── notify.go       # Notifier interface + NoopNotifier
+│   ├── notify.go       # Notifier 接口 + NoopNotifier
 │   └── notify_test.go
-└── provider.go         # wire ProviderSet for all adapters
+└── provider.go         # 所有适配器的 wire ProviderSet
 ```
 
-### 1.2 Interface contracts
+### 1.2 接口契约
 
-Each interface follows the same pattern: domain-specific methods + a noop stub that fails loud.
+每个接口遵循相同模式：领域方法 + 失败即报错的 noop stub。
 
-**GitProvider** (consumed by registry module 03 for module clone):
+**GitProvider**（被注册模块 03 消费，用于模块 clone）：
 ```go
 type GitProvider interface {
     Clone(ctx context.Context, url, ref, dest string) error
@@ -42,15 +42,15 @@ type GitProvider interface {
 }
 ```
 
-**CloudProvider** (consumed by cloudcreds module for credential validation):
+**CloudProvider**（被 cloudcreds 模块消费，用于凭据校验）：
 ```go
 type CloudProvider interface {
-    ValidateCredentials(ctx context.Context, creds CloudCredentials) error
-    ListRegions(ctx context.Context, creds CloudCredentials) ([]string, error)
+    ValidateCredentials(ctx context.Context, creds Credentials) error
+    ListRegions(ctx context.Context, creds Credentials) ([]string, error)
 }
 ```
 
-**StateBackend** (consumed by codegen module 05 for state read/write):
+**StateBackend**（被代码生成模块 05 消费，用于 state 读写）：
 ```go
 type StateBackend interface {
     Read(ctx context.Context, key string) ([]byte, error)
@@ -61,31 +61,31 @@ type StateBackend interface {
 }
 ```
 
-**PolicyEngine** (consumed by gate module for OPA evaluation, D28 S3/S6):
+**PolicyEngine**（被 gate 模块消费，用于 OPA 评估，D28 S3/S6）：
 ```go
 type PolicyEngine interface {
-    Evaluate(ctx context.Context, policy string, input any) (PolicyResult, error)
+    Evaluate(ctx context.Context, policy string, input any) (Result, error)
 }
 
-type PolicyResult struct {
-    Allow       bool
-    Violations  []string
+type Result struct {
+    Allow      bool
+    Violations []string
 }
 ```
 
-**CostEstimator** (consumed by finops module for Infracost estimation):
+**CostEstimator**（被 finops 模块消费，用于 Infracost 估算）：
 ```go
 type CostEstimator interface {
-    Estimate(ctx context.Context, planPath string) (CostResult, error)
+    Estimate(ctx context.Context, planPath string) (Result, error)
 }
 
-type CostResult struct {
+type Result struct {
     MonthlyCostCents int64
     Currency         string
 }
 ```
 
-**Notifier** (consumed by events module for IM/webhook notifications):
+**Notifier**（被 events 模块消费，用于 IM/webhook 通知）：
 ```go
 type Notifier interface {
     Notify(ctx context.Context, event Notification) error
@@ -98,9 +98,9 @@ type Notification struct {
 }
 ```
 
-### 1.3 Noop stub pattern
+### 1.3 Noop stub 模式
 
-Every stub returns a structured error, not a silent pass:
+每个 stub 返回结构化错误，不静默通过：
 
 ```go
 type NoopGit struct{}
@@ -110,15 +110,15 @@ func (NoopGit) Clone(ctx context.Context, url, ref, dest string) error {
 }
 ```
 
-This ensures missing adapters fail immediately at runtime, not silently degrade.
+确保缺失的适配器在运行时立即失败，不静默降级。
 
-## 02-TerramateAdapter (D1 boundary)
+## 02-TerramateAdapter（D1 边界）
 
-### 2.1 Interface
+### 2.1 接口
 
 ```go
 // server/core/terramate/terramate.go
-type TerramateAdapter interface {
+type Adapter interface {
     Run(ctx context.Context, dir string, args []string) (RunResult, error)
     Version(ctx context.Context) (string, error)
 }
@@ -131,16 +131,16 @@ type RunResult struct {
 }
 ```
 
-### 2.2 Exec implementation
+### 2.2 Exec 实现
 
 ```go
 type ExecAdapter struct {
-    binaryPath string  // path to terramate binary, default "terramate"
+    binaryPath string  // terramate 二进制路径，默认 "terramate"
 }
 
 func (a *ExecAdapter) Run(ctx context.Context, dir string, args []string) (RunResult, error) {
     cmd := exec.CommandContext(ctx, a.binaryPath, args...)
-    cmd.Dir = dir  // run in stack directory (D29)
+    cmd.Dir = dir  // 在 stack 目录运行（D29）
     var stdout, stderr bytes.Buffer
     cmd.Stdout = &stdout
     cmd.Stderr = &stderr
@@ -155,49 +155,47 @@ func (a *ExecAdapter) Run(ctx context.Context, dir string, args []string) (RunRe
 }
 ```
 
-### 2.3 Testing strategy
+### 2.3 测试策略
 
-Tests use a fake `terramate` shell script (like Terramate's own test fixtures) to assert:
-- Exit code propagation
-- stdout/stderr capture
-- Context cancellation
-- Working directory set correctly
+测试用 fake `terramate` shell 脚本（类似 Terramate 自己的测试 fixture），断言：
+- exit code 传播
+- stdout/stderr 捕获
+- context 取消传播
+- 工作目录正确设置
 
-## 03-D1 Guard Test
+## 03-D1 边界守护测试
 
-### 3.1 Problem
+### 3.1 问题
 
-`.golangci.yml` depguard denies `github.com/terramate-io/terramate` imports, but the rule is non-enforcing: when terramate is not in go.mod, the typechecker silently drops the rule. A dedicated test closes this gap.
+`.golangci.yml` depguard 禁止 `github.com/terramate-io/terramate` import，但规则不生效：terramate 不在 go.mod 时 typechecker 静默丢弃规则。专用测试弥补此缺口。
 
-### 3.2 Implementation
+### 3.2 实现
 
 ```go
 // server/internal/audit/d1_guard_test.go
 func TestNoTerramateImports(t *testing.T) {
-    // Walk all .go files under server/, parse imports, assert none match
-    // "github.com/terramate-io/terramate"
+    // 遍历 server/ 下所有 .go 文件，解析 import，断言无 "github.com/terramate-io/terramate"
 }
 ```
 
-Uses `go/parser` + `go/ast` to walk the AST of every `.go` file under `server/`, collecting import paths, and asserting none start with `github.com/terramate-io/terramate`.
+用 `go/parser` + `go/ast` 遍历 `server/` 下每个 `.go` 文件的 AST，收集 import 路径，断言无 `github.com/terramate-io/terramate`。
 
-This is a pure compile-time check — no runtime, no dependencies, runs in `go test -short` mode.
+纯编译期检查——无运行时、无依赖、`go test -short` 可跑。
 
 ## 04-wire ProviderSet
 
-All adapters + TerramateAdapter registered in a single ProviderSet:
+所有适配器 + TerramateAdapter 注册在一个 ProviderSet：
 
 ```go
 // server/core/adapters/provider.go
 var ProviderSet = wire.NewSet(
-    git.NoopGit{},
-    cloud.NoopCloud{},
-    state.NoopState{},
-    policy.NoopPolicy{},
-    cost.NoopCost{},
-    notify.NoopNotifier{},
-    terramate.NewExecAdapter,
+    wire.Bind(new(git.GitProvider), new(git.NoopGit)),
+    wire.Bind(new(cloud.CloudProvider), new(cloud.NoopCloud)),
+    wire.Bind(new(state.StateBackend), new(state.NoopState)),
+    wire.Bind(new(policy.PolicyEngine), new(policy.NoopPolicy)),
+    wire.Bind(new(cost.CostEstimator), new(cost.NoopCost)),
+    wire.Bind(new(notify.Notifier), new(notify.NoopNotifier)),
 )
 ```
 
-Consumers inject the interface, not the concrete type. Wire resolves to the noop stub by default; future changes replace stubs with real implementations via `wire.Bind`.
+消费方注入接口，不注入具体类型。Wire 默认解析到 noop stub；后续 change 通过 `wire.Bind` 替换 stub 为真实实现。

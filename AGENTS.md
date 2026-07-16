@@ -49,9 +49,21 @@ selfservice-iac/
 - **tasks** 按 `## 01-功能模块` 分组,按依赖排序,每个 task 必须配测试任务,最后一个 task 跑 `make build` + `make test`。
 - 产物目录:`changes/<change>/{proposal.md, design.md, tasks.md, specs/, docs/, scripts/}`。
 
-## Git 提交语言（开源规范，强制）
+## 语言规范（开源项目，权威定义在 config.yaml rules）
 
-**所有 commit message 必须全英文**（subject + body）。这是开源项目的基本要求。中文文档内容（docs/*.md、migration SQL 的 PG COMMENT、代码注释引用中文 doc）不在此限制内——限制的是 git commit message。详见 `server/AGENTS.md` 的 "Git 提交规范" 段。
+| 产出类型 | 语言 | 原因 |
+|---------|------|------|
+| **OpenSpec 文档**（proposal/design/tasks/specs 内容） | **中文** | 维护者要读、要审，中文更高效 |
+| **spec.md 结构标记**（ADDED Requirements / Scenario 等） | **英文** | OpenSpec CLI 要求 |
+| **代码注释**（Go 注释） | **英文** | 开源标准，面向全球贡献者 |
+| **commit message** | **英文** | 开源标准 |
+| **proto 注释** | **英文** | 开源标准 |
+
+详见 `openspec/config.yaml` 的 `rules.git` → "语言规范（开源项目）" 段。
+
+## Git 提交语言
+
+**所有 commit message 必须全英文**（subject + body）。详见 `server/AGENTS.md` 的 "Git 提交规范" 段。
 
 ## 分支策略（一个功能一个分支——最高优先级）
 
