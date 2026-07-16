@@ -54,7 +54,8 @@ selfservice-iac/
 | 产出类型 | 语言 | 原因 |
 |---------|------|------|
 | **OpenSpec 文档**（proposal/design/tasks/specs 内容） | **中文** | 维护者要读、要审，中文更高效 |
-| **spec.md 结构标记**（ADDED Requirements / Scenario 等） | **英文** | OpenSpec CLI 要求 |
+| **spec.md 结构标记**（ADDED Requirements / Requirement / Scenario / WHEN / THEN） | **英文** | OpenSpec CLI parser 要求，改了不认 |
+| **Scenario 标题 + WHEN/THEN 后的描述内容** | **中文** | 结构标记英文，内容中文（如 `#### Scenario: 未配置时返回错误` + `**WHEN** GitProvider 是 noop stub`） |
 | **代码注释**（Go 注释） | **英文** | 开源标准，面向全球贡献者 |
 | **commit message** | **英文** | 开源标准 |
 | **proto 注释** | **英文** | 开源标准 |
@@ -96,6 +97,13 @@ selfservice-iac/
 - ❌ 手动 `mkdir changes/<name>/` + 手写 proposal/design/tasks —— 必须用 `/opsx:propose`（它调 `openspec new change` 脚手架 + `openspec instructions` 拿 template）
 - ❌ 手动勾 tasks `[x]` —— 必须在 `/opsx:apply` 流程中完成
 - ❌ 手动 `mv` 归档 —— 必须用 `/opsx:archive`
+
+**允许的做法（微调不需要命令）**：
+- ✅ `/opsx:propose` 后微调 artifacts 内容（改 proposal/design/tasks/specs）→ **直接编辑文件 + git commit**，不需要任何 `/opsx:` 命令
+- ✅ `/opsx:apply` 过程中发现设计问题需要改 artifacts → **直接编辑文件 + git commit**，apply 文档明确允许 "suggest updating artifacts"
+- ✅ `/opsx:explore` 讨论后想更新 artifacts → **直接编辑文件 + git commit**
+
+> **关键区分**：`/opsx:` 命令管**生命周期阶段切换**（propose→apply→archive）；artifact **内容编辑**随时可直接改文件 + commit。只有**新建 change** 必须用 `/opsx:propose`，**归档**必须用 `/opsx:archive`。中间的微调、修正、补充都直接编辑。
 
 ### 生命周期发起权
 
