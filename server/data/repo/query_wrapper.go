@@ -16,6 +16,7 @@ package repo
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
@@ -55,11 +56,9 @@ type condEntry struct {
 //	    OrderByDesc("created_at").Page(1, 20)
 //	sql, args, err := w.BuildSQL("SELECT * FROM modules WHERE deleted_at IS NULL")
 type QueryWrapper struct {
-	conds      []condEntry
-	nextJoin   joinLogic // join for the NEXT condition (Or() flips to OR)
-	orderBy    []orderClause
-	page       *Pagination
-	groupInner joinLogic // join inside Or(fn)/And(fn) groups; default AND
+	conds   []condEntry
+	orderBy []orderClause
+	page    *Pagination
 }
 
 type orderClause struct {
@@ -69,15 +68,13 @@ type orderClause struct {
 
 // New creates an empty QueryWrapper (AND logic by default).
 func New() *QueryWrapper {
-	return &QueryWrapper{groupInner: logicAnd}
+	return &QueryWrapper{}
 }
 
-// addCond appends a condition using nextJoin, then resets nextJoin to AND.
+// addCond appends a condition joined with AND (the default). Or/And methods
+// append group entries directly with their own join logic.
 func (w *QueryWrapper) addCond(s sq.Sqlizer) *QueryWrapper {
-	j := w.nextJoin
-	// First condition has no predecessor; join is effectively AND (no prefix).
-	w.conds = append(w.conds, condEntry{join: j, sqlizer: s})
-	w.nextJoin = logicAnd
+	w.conds = append(w.conds, condEntry{join: logicAnd, sqlizer: s})
 	return w
 }
 
@@ -138,14 +135,16 @@ func (w *QueryWrapper) Between(column string, low, high any) *QueryWrapper {
 	return w.addCond(sq.Expr(column+" BETWEEN ? AND ?", low, high))
 }
 
-// IsNull adds `column IS NULL`.
+// IsNull adds `column IS NULL`. Uses sq.Expr (no args) to avoid the spurious
+// nil arg that sq.Eq{column: nil} would emit, which would desynchronize $N
+// placeholder numbering when chained with real conditions.
 func (w *QueryWrapper) IsNull(column string) *QueryWrapper {
-	return w.addCond(sq.Eq{column: nil})
+	return w.addCond(sq.Expr(column + " IS NULL"))
 }
 
-// IsNotNull adds `column IS NOT NULL`.
+// IsNotNull adds `column IS NOT NULL`. See IsNull for the sq.Expr rationale.
 func (w *QueryWrapper) IsNotNull(column string) *QueryWrapper {
-	return w.addCond(sq.NotEq{column: nil})
+	return w.addCond(sq.Expr(column + " IS NOT NULL"))
 }
 
 // Or wraps the given conditions in a parenthesized group that joins with the
@@ -164,7 +163,6 @@ func (w *QueryWrapper) Or(fn func(*QueryWrapper)) *QueryWrapper {
 	}
 	// Group joins with the previous condition via OR.
 	w.conds = append(w.conds, condEntry{join: logicOr, group: sub.conds})
-	w.nextJoin = logicAnd
 	return w
 }
 
@@ -178,7 +176,6 @@ func (w *QueryWrapper) And(fn func(*QueryWrapper)) *QueryWrapper {
 		return w
 	}
 	w.conds = append(w.conds, condEntry{join: logicAnd, group: sub.conds})
-	w.nextJoin = logicAnd
 	return w
 }
 
@@ -306,21 +303,13 @@ func renderConds(entries []condEntry, args *[]any) (string, error) {
 	return strings.Join(parts, " "), nil
 }
 
-// containsWhere reports whether the base SQL already has a WHERE clause
-// (case-insensitive, naive word-boundary match — sufficient for generated bases).
+// containsWhere reports whether the base SQL already has a WHERE clause.
+// Uses a word-boundary regex (\bWHERE\b) to avoid false positives on column
+// names like "where_used" or table names containing "where".
+var whereWordRe = regexp.MustCompile(`(?i)\bWHERE\b`)
+
 func containsWhere(s string) bool {
-	upper := strings.ToUpper(s)
-	idx := strings.Index(upper, "WHERE")
-	if idx < 0 {
-		return false
-	}
-	if idx > 0 {
-		prev := s[idx-1]
-		if prev != ' ' && prev != '\t' && prev != '\n' {
-			return false
-		}
-	}
-	return true
+	return whereWordRe.MatchString(s)
 }
 
 // normalizePlaceholders converts ? placeholders to $N positional (pgx format).

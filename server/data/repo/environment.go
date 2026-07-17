@@ -25,8 +25,8 @@ func (r *EnvironmentRepo) GetByID(ctx context.Context, id int64) (generated.Envi
 	return r.queries.GetEnvironment(ctx, id)
 }
 
-// GetByLogicalId returns the active environment by its logical id.
-func (r *EnvironmentRepo) GetByLogicalId(ctx context.Context, envLogicalID string) (generated.Environment, error) {
+// GetByLogicalID returns the active environment by its logical id.
+func (r *EnvironmentRepo) GetByLogicalID(ctx context.Context, envLogicalID string) (generated.Environment, error) {
 	return r.queries.GetEnvironmentByLogicalId(ctx, envLogicalID)
 }
 

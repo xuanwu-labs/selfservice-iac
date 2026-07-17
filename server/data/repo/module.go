@@ -21,6 +21,12 @@ func NewModuleRepo(pool *pgxpool.Pool) *ModuleRepo {
 	return &ModuleRepo{pool: pool, queries: generated.New(pool)}
 }
 
+// Pool returns the underlying pgxpool (exposed for tests that need to construct
+// sibling Repos against the same test DB; not for production cross-Repo use).
+func (r *ModuleRepo) Pool() *pgxpool.Pool {
+	return r.pool
+}
+
 // GetByID returns the module by ID.
 func (r *ModuleRepo) GetByID(ctx context.Context, id int64) (generated.Module, error) {
 	return r.queries.GetModule(ctx, id)

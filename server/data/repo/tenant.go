@@ -25,8 +25,8 @@ func (r *TenantRepo) GetByID(ctx context.Context, id int64) (generated.Tenant, e
 	return r.queries.GetTenant(ctx, id)
 }
 
-// GetByLogicalId returns the active tenant by its logical id.
-func (r *TenantRepo) GetByLogicalId(ctx context.Context, tenantLogicalID string) (generated.Tenant, error) {
+// GetByLogicalID returns the active tenant by its logical id.
+func (r *TenantRepo) GetByLogicalID(ctx context.Context, tenantLogicalID string) (generated.Tenant, error) {
 	return r.queries.GetTenantByLogicalId(ctx, tenantLogicalID)
 }
 

@@ -1,8 +1,18 @@
 -- 013_env_tenant_tagpolicy.sql: environments + tenants + environment_tenant_bindings + tag_policies
 --
--- Closes the W1 prerequisite gap: stacks.env_id / stacks.tenant_id and codegen
--- Stage 4 (EnvironmentTenantBinding resolver) have no backing tables without these.
--- Identity/orchestration/drift/approval tables remain deferred to W2 modules (YAGNI).
+-- Closes the W1 prerequisite gap: doc 04 §2.13/§2.14 define these tables as
+-- first-class governance objects (D27 env/tenant, D28 tag namespace). Without
+-- them, codegen Stage 4 (EnvironmentTenantBinding resolver) has no backing store.
+--
+-- Schema authority: docs/04 §2.13 (env/tenant/binding) + §2.14 (tag_policies) + docs/07.
+--
+-- Note (D27 scope): stacks.env (TEXT) and stacks.tenant_id (TEXT) remain dangling
+-- string slugs per migration 011 — they are NOT migrated to BIGINT FKs to
+-- environments.id/tenants.id in this migration. The parallel BIGINT-keyed world
+-- introduced here is consumed by environment_tenant_bindings and future codegen;
+-- the TEXT->BIGINT migration of stacks.env/requests.env_id is a tracked follow-up
+-- (W1-04 stackmodel, when codegen Stage 4 resolves bindings). Identity/
+-- orchestration/drift/approval tables remain deferred to W2 modules (YAGNI).
 --
 -- Schema authority: docs/04 §2.13 (env/tenant/binding) + §2.14 (tag_policies) + docs/07.
 
@@ -116,8 +126,13 @@ CREATE TRIGGER trg_env_tenant_bindings_updated_at
 -- =====================================================================
 -- 4. tag_policies: D28 tag namespace config storage (L2/L3/L4/L6 layers).
 --    scope_type polymorphic reference (scope_id is TEXT, not FK — integrity
---    enforced at app layer). L1/L5 derived by codegen, not stored.
---    Authority: docs/04 §2.14.
+--    enforced at app layer). Per docs/04 §2.14:
+--      - platform scope stores L1-mandated tag namespace config (the table IS
+--        the L1 source of truth; "derived" L1 refers to per-stack tag VALUES
+--        computed by codegen, not the policy config itself).
+--      - env/tenant/team/space/catalog_item store L2/L3/L4/L6 layer config.
+--      - L5 (per-stack) tag VALUES are derived by codegen from stacks metadata,
+--        not stored as a policy row.
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS tag_policies (
     id                              BIGINT       PRIMARY KEY,
@@ -161,7 +176,7 @@ INSERT INTO environments (id, env_logical_id, display_name, stage, region, tag_n
     (2, 'staging', 'Staging',         'staging', '', '{}'::jsonb, 'active', now()),
     (3, 'prod',    'Production',      'prod',    '', '{}'::jsonb, 'active', now()),
     (4, 'dr',      'Disaster Recovery','dr',     '', '{}'::jsonb, 'active', now())
-ON CONFLICT DO NOTHING;
+ON CONFLICT (env_logical_id) DO NOTHING;
 
 -- Platform-level mandatory tag policy (D28 L1 baseline)
 INSERT INTO tag_policies (id, scope_type, scope_id, tag_namespace_json, mandatory_keys_json, user_allowed_tag_keys_json, version, created_at)
@@ -180,12 +195,14 @@ ON CONFLICT (scope_type, scope_id) DO NOTHING;
 
 -- +goose Down
 
-DROP TABLE IF EXISTS tag_policies;
-DROP TABLE IF EXISTS environment_tenant_bindings;
-DROP TABLE IF EXISTS tenants;
-DROP TABLE IF EXISTS environments;
-
+-- Drop triggers BEFORE tables (Postgres DROP TABLE CASCADE auto-drops triggers,
+-- but DROP TRIGGER ON <gone-table> errors with "relation does not exist").
 DROP TRIGGER IF EXISTS trg_tag_policies_updated_at ON tag_policies;
 DROP TRIGGER IF EXISTS trg_env_tenant_bindings_updated_at ON environment_tenant_bindings;
 DROP TRIGGER IF EXISTS trg_tenants_updated_at ON tenants;
 DROP TRIGGER IF EXISTS trg_environments_updated_at ON environments;
+
+DROP TABLE IF EXISTS tag_policies;
+DROP TABLE IF EXISTS environment_tenant_bindings;
+DROP TABLE IF EXISTS tenants;
+DROP TABLE IF EXISTS environments;

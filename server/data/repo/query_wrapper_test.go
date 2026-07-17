@@ -127,14 +127,28 @@ func TestQueryWrapper_Between(t *testing.T) {
 	assert.Equal(t, 60, args[1])
 }
 
-// TestQueryWrapper_IsNull verifies IS NULL / IS NOT NULL.
+// TestQueryWrapper_IsNull verifies IS NULL / IS NOT NULL produce no args
+// (sq.Expr-based, no spurious nil), and chains cleanly with real conditions.
 func TestQueryWrapper_IsNull(t *testing.T) {
 	w := repo.New().IsNull("deleted_at").IsNotNull("email")
 	sql, args, err := w.BuildSQL("SELECT * FROM users")
 	require.NoError(t, err)
 	assert.Contains(t, sql, "IS NULL")
 	assert.Contains(t, sql, "IS NOT NULL")
-	// IS NULL/IS NOT NULL produce args (squirrel represents them with nil value)
-	// Just verify the SQL renders without error.
-	_ = args
+	// IsNull/IsNotNull must NOT emit args (regression: sq.Eq{col:nil} produced
+	// spurious nil args that desynchronized $N when chained).
+	assert.Empty(t, args, "IsNull/IsNotNull should not emit args")
+}
+
+// TestQueryWrapper_IsNullChainedWithEq verifies IsNull does not desynchronize
+// placeholder numbering when followed by a real condition (P3 #13 regression).
+func TestQueryWrapper_IsNullChainedWithEq(t *testing.T) {
+	w := repo.New().IsNull("deleted_at").Eq("status", "active")
+	sql, args, err := w.BuildSQL("SELECT * FROM users")
+	require.NoError(t, err)
+	// Only the Eq condition contributes an arg; IsNull contributes none.
+	require.Len(t, args, 1)
+	assert.Equal(t, "active", args[0])
+	// Placeholder must be $1 (not $2), proving IsNull didn't consume a slot.
+	assert.Contains(t, sql, "status = $1")
 }

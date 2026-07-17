@@ -12,15 +12,15 @@ import (
 
 	"github.com/xuanwu-labs/selfservice-iac/server/data/repo"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/config"
-	"github.com/xuanwu-labs/selfservice-iac/server/pkg/db/generated"
 )
 
-// ProviderSet provides data-layer dependencies for wire: the pgxpool, the
-// sqlc *generated.Queries, and all Repo structs registered in repo.ProviderSet
-// (ferret style: core/<domain>/ injects *repo.XxxRepo directly).
+// ProviderSet provides data-layer dependencies for wire: the pgxpool and all
+// Repo structs registered in repo.ProviderSet. Each Repo holds its own
+// *generated.Queries (created in NewXxxRepo via generated.New(pool)), so there
+// is no separate *generated.Queries provider here (ferret style: core/<domain>/
+// injects *repo.XxxRepo directly, not *generated.Queries).
 var ProviderSet = wire.NewSet(
 	NewPgxPool,
-	NewQueries,
 	repo.ProviderSet,
 )
 
@@ -84,14 +84,4 @@ func newPoolConfig(dbCfg config.DatabaseConfig) (*pgxpool.Config, error) {
 	poolCfg.ConnConfig.Tracer = otelpgx.NewTracer(otelpgx.WithTrimSQLInSpanName())
 
 	return poolCfg, nil
-}
-
-// NewQueries creates a sqlc Queries from the pgxpool.
-// Consumed internally by data/repo Repo structs (each Repo holds its own
-// *generated.Queries via repo.NewXxxRepo(pool)). Kept in ProviderSet so the
-// dependency is visible in the wire graph; core/<domain>/ packages inject
-// *repo.XxxRepo (not *generated.Queries directly) per the W1-02 hybrid paradigm
-// (ferret Repo struct × DIP evolvable × sqlc SQL-as-truth).
-func NewQueries(pool *pgxpool.Pool) *generated.Queries {
-	return generated.New(pool)
 }

@@ -12,5 +12,14 @@
 //     with deferred Rollback (no-op after Commit).
 //   - D4: Dynamic queries (IN-lists, ad-hoc multi-filter, pagination) that
 //     sqlc cannot express go through ListByDynamicFilter, which builds SQL with
-//     *data.QueryWrapper and runs it via r.pool.Query + pgx.CollectRows.
+//     QueryWrapper and runs it via r.pool.Query + pgx.CollectRows.
+//
+// Nullable parameter convention (intentional, reflects schema):
+//   - Methods over NULLABLE columns accept pointers (e.g. ListByLayer(*string)
+//     for spaces.layer_logical_id which is NULLABLE). Callers pass nil to match
+//     NULL, non-nil to match a value.
+//   - Methods over NOT NULL columns accept values (e.g. ListByLayer(string)
+//     for stacks.layer which is NOT NULL).
+//   - This is NOT an inconsistency to fix: it preserves type safety by exposing
+//     the column's nullability at the API boundary. See review P2 #7.
 package repo
