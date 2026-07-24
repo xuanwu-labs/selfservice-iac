@@ -86,12 +86,14 @@
 
 ## 02-元数据存储与迁移
 
-> **路径对齐**：迁移 runner 已由脚手架完成（`server/cmd/migrate`，go:embed `migrations/*.sql`）。pgxpool provider（`server/data/data.go`）+ sqlc 三件套（`server/pkg/db/`）已配好。当前仅 `teams` 1 张表落地，docs/04 实际约 52 张表。
+> **路径对齐**：迁移 runner 已由脚手架完成（`server/cmd/migrate`，go:embed `migrations/*.sql`）。pgxpool provider（`server/data/data.go`）+ sqlc 三件套（`server/pkg/db/`）已配好。
+>
+> **实现状态**：task 2.1-2.3 已由子提案 `w1-db-store` 完成（feat/w1-db-store 分支，49/49 tasks done；migration 013 补齐 env/tenant/binding/tag_policies 4 张表 + 15 个核心实体 sqlc query + 15 Repo struct + query_wrapper 动态查询 + dbset + 测试；经 2 轮 code review 修复 16 个 finding）。task 2.4（迁移脚本）推迟到后续。
 
-- [ ] 2.1 ~~选定元数据 DB（PostgreSQL），在 `server/core/store` 建立访问层与连接池~~ → **DB + 连接池已由脚手架完成**（`server/data/data.go` pgxpool + `server/pkg/db/` sqlc）；本 task 聚焦 `server/core/store`（薄包装 `*db.Queries`）落地
-- [ ] 2.2 在 `server/cmd/migrate/migrations/` 编写初始 schema 迁移，落地 `docs/04` Phase 1 必需表（teams/projects/bundles/modules/module_versions/catalog_items/stacks/stack_dependencies/requests/request_events/executor_runs/workspaces/workspace_checkouts/drift_runs/drift_records/oidc_providers/identities/sessions/role_bindings/audit_logs/adapters_config/outbox_events/approval_flows/approval_runs/approval_node_runs/approval_decisions/manual_intervention_tasks/environments/tenants/environment_tenant_bindings/tag_policies）—— 注意原 task 表名与 docs/04 不一致：`approvals` 实为 `approval_flows`+`approval_runs`+`approval_node_runs`+`approval_decisions` 4 表；`artifacts` 并入 `executor_runs`；`role_bindings` 挂在 identities
-- [ ] 2.3 测试：`go test ./server/core/store/...`（CRUD + 业务唯一约束 + 迁移 up/down 幂等）
-- [ ] 2.4 脚本：在 `scripts/迁移/` 产出 schema 初始化与迁移执行脚本
+- [x] 2.1 ~~选定元数据 DB（PostgreSQL），在 `server/core/store` 建立访问层与连接池~~ → **DB + 连接池已由脚手架完成**（`server/data/data.go` pgxpool + `server/pkg/db/` sqlc）；本 task 聚焦 `server/data/repo/`（混合范式 Repo struct 薄包装 `*generated.Queries` + 跨表事务 + 动态查询）落地 ← **架构演进**：原 `core/store` 改为 `data/repo/`（对齐 w1-db-store 提案的 ferret × DIP × sqlc 混合范式决策，DIP 依赖方向正确）← 完成于 `w1-db-store`
+- [x] 2.2 在 `server/cmd/migrate/migrations/` 编写初始 schema 迁移，落地 `docs/04` Phase 1 必需表 ← 完成于 `w1-db-store`（migration 013 补齐 environments/tenants/environment_tenant_bindings/tag_policies；其余 25 张表已由 migration 001-012 落地；身份/编排/漂移/审批表推迟 W2）
+- [x] 2.3 测试：`go test ./server/data/repo/... ./server/data/...`（Repo CRUD + 业务唯一约束 + 跨表事务 + 动态查询 + 迁移 up/down 幂等）← 完成于 `w1-db-store`（query_wrapper 10 测试全过 + module/environment Repo 测试；DB 测试 -short skip，CI 跑）
+- [ ] 2.4 脚本：在 `scripts/迁移/` 产出 schema 初始化与迁移执行脚本 ← 推迟到后续
 
 ## 03-模块注册与服务目录
 

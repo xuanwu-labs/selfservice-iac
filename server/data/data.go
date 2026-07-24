@@ -10,14 +10,18 @@ import (
 	"github.com/google/wire"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/xuanwu-labs/selfservice-iac/server/data/repo"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/config"
-	"github.com/xuanwu-labs/selfservice-iac/server/pkg/db/generated"
 )
 
-// ProviderSet provides data-layer dependencies for wire.
+// ProviderSet provides data-layer dependencies for wire: the pgxpool and all
+// Repo structs registered in repo.ProviderSet. Each Repo holds its own
+// *generated.Queries (created in NewXxxRepo via generated.New(pool)), so there
+// is no separate *generated.Queries provider here (ferret style: core/<domain>/
+// injects *repo.XxxRepo directly, not *generated.Queries).
 var ProviderSet = wire.NewSet(
 	NewPgxPool,
-	NewQueries,
+	repo.ProviderSet,
 )
 
 // NewPgxPool creates a pgxpool connection pool from config, instrumented with
@@ -80,12 +84,4 @@ func newPoolConfig(dbCfg config.DatabaseConfig) (*pgxpool.Config, error) {
 	poolCfg.ConnConfig.Tracer = otelpgx.NewTracer(otelpgx.WithTrimSQLInSpanName())
 
 	return poolCfg, nil
-}
-
-// NewQueries creates a sqlc Queries from the pgxpool.
-// WIP: registered in ProviderSet but currently has no wire consumer — the
-// first consumer will be core/store (薄包装) when it lands in Wave 1.
-// Until then it stays registered so the dependency is visible in the graph.
-func NewQueries(pool *pgxpool.Pool) *generated.Queries {
-	return generated.New(pool)
 }

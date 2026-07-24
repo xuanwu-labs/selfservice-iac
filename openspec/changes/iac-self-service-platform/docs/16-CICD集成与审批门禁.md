@@ -22,7 +22,7 @@
 
 ```yaml
 # req.yaml —— 与 Web 表单同一套 schema（来自 catalog_items.form_schema_json）
-apiVersion: iac.platform/v1
+apiVersion: iac.server/v1
 kind: ResourceRequest
 metadata:
   name: order-service-prod-scale-up
