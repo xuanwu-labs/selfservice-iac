@@ -1,7 +1,6 @@
 package repo_test
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -169,7 +168,7 @@ func TestModuleRepo_CreateWithVersion_Rollback(t *testing.T) {
 // produces correct results (Eq + In + pagination).
 func TestModuleRepo_DynamicFilter(t *testing.T) {
 	r, team := setupModuleRepoTestDB(t)
-	c := context.Background()
+	c := t.Context()
 
 	// Create 3 modules across 2 layers.
 	for _, layer := range []string{"middleware", "middleware", "application"} {

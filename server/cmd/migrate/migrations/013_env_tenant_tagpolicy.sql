@@ -13,8 +13,6 @@
 -- the TEXT->BIGINT migration of stacks.env/requests.env_id is a tracked follow-up
 -- (W1-04 stackmodel, when codegen Stage 4 resolves bindings). Identity/
 -- orchestration/drift/approval tables remain deferred to W2 modules (YAGNI).
---
--- Schema authority: docs/04 §2.13 (env/tenant/binding) + §2.14 (tag_policies) + docs/07.
 
 -- +goose Up
 
