@@ -17,6 +17,7 @@ import (
 	platformerrors "github.com/xuanwu-labs/selfservice-iac/server/internal/errors"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/middleware"
 	catalogv1connect "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/catalog/catalogv1connect"
+	registryv1connect "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/registry/registryv1connect"
 )
 
 // ProvideServerConfig assembles the full ServerConfig: gin middleware chain
@@ -26,7 +27,12 @@ import (
 // middleware.DefaultConnectInterceptors, the otelconnect interceptor, the
 // audit interceptor (needs logger), the error-wrap fallback interceptor, and
 // registers all Connect service handlers.
-func ProvideServerConfig(catalog *connectapi.CatalogHandler, logger *otelzap.Logger) (*middleware.ServerConfig, error) {
+func ProvideServerConfig(
+	catalog *connectapi.CatalogHandler,
+	catalogAdmin *connectapi.CatalogAdminHandler,
+	registry *connectapi.RegistryHandler,
+	logger *otelzap.Logger,
+) (*middleware.ServerConfig, error) {
 	// Build the Connect interceptor chain: otelconnect + auth/rbac/ratelimit + audit + error-wrap.
 	otelIC, err := otelconnect.NewInterceptor(otelconnect.WithTrustRemote())
 	if err != nil {
@@ -53,11 +59,24 @@ func ProvideServerConfig(catalog *connectapi.CatalogHandler, logger *otelzap.Log
 	cfg := middleware.Apply(connectOpts...)
 	allInterceptors = cfg.ConnectInterceptors
 
-	path, handler := catalogv1connect.NewCatalogServiceHandler(
-		catalog,
-		connect.WithInterceptors(allInterceptors...),
+	// Register all Connect service handlers with the full interceptor chain.
+	// User-facing CatalogService (List/Get).
+	catalogPath, catalogHandlerHTTP := catalogv1connect.NewCatalogServiceHandler(
+		catalog, connect.WithInterceptors(allInterceptors...),
 	)
-	connectOpts = append(connectOpts, middleware.WithConnectHandler(path, handler))
+	connectOpts = append(connectOpts, middleware.WithConnectHandler(catalogPath, catalogHandlerHTTP))
+
+	// Operator-facing CatalogAdminService (Publish/Update/Deprecate).
+	catalogAdminPath, catalogAdminHandlerHTTP := catalogv1connect.NewCatalogAdminServiceHandler(
+		catalogAdmin, connect.WithInterceptors(allInterceptors...),
+	)
+	connectOpts = append(connectOpts, middleware.WithConnectHandler(catalogAdminPath, catalogAdminHandlerHTTP))
+
+	// Operator-facing RegistryAdminService (RegisterModule).
+	registryPath, registryHandlerHTTP := registryv1connect.NewRegistryAdminServiceHandler(
+		registry, connect.WithInterceptors(allInterceptors...),
+	)
+	connectOpts = append(connectOpts, middleware.WithConnectHandler(registryPath, registryHandlerHTTP))
 
 	return middleware.Apply(connectOpts...), nil
 }

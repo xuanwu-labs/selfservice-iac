@@ -1,9 +1,8 @@
 // Package connect implements Connect-RPC handlers for Aether's business APIs.
 //
-// catalog.go implements CatalogServiceHandler, wiring proto requests to
-// core/catalog.CatalogService (Publish) and data/repo.CatalogRepo (List/Get).
-// The static placeholder data from the scaffolding phase is removed; List/Get
-// now read from the DB via CatalogRepo.
+// catalog.go implements CatalogServiceHandler (user-facing, read-only):
+// ListItems + GetCatalogItem backed by CatalogRepo. Mutating operations
+// (Publish/Update/Deprecate) live on CatalogAdminService — see catalog_admin.go.
 
 package connect
 
@@ -13,7 +12,6 @@ import (
 
 	"connectrpc.com/connect"
 
-	"github.com/xuanwu-labs/selfservice-iac/server/core/catalog"
 	"github.com/xuanwu-labs/selfservice-iac/server/data/repo"
 	platformerrors "github.com/xuanwu-labs/selfservice-iac/server/internal/errors"
 	catalogv1 "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/catalog"
@@ -22,25 +20,22 @@ import (
 	"github.com/xuanwu-labs/selfservice-iac/server/pkg/db/generated"
 )
 
-// CatalogHandler implements the CatalogService Connect RPC.
+// CatalogHandler implements the user-facing CatalogService Connect RPC
+// (read-only: ListItems + GetCatalogItem).
 type CatalogHandler struct {
 	catalogv1connect.UnimplementedCatalogServiceHandler
 	repo *repo.CatalogRepo
-	svc  *catalog.CatalogService
 }
 
 // Compile-time check.
 var _ catalogv1connect.CatalogServiceHandler = (*CatalogHandler)(nil)
 
 // NewCatalogHandler returns a CatalogHandler ready to register on a mux.
-// CatalogRepo powers ListItems/GetCatalogItem (read); CatalogService powers
-// PublishCatalogItem (write, with formgen + defaults + D40 validation).
-func NewCatalogHandler(repo *repo.CatalogRepo, svc *catalog.CatalogService) *CatalogHandler {
-	return &CatalogHandler{repo: repo, svc: svc}
+func NewCatalogHandler(repo *repo.CatalogRepo) *CatalogHandler {
+	return &CatalogHandler{repo: repo}
 }
 
-// ListItems returns all active catalog items from the DB (W1-03: replaced the
-// scaffolding-phase static placeholder with a real CatalogRepo.List call).
+// ListItems returns all active catalog items from the DB.
 func (h *CatalogHandler) ListItems(
 	ctx context.Context,
 	_ *connect.Request[catalogv1.ListItemsRequest],
@@ -75,47 +70,8 @@ func (h *CatalogHandler) GetCatalogItem(
 	return connect.NewResponse(&catalogv1.GetCatalogItemResponse{Item: dbCatalogItemToProto(&ci)}), nil
 }
 
-// PublishCatalogItem publishes a new catalog item: formgen + defaults + D40
-// validation + DB write, all orchestrated by CatalogService.Publish.
-func (h *CatalogHandler) PublishCatalogItem(
-	ctx context.Context,
-	req *connect.Request[catalogv1.PublishCatalogItemRequest],
-) (*connect.Response[catalogv1.PublishCatalogItemResponse], error) {
-	in := req.Msg
-
-	moduleVersionID, err := strconv.ParseInt(in.ModuleVersion, 10, 64)
-	if err != nil {
-		return nil, platformerrors.New(commonv1.ErrorCode_ERROR_CODE_MODULE_VERSION_NOT_FOUND, connect.CodeInvalidArgument,
-			"module_version must be numeric, got %q", in.ModuleVersion)
-	}
-	ownerTeamID, err := strconv.ParseInt(in.OwnerTeamId, 10, 64)
-	if err != nil {
-		return nil, platformerrors.New(commonv1.ErrorCode_ERROR_CODE_INTERNAL_ERROR, connect.CodeInvalidArgument,
-			"owner_team_id must be numeric, got %q", in.OwnerTeamId)
-	}
-
-	ci, err := h.svc.Publish(ctx, catalog.PublishInput{
-		ModuleVersionID: moduleVersionID,
-		DisplayName:     in.Name,
-		Description:     in.Description,
-		Category:        in.Category,
-		LayerLogicalID:  in.LayerLogicalId,
-		OwnerTeamID:     ownerTeamID,
-		Visibility:      in.VisibleToTeams,
-	})
-	if err != nil {
-		return nil, platformerrors.New(commonv1.ErrorCode_ERROR_CODE_INTERNAL_ERROR, connect.CodeInternal,
-			"publish catalog item: %v", err)
-	}
-
-	return connect.NewResponse(&catalogv1.PublishCatalogItemResponse{
-		Item: dbCatalogItemToProto(&ci),
-	}), nil
-}
-
 // dbCatalogItemToProto converts a sqlc-generated CatalogItem row to the proto
-// message. Field mappings cover the MVP surface; richer fields
-// (form_schema_json, defaults_json) are attached as JSON strings.
+// message. Field mappings cover the MVP surface.
 func dbCatalogItemToProto(ci *generated.CatalogItem) *catalogv1.CatalogItem {
 	out := &catalogv1.CatalogItem{
 		Id:          strconv.FormatInt(ci.ID, 10),
@@ -131,8 +87,7 @@ func dbCatalogItemToProto(ci *generated.CatalogItem) *catalogv1.CatalogItem {
 	return out
 }
 
-// statusStringToProto maps the DB status string to the proto enum. MVP maps
-// the common values; unknown → unspecified.
+// statusStringToProto maps the DB status string to the proto enum.
 func statusStringToProto(s string) commonv1.CatalogItemStatus {
 	switch s {
 	case "active":

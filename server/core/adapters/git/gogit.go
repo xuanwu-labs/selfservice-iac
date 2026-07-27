@@ -19,6 +19,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
+	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 )
 
 // GoGitProvider implements GitProvider using go-git/v5.
@@ -40,11 +41,13 @@ var _ GitProvider = (*GoGitProvider)(nil)
 // ref semantics:
 //   - "" or "HEAD" → default branch (remote HEAD)
 //   - "main", "master", "feature/x" → branch name
-//   - "v1.0.0", "abc123" → tag or commit-ish (resolved via remote refs)
+//   - "v1.0.0", "abc123" → tag or commit-ish (resolved via checkout after clone)
 //
 // Credential resolution:
-//   - SSH URLs (git@host:org/repo.git) → GIT_SSH_COMMAND env var
-//   - HTTPS URLs with GIT_TOKEN set → Bearer auth header injected
+//   - SSH URLs (git@host:org/repo.git) → GIT_SSH_COMMAND env var (go-git honors it)
+//   - HTTPS URLs with GIT_TOKEN set → CloneOptions.Auth = http.BasicAuth (go-git
+//     does NOT read GIT_USERNAME/GIT_PASSWORD env vars; the Auth field is the
+//     only way to inject HTTPS credentials)
 //   - HTTPS URLs without GIT_TOKEN → anonymous (public repos)
 func (g *GoGitProvider) Clone(ctx context.Context, url, ref, dest string) error {
 	if url == "" {
@@ -54,17 +57,48 @@ func (g *GoGitProvider) Clone(ctx context.Context, url, ref, dest string) error 
 		return fmt.Errorf("git Clone: dest is empty")
 	}
 
-	cloneOpts := g.buildCloneOptions(url, ref)
+	opts := &git.CloneOptions{URL: url}
+	g.applyCredentials(opts, url)
 
-	// go-git Clone does not accept a context directly in v5.19; the clone is
-	// blocking. For MVP this is acceptable (registry registration is async via
-	// the request pipeline). A context-aware clone would need go-git/v5's
-	// transport layer changes — deferred to W2 if registration latency matters.
-	_, err := git.PlainClone(dest, false, cloneOpts)
+	// Full clone (no ReferenceName/SingleBranch) so any branch/tag/commit-ish
+	// can be checked out afterwards. The isBranch/isTag heuristic was unreliable
+	// for short refs (v2, v1) — full clone + checkout is the robust alternative.
+	repo, err := git.PlainClone(dest, false, opts)
 	if err != nil {
-		return fmt.Errorf("git clone %s@%s into %s: %w", url, ref, dest, err)
+		return fmt.Errorf("git clone %s into %s: %w", url, dest, err)
+	}
+
+	// Checkout the requested ref if not HEAD.
+	if ref != "" && ref != "HEAD" {
+		wt, err := repo.Worktree()
+		if err != nil {
+			return fmt.Errorf("git worktree after clone: %w", err)
+		}
+		// Try branch, then tag, then commit-ish (checkout handles all three).
+		if err := wt.Checkout(&git.CheckoutOptions{Branch: plumbing.NewBranchReferenceName(ref)}); err != nil {
+			if err := wt.Checkout(&git.CheckoutOptions{Branch: plumbing.NewTagReferenceName(ref)}); err != nil {
+				// Fall back to commit-ish hash.
+				h, hashErr := repo.ResolveRevision(plumbing.Revision(ref))
+				if hashErr != nil {
+					return fmt.Errorf("git checkout ref %q (tried branch/tag/commit): %w", ref, err)
+				}
+				if err := wt.Checkout(&git.CheckoutOptions{Hash: *h}); err != nil {
+					return fmt.Errorf("git checkout commit %q: %w", ref, err)
+				}
+			}
+		}
 	}
 	return nil
+}
+
+// applyCredentials sets CloneOptions.Auth for HTTPS URLs when GIT_TOKEN is
+// present. go-git's HTTP transport reads ONLY CloneOptions.Auth (a
+// transport.AuthMethod), not GIT_USERNAME/GIT_PASSWORD env vars. SSH uses
+// GIT_SSH_COMMAND which go-git honors via its SSH transport automatically.
+func (g *GoGitProvider) applyCredentials(opts *git.CloneOptions, url string) {
+	if token := os.Getenv("GIT_TOKEN"); token != "" && strings.HasPrefix(url, "https://") {
+		opts.Auth = &githttp.BasicAuth{Username: "oauth2", Password: token}
+	}
 }
 
 // Fetch updates the local clone at dir with the latest remote refs.
@@ -106,63 +140,6 @@ func (g *GoGitProvider) CommitSHA(ctx context.Context, dir string) (string, erro
 	return head.Hash().String(), nil
 }
 
-// buildCloneOptions assembles git.CloneOptions with credential resolution.
-func (g *GoGitProvider) buildCloneOptions(url, ref string) *git.CloneOptions {
-	opts := &git.CloneOptions{
-		URL: url,
-	}
-
-	// Resolve ref → ReferenceName. Empty or HEAD → default branch (RemoteName).
-	switch {
-	case ref == "" || ref == "HEAD":
-		opts.RemoteName = "origin"
-	case isBranch(ref):
-		opts.ReferenceName = plumbing.NewBranchReferenceName(ref)
-		opts.SingleBranch = true
-	default:
-		// Could be a tag (v1.0.0) or commit-ish. go-git resolves tags via
-		// ReferenceName; commit-ish needs a full clone + checkout. For tags,
-		// try tag ref first; Depth=0 (full) ensures commit-ish works too.
-		opts.ReferenceName = plumbing.NewTagReferenceName(ref)
-		opts.SingleBranch = false
-	}
-
-	// Credential resolution from env.
-	if token := os.Getenv("GIT_TOKEN"); token != "" && strings.HasPrefix(url, "https://") {
-		// HTTPS + token: inject as Bearer auth via go-git's inertial
-		// transport (set via git credential helper env). go-git v5 reads
-		// GIT_USERNAME / GIT_PASSWORD for HTTPS basic auth.
-		_ = os.Setenv("GIT_USERNAME", "oauth2")
-		_ = os.Setenv("GIT_PASSWORD", token)
-	}
-	// SSH: go-git honors GIT_SSH_COMMAND automatically via its SSH transport.
-
-	return opts
-}
-
-// isBranch reports whether ref looks like a branch name (no tag prefix,
-// no commit hash shape). Conservative: treat anything that isn't a 7+ hex
-// string or vX.Y.Z tag as a potential branch.
-func isBranch(ref string) bool {
-	if strings.HasPrefix(ref, "v") && len(ref) >= 2 {
-		// vX.Y.Z tag pattern
-		rest := ref[1:]
-		if strings.Contains(rest, ".") {
-			return false
-		}
-	}
-	if len(ref) >= 7 && isAllHex(ref) {
-		// commit-ish
-		return false
-	}
-	return true
-}
-
-func isAllHex(s string) bool {
-	for _, c := range s {
-		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
-			return false
-		}
-	}
-	return true
-}
+// buildCloneOptions removed (P0-4): the isBranch/isTag heuristic was
+// unreliable for short refs (v2, v1). Clone now does a full clone + explicit
+// checkout with branch→tag→commit fallback. See Clone().

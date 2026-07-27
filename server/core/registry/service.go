@@ -5,10 +5,12 @@
 // RegisterModule. It wires together GitProvider (clone), ContractExtractor
 // (HCL → scalar contract), and ModuleRepo.CreateWithVersion (atomic DB write).
 //
-// State machine (task 3.2): modules.status transitions
-//   pending_validation (CreateWithVersion initial)
-//     → validated         (HCL parse succeeded, UpdateStatus)
-//     → validation_failed (HCL parse failed, UpdateStatus)
+// State machine (task 3.2): modules.status is written directly in the single
+// CreateWithVersion write as either "validated" (HCL parse succeeded) or
+// "validation_failed" (HCL parse failed). There is no separate pending_validation
+// row first — the registration flow is atomic: extract → write status in one
+// transaction. (The pending_validation status is reserved for future async
+// validation with real terraform validate in W2.)
 //
 // terraform validate (real init+validate) is deferred to W2; MVP treats HCL
 // parse success as validation (design D6).
@@ -20,7 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/google/wire"
 
@@ -106,22 +107,27 @@ func (s *RegistryService) RegisterModule(ctx context.Context, in RegisterModuleI
 		return nil, fmt.Errorf("registry: resolve commit sha: %w", err)
 	}
 
-	// 3. Extract contract. On parse failure we still persist the module with
-	//    status validation_failed (so the operator sees the attempt), then
-	//    return the error. The caller can decide whether to surface it.
+	// 3. Extract contract. On parse failure we persist with status
+	//    validation_failed (so operator sees the attempt) and return an error.
+	//    The contract_json is always valid JSON (no string concatenation of
+	//    error messages, which could corrupt the blob — P0-5).
 	contract, extractErr := s.extractor.ExtractFromRepo(cloneDest, in.ModulePath)
-	contractJSON := []byte(`{"variables":[],"outputs":[]}`)
 	status := "validated"
 	if extractErr != nil {
 		status = "validation_failed"
-		contractJSON = []byte(`{"variables":[],"outputs":[],"error":"` + extractErr.Error() + `"}`)
-	} else if contract != nil {
-		b, err := json.Marshal(contract)
-		if err != nil {
-			return nil, fmt.Errorf("registry: marshal contract: %w", err)
+		// Empty contract on failure; validation_error is stored in the Contract
+		// struct's optional field so json.Marshal produces valid JSON always.
+		contract = &Contract{
+			Variables:       []ContractVariable{},
+			Outputs:         []ContractOutput{},
+			ValidationError: extractErr.Error(),
 		}
-		contractJSON = b
 	}
+	b, err := json.Marshal(contract)
+	if err != nil {
+		return nil, fmt.Errorf("registry: marshal contract: %w", err)
+	}
+	contractJSON := b
 
 	// 4. Persist module + version atomically.
 	moduleID := utils.GenerateID()
@@ -150,8 +156,10 @@ func (s *RegistryService) RegisterModule(ctx context.Context, in RegisterModuleI
 		return nil, fmt.Errorf("registry: persist module+version: %w", err)
 	}
 
-	// 5. Return result. If extraction failed, return the error AFTER successful
-	//    persistence so the caller knows the module landed but needs attention.
+	// 5. Return result. If extraction failed, the module was persisted with
+	//    status=validation_failed — return nil, err (Go convention: on error,
+	//    non-error returns are zero-valued). The operator can find the persisted
+	//    module via ListModules(status=validation_failed) and retry.
 	result := &RegisterModuleResult{
 		ModuleID:        mod.ID,
 		ModuleVersionID: versionID,
@@ -159,16 +167,7 @@ func (s *RegistryService) RegisterModule(ctx context.Context, in RegisterModuleI
 		Status:          status,
 	}
 	if extractErr != nil {
-		return result, fmt.Errorf("registry: module persisted with status=validation_failed: %w", extractErr)
+		return nil, fmt.Errorf("registry: module persisted with status=validation_failed (query ListModules to find it): %w", extractErr)
 	}
 	return result, nil
-}
-
-// filePath helper to build subdirectory path within the clone (kept for future
-// use by handlers that need to inspect the cloned tree).
-func submoduleDir(cloneDest, modulePath string) string {
-	if modulePath == "" {
-		return cloneDest
-	}
-	return filepath.Join(cloneDest, filepath.FromSlash(modulePath))
 }

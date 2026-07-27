@@ -12,7 +12,6 @@ import (
 
 	"github.com/xuanwu-labs/selfservice-iac/server/core/adapters/git"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/registry"
-	"github.com/xuanwu-labs/selfservice-iac/server/pkg/db/generated"
 )
 
 // fakeGitProvider implements git.GitProvider for tests without network.
@@ -39,17 +38,6 @@ func (f *fakeGitProvider) CommitSHA(_ context.Context, _ string) (string, error)
 
 // Compile-time check.
 var _ git.GitProvider = (*fakeGitProvider)(nil)
-
-// mockModuleRepo is a minimal fake of *repo.ModuleRepo for tests that don't
-// need a real DB. RegistryService only calls CreateWithVersion, so we capture
-// the args and return synthetic rows.
-type mockModuleRepo struct {
-	capturedMod generated.CreateModuleParams
-	capturedVer generated.CreateModuleVersionParams
-	modReturn   generated.Module
-	verReturn   generated.ModuleVersion
-	err         error
-}
 
 // We can't mock *repo.ModuleRepo directly (it's a concrete struct). Instead we
 // verify via the real extractor path: this test exercises the extractor +

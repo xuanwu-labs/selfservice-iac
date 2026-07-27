@@ -43,6 +43,10 @@ type ContractOutput struct {
 type Contract struct {
 	Variables []ContractVariable `json:"variables"`
 	Outputs   []ContractOutput   `json:"outputs"`
+	// ValidationError records why extraction failed (status=validation_failed).
+	// Empty when extraction succeeded. Stored inside variables_contract_json so
+	// the blob is always valid JSON (no string concatenation).
+	ValidationError string `json:"validation_error,omitempty"`
 }
 
 // ContractExtractor parses .tf files at a given path and returns a pure-scalar
