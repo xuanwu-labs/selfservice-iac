@@ -13,7 +13,9 @@ import (
 	"github.com/xuanwu-labs/selfservice-iac/server/api"
 	"github.com/xuanwu-labs/selfservice-iac/server/api/connect"
 	"github.com/xuanwu-labs/selfservice-iac/server/core"
+	"github.com/xuanwu-labs/selfservice-iac/server/core/catalog"
 	"github.com/xuanwu-labs/selfservice-iac/server/data"
+	"github.com/xuanwu-labs/selfservice-iac/server/data/repo"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/config"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/server"
 	"go.uber.org/zap"
@@ -32,7 +34,12 @@ func InitializeApp(cfg *config.Config) (*App, func(), error) {
 	}
 	v := api.NewPingFunc(pool)
 	handler := server.ProvideMetricsHandler()
-	catalogHandler := connect.NewCatalogHandler()
+	catalogRepo := repo.NewCatalogRepo(pool)
+	moduleVersionRepo := repo.NewModuleVersionRepo(pool)
+	moduleRepo := repo.NewModuleRepo(pool)
+	catalogValidator := catalog.NewValidator()
+	catalogService := catalog.NewCatalogService(catalogRepo, moduleVersionRepo, moduleRepo, catalogValidator)
+	catalogHandler := connect.NewCatalogHandler(catalogRepo, catalogService)
 	serverConfig, err := server.ProvideServerConfig(catalogHandler, logger)
 	if err != nil {
 		cleanup()

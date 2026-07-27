@@ -1,0 +1,1 @@
+# Minimal main.tf stub.

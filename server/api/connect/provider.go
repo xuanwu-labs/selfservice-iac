@@ -8,6 +8,8 @@ package connect
 import "github.com/google/wire"
 
 // ProviderSet aggregates all Connect-RPC handler providers.
+// W1-03: CatalogHandler (List/Get/Publish) + RegistryHandler (RegisterModule).
 var ProviderSet = wire.NewSet(
 	NewCatalogHandler,
+	NewRegistryHandler,
 )
