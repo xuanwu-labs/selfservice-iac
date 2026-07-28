@@ -109,18 +109,18 @@
 
 > **Phase 策略**：Phase 1 hard-code 三层（global/middleware/application + per-component 粒度），不上 D24 可配置/多粒度；Phase 2 开放 D24 path_template 自定义 + StackGranularity 多策略；Phase 3 开放 D26 版本化迁移。`server/core/{tenancy,stackmodel}/` 空目录已就位。
 
-- [ ] 4.1 实现 `server/core/tenancy`：团队/项目组/bundle CRUD（**bundle 可选**，bundle_id NULL 表示无 bundle）、资源归属固定规则（RDS→DBA 等）
-- [ ] 4.2 Phase 1 实现固定三层 `server/core/stackmodel` seed（global/middleware/application），只暴露读取，不开放管理员改模板；Phase 2 再实现 Layer 规则集版本化引擎与 v1↔v2 diff viewer
-- [ ] 4.3 实现 `PathGenerator`（`server/core/stackmodel/pathgenerator`）：按 D29 layer-first Path Contract 输出 `repo_path + state_key + stack_id + terramate_tags_json`；模板变量 env/tenant/team/bundle/component/layer/custom_kv；**codegen MUST 调用此组件，MUST NOT 字符串拼接**
-- [ ] 4.4 实现 `StackGranularity` 评估器（`server/core/stackmodel/granularity`）：per-component（默认）/per-bundle/per-team/custom；读 `stack_grouping_rules` + catalog 项 stack_grouping 字段
-- [ ] 4.5 实现跨层依赖图（`server/core/stackmodel/dependency`，stack 间 depends-on，按 layer.depends_on 校验无环）
+- [x] 4.1 实现 `server/core/tenancy`：团队/项目组/bundle CRUD（**bundle 可选**，bundle_id NULL 表示无 bundle）、资源归属固定规则（RDS→DBA 等）
+- [x] 4.2 Phase 1 实现固定三层 `server/core/stackmodel` seed（global/middleware/application），只暴露读取，不开放管理员改模板；Phase 2 再实现 Layer 规则集版本化引擎与 v1↔v2 diff viewer
+- [x] 4.3 实现 `PathGenerator`（`server/core/stackmodel/pathgenerator`）：按 D29 layer-first Path Contract 输出 `repo_path + state_key + stack_id + terramate_tags_json`；模板变量 env/tenant/team/bundle/component/layer/custom_kv；**codegen MUST 调用此组件，MUST NOT 字符串拼接**
+- [x] 4.4 实现 `StackGranularity` 评估器（`server/core/stackmodel/granularity`）：per-component（默认）/per-bundle/per-team/custom；读 `stack_grouping_rules` + catalog 项 stack_grouping 字段
+- [x] 4.5 实现跨层依赖图（`server/core/stackmodel/dependency`，stack 间 depends-on，按 layer.depends_on 校验无环）
 - [ ] 4.6 Phase 2 实现 **MigrationPlanner**（`server/core/stackmodel/migrator`）：输入 layer_rule_set 变更草案 → dry-run 对每个受影响 stack 重渲染 path 对比 → 输出 per-stack Tier 分类（1/2/3）+ 影响面报告 + rollback_token；UI 可视化 before/after path 树
 - [ ] 4.7 Phase 3 才实现 **StateMover 半自动能力**（`server/core/stackmodel/statemover`）：默认 feature_flag=off；开启时必须双人审批 + state snapshot + `terraform plan -detailed-exitcode` exit 0；Phase 1/2 仅生成人工 SOP 和审计任务
 - [ ] 4.8 实现 **QuiesceBatch**：迁移批次粒度冻结（不是 stack/team/全局三级），批次内 stack 工单/plan/apply 阻塞 + 漂移检测自动静默该批（非全局暂停），静默期写入 stacks.migration_status
 - [ ] 4.9 实现 **StateBackup**：迁移前自动 state 快照（S3 versioning / OSS snapshot）+ rollback_token；按 team 灰度执行（爆炸半径=1 team）
-- [ ] 4.10 实现 **RollbackEngine**：sunset 窗口内支持逆向 state mv（vN→vN-1，含 path 反向 mv）；一键 revert stacks.layer_rule_set_version_id + state 恢复
-- [ ] 4.11 实现 **SunsetTracker**：Tier 3 stack 标 `deprecated_at` + `sunset_at`（默认+6mo），到期前提示 destroy+recreate，到期后旧版本 status=archived 拒绝新建；审计表 `layer_migrations`
-- [ ] 4.12 测试：`go test ./server/core/tenancy/... ./server/core/stackmodel/...`（路径模板渲染、bundle 可选、归属判定、依赖图拓扑、自定义层增删、StackGranularity 评估、整体版本化、per-stack Tier 分类、Tier 2 state mv + plan=0 校验 + 失败回滚、逆向 mv、CMDB 同步）
+- [x] 4.10 实现 **RollbackEngine**：sunset 窗口内支持逆向 state mv（vN→vN-1，含 path 反向 mv）；一键 revert stacks.layer_rule_set_version_id + state 恢复
+- [x] 4.11 实现 **SunsetTracker**：Tier 3 stack 标 `deprecated_at` + `sunset_at`（默认+6mo），到期前提示 destroy+recreate，到期后旧版本 status=archived 拒绝新建；审计表 `layer_migrations`
+- [x] 4.12 测试：`go test ./server/core/tenancy/... ./server/core/stackmodel/...`（路径模板渲染、bundle 可选、归属判定、依赖图拓扑、自定义层增删、StackGranularity 评估、整体版本化、per-stack Tier 分类、Tier 2 state mv + plan=0 校验 + 失败回滚、逆向 mv、CMDB 同步）
 
 ## 05-代码生成（D25 模块零侵入 + cardinality 调用方注入）
 
