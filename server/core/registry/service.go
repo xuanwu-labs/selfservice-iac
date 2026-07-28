@@ -129,6 +129,16 @@ func (s *RegistryService) RegisterModule(ctx context.Context, in RegisterModuleI
 	}
 	contractJSON := b
 
+	// Providers JSON (Gap 1 fix): serialize required_providers + required_core
+	// into module_versions.providers_json for D22 toolchain compatibility checks.
+	providersJSON, err := json.Marshal(map[string]any{
+		"required_core":      contract.RequiredCore,
+		"required_providers": contract.Providers,
+	})
+	if err != nil {
+		providersJSON = []byte(`{}`)
+	}
+
 	// 4. Persist module + version atomically.
 	moduleID := utils.GenerateID()
 	versionID := utils.GenerateID()
@@ -147,7 +157,7 @@ func (s *RegistryService) RegisterModule(ctx context.Context, in RegisterModuleI
 		ModuleID:              moduleID, // CreateWithVersion overwrites this with the real module ID
 		Version:               in.Version,
 		CommitSha:             commitSHA,
-		ProvidersJson:         []byte(`{}`),
+		ProvidersJson:         providersJSON,
 		VariablesContractJson: contractJSON,
 		IsCurrent:             true,
 	}

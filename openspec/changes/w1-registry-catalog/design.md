@@ -147,3 +147,27 @@ type VariableContract struct {
 
 - **FormSchema 裁剪规则是否需要 catalog_item 级覆盖？** 当前裁剪从契约自动生成，catalog_item 可在 publish 时手动覆盖 form_schema_json。倾向：自动生成 + 允许手动覆盖（MVP 默认自动）。
 - **module_path 在 proto 是单独字段，但 GitProvider clone 整个 repo 后需要 cd 到子目录？** 倾向：clone repo → tfconfig.Load 那个 module_path 子目录。tfconfig 支持 LoadDir(path)。
+
+## Deferred to W2 (gap analysis, 2026-07-24)
+
+The following gaps were identified during W1-03 code review + atomic module
+verification. They are out of W1-03 scope (MVP) but tracked here for W2:
+
+- **Gap 2 (git credential design)**: D23 covers cloud credentials (AK/SK + OIDC)
+  but NOT git clone credentials for private module repos. MVP uses process env
+  (GIT_TOKEN / GIT_SSH_COMMAND) — a single platform git identity. W2 needs:
+  extend credentials table with kind='git', per-module credential_ref,
+  SecretStore integration (Vault/KMS), audit logging of clone operations.
+  doc 06 + D23 should be updated to include git credential scope.
+
+- **Gap 3 (terraform init credential injection)**: codegen-generated main.tf
+  has `source = "git::ssh://..."`; terraform init needs git creds to fetch
+  private modules. D23 covers Executor env injection (GIT_SSH_COMMAND), but
+  doc 09 (codegen) should specify the source URL format (SSH vs HTTPS) and
+  the credential injection path for the terraform-init phase.
+
+- **Gap 5 (provider constraint compatibility)**: versions.tf declares
+  required_providers (e.g. alicloud >= 1.280.0). D22 three-time validation
+  (register / publish / pre-execute) needs to check catalog_item target
+  env's toolchain profile against providers_json. W1-03 now extracts
+  providers_json (Gap 1 fix); the compatibility CHECK is W2 (D22).

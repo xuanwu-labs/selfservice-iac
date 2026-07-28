@@ -70,6 +70,17 @@ func TestContractExtractor_RDS_MySQL(t *testing.T) {
 	}
 	assert.True(t, outNames["rds_id"])
 	assert.True(t, outNames["connection_string"])
+
+	// Providers (Gap 1): versions.tf declares alicloud 1.280.0.
+	assert.NotEmpty(t, c.Providers, "rds-mysql fixture has required_providers")
+	pv := map[string]registry.ContractProvider{}
+	for _, p := range c.Providers {
+		pv[p.LocalName] = p
+	}
+	ac := pv["alicloud"]
+	assert.Equal(t, "aliyun/alicloud", ac.Source)
+	assert.Contains(t, ac.Constraints, "1.280.0")
+	assert.NotEmpty(t, c.RequiredCore, "required_version declared")
 }
 
 // TestContractExtractor_Minimal verifies the simplest module (1 required var).

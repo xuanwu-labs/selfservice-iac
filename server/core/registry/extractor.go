@@ -43,10 +43,23 @@ type ContractOutput struct {
 type Contract struct {
 	Variables []ContractVariable `json:"variables"`
 	Outputs   []ContractOutput   `json:"outputs"`
+	// Providers mirrors required_providers from versions.tf (Gap 1 fix).
+	// Stored separately in module_versions.providers_json by RegistryService;
+	// included here so callers can inspect the full module surface in one type.
+	Providers    []ContractProvider `json:"providers,omitempty"`
+	RequiredCore []string           `json:"required_core,omitempty"`
 	// ValidationError records why extraction failed (status=validation_failed).
 	// Empty when extraction succeeded. Stored inside variables_contract_json so
 	// the blob is always valid JSON (no string concatenation).
 	ValidationError string `json:"validation_error,omitempty"`
+}
+
+// ContractProvider is one required_provider entry from versions.tf, used to
+// populate module_versions.providers_json (D22 toolchain compatibility check).
+type ContractProvider struct {
+	LocalName   string   `json:"local_name"`            // e.g. "alicloud"
+	Source      string   `json:"source"`                // e.g. "aliyun/alicloud"
+	Constraints []string `json:"constraints,omitempty"` // e.g. ["1.280.0"]
 }
 
 // ContractExtractor parses .tf files at a given path and returns a pure-scalar
@@ -101,6 +114,17 @@ func (e *ContractExtractor) Extract(moduleDir string) (*Contract, error) {
 			Name:        name,
 			Description: o.Description,
 			Sensitive:   o.Sensitive,
+		})
+	}
+
+	// Providers (Gap 1 fix): extract required_providers + required_core from
+	// versions.tf → module_versions.providers_json (D22 toolchain check input).
+	contract.RequiredCore = mod.RequiredCore
+	for localName, req := range mod.RequiredProviders {
+		contract.Providers = append(contract.Providers, ContractProvider{
+			LocalName:   localName,
+			Source:      req.Source,
+			Constraints: req.VersionConstraints,
 		})
 	}
 
