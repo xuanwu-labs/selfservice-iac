@@ -113,6 +113,17 @@ application → 业务 team（从 request.team_id）
 
 **决策**：space 是单层可选路径分组（doc 02 §1.3 已明确）。PathGenerator 的 application 模板 `{{if .space}}{{.space}}/{{end}}` 处理可选 space。
 
+## D7a：layer-name switch vs D24.1 "MUST NOT hardcode layer names"（P1-1，architect 待确认）
+
+> **审查发现（2026-07-28）**：`ownership.go` 的 `ResolveOwnerKind` 用 `switch layer` 硬编码 "global"/"middleware"/"application"，而 D24.1 和 spec 04:9 说 "MUST NOT 硬编码层名"。
+
+**Phase 1 判断**：接受此豁免。理由：
+- Phase 1 只有 3 个 seed 层（migration 010），管理员不能加层（LayerService 只读）
+- switch 的 default 分支返回 "business"（防御性，未知层不会 panic）
+- layer_logical_refs 表是层身份的真相源，但 ResolveOwnerKind 只需要层名→team-kind 映射
+
+**Phase 2 解法**：从 `layer_rule_set_versions.layers_json` 读 `owning_team_pattern`（seed 已有此字段），switch 改为 lookup。函数签名不变。
+
 ## Risks / Trade-offs
 
 - **[PathGenerator 模板渲染依赖 layers_json 格式] → seed v1 格式固定 + 测试覆盖**：layers_json 是 JSONB，PathGenerator 解析时需要类型断言。用 testdata 覆盖三层模板渲染。

@@ -22,13 +22,21 @@ func TestResolveOwnerKind_Global(t *testing.T) {
 
 func TestResolveOwnerKind_MiddlewareDBA(t *testing.T) {
 	// Middleware datastores → DBA team.
-	for _, comp := range []string{"rds", "redis", "mongodb", "polardb", "mysql"} {
+	for _, comp := range []string{"rds", "redis", "mongodb", "polardb", "mysql", "oss", "nas"} {
 		assert.Equal(t, "dba", tenancy.ResolveOwnerKind("middleware", comp),
 			"component %q should be dba-owned", comp)
 	}
-	// Substring + case-insensitivity: "alicloud-RDS-mysql" still resolves.
+	// Token-boundary + case-insensitivity: "alicloud-RDS-mysql" still resolves.
 	assert.Equal(t, "dba", tenancy.ResolveOwnerKind("middleware", "alicloud-RDS-mysql"))
 	assert.Equal(t, "dba", tenancy.ResolveOwnerKind("middleware", "Polardb-Postgres"))
+}
+
+func TestResolveOwnerKind_MiddlewareDBA_NoFalsePositive(t *testing.T) {
+	// P1-2 fix: token-boundary matching must NOT false-positive on substrings.
+	// "my-sysql-service" contains "sql" but not the token "mysql" → middleware.
+	assert.Equal(t, "middleware", tenancy.ResolveOwnerKind("middleware", "my-sysql-service"))
+	// "predises" contains "redis" as substring but not as token → middleware.
+	assert.Equal(t, "middleware", tenancy.ResolveOwnerKind("middleware", "predises"))
 }
 
 func TestResolveOwnerKind_MiddlewareOther(t *testing.T) {

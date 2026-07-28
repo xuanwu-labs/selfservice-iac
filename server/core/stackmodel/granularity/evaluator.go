@@ -20,13 +20,20 @@
 // a rule-set override).
 package granularity
 
+import "log"
+
 // Evaluate returns the granularity level for a catalog item given its
 // stack_grouping value (from catalog_items.stack_grouping).
 //
 // MVP: always returns "per-component" regardless of input. Non-default inputs
-// (e.g. "per-space") are deliberately ignored so that the rest of the pipeline
-// only needs to handle the per-component code path. Phase 2 will branch on
-// stackGrouping to honor the other levels.
+// (e.g. "per-space") are logged as a warning (P2-3 fix: silently ignoring a
+// catalog item's declared grouping would produce wrong-shape stacks in W2
+// codegen with no diagnostic). Phase 2 will branch on stackGrouping to honor
+// the other levels.
 func Evaluate(stackGrouping string) string {
+	if stackGrouping != "" && stackGrouping != "per-component" {
+		log.Printf("WARN: granularity: stack_grouping=%q is not supported in Phase 1, "+
+			"falling back to per-component (catalog item's declared grouping is ignored)", stackGrouping)
+	}
 	return "per-component"
 }

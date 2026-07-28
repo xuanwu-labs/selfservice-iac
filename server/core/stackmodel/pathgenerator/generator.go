@@ -65,7 +65,10 @@ func (g *PathGenerator) Generate(meta StackMeta, pathTemplate string) (*PathResu
 	// Render the path template. Seed templates use lowercase keys (e.g.
 	// {{.tenant}}, {{.team}}) which don't match Go exported field names.
 	// Pass a map with lowercase keys to bridge the gap.
-	tmpl, err := template.New("path").Parse(pathTemplate)
+	//
+	// P1-4/P2-1 fix: Option("missingkey=error") makes a typo'd template key
+	// (e.g. {{.teannt}}) a hard error instead of silently rendering empty string.
+	tmpl, err := template.New("path").Option("missingkey=error").Parse(pathTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("pathgenerator: parse template %q: %w", pathTemplate, err)
 	}
@@ -84,7 +87,11 @@ func (g *PathGenerator) Generate(meta StackMeta, pathTemplate string) (*PathResu
 	repoPath := strings.TrimSuffix(buf.String(), "/")
 
 	// Derive stack_id: replace "/" with "-" (filesystem-safe + human-readable).
-	stackID := strings.ReplaceAll(repoPath, "/", "-")
+	// P1-3 fix: lowercase + validate against D29 contract (^[-a-z0-9]{1,64}$).
+	stackID := strings.ToLower(strings.ReplaceAll(repoPath, "/", "-"))
+	if err := validateStackID(stackID); err != nil {
+		return nil, fmt.Errorf("pathgenerator: invalid stack_id from path %q: %w", repoPath, err)
+	}
 
 	// Derive terramate_tags from metadata (all non-empty fields).
 	tags := buildTags(meta)
@@ -95,6 +102,25 @@ func (g *PathGenerator) Generate(meta StackMeta, pathTemplate string) (*PathResu
 		StackID:       stackID,
 		TerramateTags: tags,
 	}, nil
+}
+
+// validateStackID checks the derived stack_id against the D29 Terramate contract:
+// lowercase, alphanumeric + hyphen, ≤64 chars. Returns an error if invalid.
+var stackIDChars = "abcdefghijklmnopqrstuvwxyz0123456789-"
+
+func validateStackID(id string) error {
+	if len(id) == 0 {
+		return fmt.Errorf("stack_id is empty")
+	}
+	if len(id) > 64 {
+		return fmt.Errorf("stack_id length %d exceeds 64-char Terramate limit: %q", len(id), id)
+	}
+	for i, c := range id {
+		if !strings.ContainsRune(stackIDChars, c) {
+			return fmt.Errorf("stack_id contains invalid char %q at pos %d: %q", string(c), i, id)
+		}
+	}
+	return nil
 }
 
 // buildTags constructs the Terramate tags array from StackMeta. Only non-empty

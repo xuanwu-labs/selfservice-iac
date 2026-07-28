@@ -8,8 +8,8 @@
 //
 //	global       → "platform"   (platform team owns global infra: org-wide VPC,
 //	                              IAM, landing zone — no tenant/team scoping)
-//	middleware   → "dba"        IF component is a datastore (rds|redis|mongodb|
-//	                              polardb|mysql), else "middleware"
+//	middleware   → "dba"        IF component is a datastore (see dbaOwnedComponents),
+//	                              else "middleware"
 //	                              (datastores are centrally owned for backup/DR
 //	                              policy; other middleware like kafka/vpc-peering
 //	                              stays with the middleware team)
@@ -26,23 +26,31 @@ package tenancy
 import "strings"
 
 // dbaOwnedComponents is the set of middleware component slugs that the DBA team
-// owns. Matched case-insensitively against the component basename (e.g.
-// "alicloud-rds-mysql" contains "rds" → DBA-owned).
+// owns. Matched by token-boundary (split component on - or /, check membership)
+// to avoid false positives (P1-2 fix: substring Contains was too loose).
+//
+// Includes datastores: rds, redis, mongodb, polardb, mysql, oss, nas
+// (OSS/NAS are data storage → DBA-owned per doc 02 §1.1 middleware layer definition).
 //
 // Phase 2 replaces this with a query against team_cloud_grants.
-var dbaOwnedComponents = []string{
-	"rds",
-	"redis",
-	"mongodb",
-	"polardb",
-	"mysql",
+var dbaOwnedComponents = map[string]bool{
+	"rds":     true,
+	"redis":   true,
+	"mongodb": true,
+	"polardb": true,
+	"mysql":   true,
+	"oss":     true, // object storage → datastore
+	"nas":     true, // file storage → datastore
 }
 
 // ResolveOwnerKind returns the team kind that should own a stack for the given
 // (layer, component). It is a pure function: no DB access, no receiver, fully
-// deterministic. The component match is case-insensitive and matches any
-// component that contains a DBA-owned keyword as a substring (so "rds-mysql"
-// and "alicloud-rds" both resolve to "dba").
+// deterministic.
+//
+// NOTE (P1-1, D24.1 tension): the layer-name switch hardcodes "global"/
+// "middleware"/"application" which D24.1 says MUST NOT be hardcoded. Phase 1
+// accepts this (only 3 seed layers, no admin edit); Phase 2 will read layer
+// config from DB and this switch becomes a lookup. See design.md D5.
 func ResolveOwnerKind(layer, component string) string {
 	switch layer {
 	case "global":
@@ -60,14 +68,19 @@ func ResolveOwnerKind(layer, component string) string {
 }
 
 // isDbaOwned reports whether the component references a datastore that the DBA
-// team owns. Empty component never matches (defensive: returns middleware).
+// team owns. Uses token-boundary matching (split on - or /, check exact token
+// membership) to avoid false positives like "my-sysql" matching "mysql".
+// Empty component never matches (defensive: returns middleware).
 func isDbaOwned(component string) bool {
 	if component == "" {
 		return false
 	}
 	lower := strings.ToLower(component)
-	for _, kw := range dbaOwnedComponents {
-		if strings.Contains(lower, kw) {
+	// Split on common separators (- and /) and check if any token is DBA-owned.
+	for _, token := range strings.FieldsFunc(lower, func(r rune) bool {
+		return r == '-' || r == '/' || r == '_'
+	}) {
+		if dbaOwnedComponents[token] {
 			return true
 		}
 	}
