@@ -461,3 +461,9 @@ CREATE TABLE tag_policies (
     updated_at                      TIMESTAMPTZ  NOT NULL DEFAULT now(),
     deleted_at                      TIMESTAMPTZ  NULL
 );
+
+-- =====================================================================
+-- module_versions unique constraint (migration 014, Gap 4 idempotency).
+-- =====================================================================
+CREATE UNIQUE INDEX uq_module_versions_module_version
+    ON module_versions(module_id, version);

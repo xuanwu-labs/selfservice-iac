@@ -1,50 +1,104 @@
 // Package connect implements Connect-RPC handlers for Aether's business APIs.
+//
+// catalog.go implements CatalogServiceHandler (user-facing, read-only):
+// ListItems + GetCatalogItem backed by CatalogRepo. Mutating operations
+// (Publish/Update/Deprecate) live on CatalogAdminService — see catalog_admin.go.
+
 package connect
 
 import (
 	"context"
+	"strconv"
 
 	"connectrpc.com/connect"
 
+	"github.com/xuanwu-labs/selfservice-iac/server/data/repo"
 	platformerrors "github.com/xuanwu-labs/selfservice-iac/server/internal/errors"
 	catalogv1 "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/catalog"
 	catalogv1connect "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/catalog/catalogv1connect"
 	commonv1 "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/common"
+	"github.com/xuanwu-labs/selfservice-iac/server/pkg/db/generated"
 )
 
-// CatalogHandler implements the CatalogService Connect RPC.
+// CatalogHandler implements the user-facing CatalogService Connect RPC
+// (read-only: ListItems + GetCatalogItem).
 type CatalogHandler struct {
 	catalogv1connect.UnimplementedCatalogServiceHandler
+	repo *repo.CatalogRepo
 }
 
 // Compile-time check.
 var _ catalogv1connect.CatalogServiceHandler = (*CatalogHandler)(nil)
 
 // NewCatalogHandler returns a CatalogHandler ready to register on a mux.
-func NewCatalogHandler() *CatalogHandler { return &CatalogHandler{} }
-
-// ListItems returns the catalog items. Phase 1: static placeholder.
-func (h *CatalogHandler) ListItems(ctx context.Context, req *connect.Request[catalogv1.ListItemsRequest]) (*connect.Response[catalogv1.ListItemsResponse], error) {
-	resp := connect.NewResponse(&catalogv1.ListItemsResponse{Items: catalogItems()})
-	return resp, nil
+func NewCatalogHandler(repo *repo.CatalogRepo) *CatalogHandler {
+	return &CatalogHandler{repo: repo}
 }
 
-// GetCatalogItem returns a single catalog item. Demonstrates structured error
-// return via errors.New (typed ErrorCode + connect.Code) instead of a bare
-// connect.NewError.
-func (h *CatalogHandler) GetCatalogItem(ctx context.Context, req *connect.Request[catalogv1.GetCatalogItemRequest]) (*connect.Response[catalogv1.GetCatalogItemResponse], error) {
-	for _, item := range catalogItems() {
-		if item.Id == req.Msg.GetCatalogItemId() {
-			return connect.NewResponse(&catalogv1.GetCatalogItemResponse{Item: item}), nil
-		}
+// ListItems returns all active catalog items from the DB.
+func (h *CatalogHandler) ListItems(
+	ctx context.Context,
+	_ *connect.Request[catalogv1.ListItemsRequest],
+) (*connect.Response[catalogv1.ListItemsResponse], error) {
+	items, err := h.repo.List(ctx)
+	if err != nil {
+		return nil, platformerrors.New(commonv1.ErrorCode_ERROR_CODE_INTERNAL_ERROR, connect.CodeInternal,
+			"list catalog items: %v", err)
 	}
-	return nil, platformerrors.New(commonv1.ErrorCode_ERROR_CODE_CATALOG_ITEM_NOT_FOUND, connect.CodeNotFound, "catalog item %q not found", req.Msg.GetCatalogItemId())
+	out := make([]*catalogv1.CatalogItem, 0, len(items))
+	for _, ci := range items {
+		out = append(out, dbCatalogItemToProto(&ci))
+	}
+	return connect.NewResponse(&catalogv1.ListItemsResponse{Items: out}), nil
 }
 
-// catalogItems is the Phase 1 static seed shared by ListItems/GetCatalogItem.
-func catalogItems() []*catalogv1.CatalogItem {
-	return []*catalogv1.CatalogItem{
-		{Id: "aws-ecs-service", Name: "AWS ECS Service", Description: "Managed container service"},
-		{Id: "aliyun-ecs", Name: "Aliyun ECS", Description: "Elastic compute service"},
+// GetCatalogItem returns a single catalog item by ID.
+func (h *CatalogHandler) GetCatalogItem(
+	ctx context.Context,
+	req *connect.Request[catalogv1.GetCatalogItemRequest],
+) (*connect.Response[catalogv1.GetCatalogItemResponse], error) {
+	id, err := strconv.ParseInt(req.Msg.GetCatalogItemId(), 10, 64)
+	if err != nil {
+		return nil, platformerrors.New(commonv1.ErrorCode_ERROR_CODE_INTERNAL_ERROR, connect.CodeInvalidArgument,
+			"catalog_item_id must be numeric, got %q", req.Msg.GetCatalogItemId())
+	}
+	ci, err := h.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, platformerrors.New(commonv1.ErrorCode_ERROR_CODE_CATALOG_ITEM_NOT_FOUND, connect.CodeNotFound,
+			"catalog item %q not found: %v", req.Msg.GetCatalogItemId(), err)
+	}
+	return connect.NewResponse(&catalogv1.GetCatalogItemResponse{Item: dbCatalogItemToProto(&ci)}), nil
+}
+
+// dbCatalogItemToProto converts a sqlc-generated CatalogItem row to the proto
+// message. Field mappings cover the MVP surface.
+func dbCatalogItemToProto(ci *generated.CatalogItem) *catalogv1.CatalogItem {
+	out := &catalogv1.CatalogItem{
+		Id:          strconv.FormatInt(ci.ID, 10),
+		Name:        ci.DisplayName,
+		Description: ci.Description,
+		Category:    ci.Category,
+		OwnerTeamId: strconv.FormatInt(ci.OwnerTeamID, 10),
+		Status:      statusStringToProto(ci.Status),
+	}
+	if ci.LayerLogicalID != nil {
+		out.LayerLogicalId = *ci.LayerLogicalID
+	}
+	return out
+}
+
+// statusStringToProto maps the DB status string to the proto enum.
+func statusStringToProto(s string) commonv1.CatalogItemStatus {
+	switch s {
+	case "active":
+		return commonv1.CatalogItemStatus_CATALOG_ITEM_STATUS_ACTIVE
+	case "deprecated":
+		return commonv1.CatalogItemStatus_CATALOG_ITEM_STATUS_DEPRECATED
+	case "archived":
+		return commonv1.CatalogItemStatus_CATALOG_ITEM_STATUS_ARCHIVED
+	case "draft":
+		return commonv1.CatalogItemStatus_CATALOG_ITEM_STATUS_DRAFT
+	default:
+		return commonv1.CatalogItemStatus_CATALOG_ITEM_STATUS_UNSPECIFIED
 	}
 }

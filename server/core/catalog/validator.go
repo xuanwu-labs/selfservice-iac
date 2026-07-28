@@ -8,6 +8,7 @@ package catalog
 import (
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
@@ -34,8 +35,9 @@ func NewValidator() *Validator {
 }
 
 // schemaSeq seeds a unique resource URL per validator so concurrent validators
-// don't collide on the "user-schema" resource name.
-var schemaSeq int
+// don't collide on the "user-schema" resource name. Accessed atomically (P1-5:
+// bare int++ was a data race under -race since Validator is shared via wire).
+var schemaSeq atomic.Int64
 
 // ValidateSchema validates that the supplied schema document is a legal
 // Draft 2020-12 schema (D40 §4: level 1). Returns nil if legal.
@@ -47,8 +49,8 @@ func (v *Validator) ValidateSchema(schema any) error {
 		return fmt.Errorf("parse schema document: %w", err)
 	}
 
-	resource := fmt.Sprintf("user-schema-%d", schemaSeq)
-	schemaSeq++
+	n := schemaSeq.Add(1)
+	resource := fmt.Sprintf("user-schema-%d", n)
 
 	// AddResource + Compile against the 2020-12 meta-schema. Compile fails if
 	// the document is not a well-formed Draft 2020-12 schema (it validates the
@@ -71,8 +73,8 @@ func (v *Validator) ValidateInstance(schema any, instance any) error {
 		return fmt.Errorf("parse schema document: %w", err)
 	}
 
-	resource := fmt.Sprintf("inst-schema-%d", schemaSeq)
-	schemaSeq++
+	n := schemaSeq.Add(1)
+	resource := fmt.Sprintf("inst-schema-%d", n)
 
 	if err := v.compiler.AddResource(resource, doc); err != nil {
 		return fmt.Errorf("register schema resource: %w", err)

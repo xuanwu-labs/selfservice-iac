@@ -13,7 +13,11 @@ import (
 	"github.com/xuanwu-labs/selfservice-iac/server/api"
 	"github.com/xuanwu-labs/selfservice-iac/server/api/connect"
 	"github.com/xuanwu-labs/selfservice-iac/server/core"
+	"github.com/xuanwu-labs/selfservice-iac/server/core/adapters/git"
+	"github.com/xuanwu-labs/selfservice-iac/server/core/catalog"
+	"github.com/xuanwu-labs/selfservice-iac/server/core/registry"
 	"github.com/xuanwu-labs/selfservice-iac/server/data"
+	"github.com/xuanwu-labs/selfservice-iac/server/data/repo"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/config"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/server"
 	"go.uber.org/zap"
@@ -32,8 +36,21 @@ func InitializeApp(cfg *config.Config) (*App, func(), error) {
 	}
 	v := api.NewPingFunc(pool)
 	handler := server.ProvideMetricsHandler()
-	catalogHandler := connect.NewCatalogHandler()
-	serverConfig, err := server.ProvideServerConfig(catalogHandler, logger)
+	// Repos (W1-02)
+	catalogRepo := repo.NewCatalogRepo(pool)
+	moduleVersionRepo := repo.NewModuleVersionRepo(pool)
+	moduleRepo := repo.NewModuleRepo(pool)
+	// Catalog stack: validator + service + handlers (read + admin)
+	catalogValidator := catalog.NewValidator()
+	catalogService := catalog.NewCatalogService(catalogRepo, moduleVersionRepo, moduleRepo, catalogValidator)
+	catalogHandler := connect.NewCatalogHandler(catalogRepo)
+	catalogAdminHandler := connect.NewCatalogAdminHandler(catalogService)
+	// Registry stack: git provider + extractor + service + handler
+	gitProvider := git.NewGoGitProvider()
+	contractExtractor := registry.NewContractExtractor()
+	registryService := registry.NewRegistryService(moduleRepo, gitProvider, contractExtractor)
+	registryHandler := connect.NewRegistryHandler(registryService)
+	serverConfig, err := server.ProvideServerConfig(catalogHandler, catalogAdminHandler, registryHandler, logger)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
