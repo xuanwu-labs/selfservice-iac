@@ -70,6 +70,14 @@ type PathResult struct {
 ["layer:<layer>", "tenant:<tenant>", "env:<env>", "team:<team>", "space:<space>", "component:<component>"]
 ```
 
+**StackMeta.Team 数据流澄清**（全局校验发现）：
+- seed v1 的 application 模板用 `{{.team}}`（期望 slug 如 "team-a"）
+- stacks 表存 `owner_team_id`（BIGINT FK→teams.id），不存 team slug
+- StackMeta.Team 是 **slug**（不是 ID）
+- 调用方（codegen）负责从 `stacks.owner_team_id JOIN teams` 取 `teams.slug` 传入 StackMeta.Team
+- 同理 StackMeta.Tenant 是 `tenant_id` TEXT slug（stacks.tenant_id 已是 TEXT，直接用）
+- PathGenerator 自身不查 DB（纯函数，输入 StackMeta → 输出 PathResult）
+
 ### D3：StackGranularity MVP 只实现 per-component（默认）
 
 **决策**：Phase 1 只支持 per-component（一个 component 一个 stack）。评估器读 catalog_items.stack_grouping 但 MVP 忽略非 per-component 值（默认 per-component）。
