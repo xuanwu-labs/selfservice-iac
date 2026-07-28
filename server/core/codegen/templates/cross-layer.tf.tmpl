@@ -1,0 +1,10 @@
+{{range .Dependencies}}
+data "terraform_remote_state" "{{.Alias}}" {
+  backend = "{{$.Backend.Kind}}"
+  config = {
+    bucket = "{{$.Backend.Bucket}}"
+    region = "{{$.Backend.Region}}"
+    key    = "{{.StateKey}}"
+  }
+}
+{{end}}

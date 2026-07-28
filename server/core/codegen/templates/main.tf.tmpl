@@ -1,0 +1,12 @@
+module "{{.ComponentName}}" {
+  source = "{{.ModuleSource}}"
+{{if .ModuleVersion}}  version = "{{.ModuleVersion}}"
+{{end}}{{if eq .Cardinality "map"}}
+  for_each = tomap({
+{{range .Instances}}    {{index . $.InstanceKey}} = {
+{{range $k, $v := .}}      {{$k}} = {{$v|renderHCL}}
+{{end}}    }
+{{end}}  })
+{{end}}{{range $name, $val := .Vars}}
+  {{$name}} = {{$val|renderHCL}}
+{{end}}}

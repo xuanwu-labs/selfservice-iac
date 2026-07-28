@@ -1,0 +1,5 @@
+stack {
+  id   = "{{.StackID}}"
+  tags = [{{range $i, $t := .Tags}}{{if $i}}, {{end}}"{{$t}}"{{end}}]
+{{if .After}}  after = [{{range $i, $a := .After}}{{if $i}}, {{end}}"{{$a}}"{{end}}]
+{{end}}}

@@ -1,0 +1,7 @@
+terraform {
+  backend "{{.Backend.Kind}}" {
+    bucket = "{{.Backend.Bucket}}"
+    region = "{{.Backend.Region}}"
+    key    = "{{.StateKey}}"
+  }
+}
