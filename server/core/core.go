@@ -14,20 +14,21 @@ import (
 	"github.com/xuanwu-labs/selfservice-iac/server/core/catalog"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/clock"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/registry"
+	"github.com/xuanwu-labs/selfservice-iac/server/core/stackmodel"
+	"github.com/xuanwu-labs/selfservice-iac/server/core/tenancy"
 )
 
 // ProviderSet aggregates domain-layer dependencies.
-// W1-03: catalog (Validator + CatalogService) + registry (RegistryService +
-// ContractExtractor) + git GoGitProvider bound to GitProvider interface.
-// queue.ProviderSet will be added when the worker lifecycle wrapper lands
-// (NewClient needs Start/Stop lifecycle management, not a plain provider).
+// W1-03: catalog + registry + git GoGitProvider
+// W1-04: tenancy + stackmodel (PathGenerator + LayerService)
+// queue.ProviderSet will be added when the worker lifecycle wrapper lands.
 var ProviderSet = wire.NewSet(
 	catalog.ProviderSet,
 	clock.ProviderSet,
 	registry.ProviderSet,
+	tenancy.ProviderSet,
+	stackmodel.ProviderSet,
 	git.NewGoGitProvider,
-	// Bind the concrete GoGitProvider to the GitProvider interface so consumers
-	// (RegistryService) get the interface injected.
 	wire.Bind(new(git.GitProvider), new(*git.GoGitProvider)),
 	// Future: queue.ProviderSet, codegen.ProviderSet, ...
 )
