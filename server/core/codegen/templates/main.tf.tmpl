@@ -4,9 +4,11 @@ module "{{.ComponentName}}" {
 {{end}}{{if eq .Cardinality "map"}}
   for_each = tomap({
 {{range .Instances}}    {{index . $.InstanceKey}} = {
-{{range $k, $v := .}}      {{$k}} = {{$v|renderHCL}}
-{{end}}    }
+{{range $k, $v := .}}{{if ne $k $.InstanceKey}}      {{$k}} = {{$v|renderHCL}}
+{{end}}{{end}}    }
 {{end}}  })
-{{end}}{{range $name, $val := .Vars}}
+{{end}}{{if eq .Cardinality "map"}}{{range .PerInstanceFields}}
+  {{.}} = each.value.{{.}}
+{{end}}{{end}}{{range $name, $val := .SharedVars}}
   {{$name}} = {{$val|renderHCL}}
 {{end}}}

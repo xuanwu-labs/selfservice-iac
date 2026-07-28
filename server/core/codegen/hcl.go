@@ -25,6 +25,12 @@ import (
 	"strings"
 )
 
+// RawExpr wraps an HCL expression that should be rendered verbatim (without
+// string quoting). Used for dependency-injected variables like
+// "data.terraform_remote_state.vpc.outputs.vpc_id" which are HCL references,
+// not string literals (P0-2 fix).
+type RawExpr string
+
 // renderHCLValue renders a Go value into HCL attribute-value syntax.
 //
 // It is the single source of truth for how codegen turns a resolved parameter
@@ -35,6 +41,9 @@ func renderHCLValue(val any) string {
 		return "null"
 	}
 	switch v := val.(type) {
+	case RawExpr:
+		// P0-2 fix: raw HCL expression (dependency reference) — no quoting.
+		return string(v)
 	case string:
 		return hclString(v)
 	case bool:

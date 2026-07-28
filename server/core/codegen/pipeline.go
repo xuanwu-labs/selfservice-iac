@@ -96,12 +96,13 @@ func mergeOverwrite(dst, src map[string]any) {
 
 // mergeDependencyVars injects variables carried by each DependencyRef. The
 // ref's Variables map is {contract_var_name: "data.terraform_remote_state
-// .<alias>.outputs.<output>"}. We add those into resolved so main.tf renders
-// the binding; the cross-layer.tf template emits the matching data source.
+// .<alias>.outputs.<output>"}. We wrap each expression in RawExpr so
+// renderHCLValue emits it WITHOUT quotes (P0-2 fix: dependency expressions
+// are HCL references, not string literals).
 func mergeDependencyVars(resolved map[string]any, deps []DependencyRef) {
 	for _, d := range deps {
 		for varName, expr := range d.Variables {
-			resolved[varName] = expr
+			resolved[varName] = RawExpr(expr)
 		}
 	}
 }

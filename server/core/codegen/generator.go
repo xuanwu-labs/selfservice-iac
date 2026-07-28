@@ -126,11 +126,43 @@ func (g *Generator) Generate(ctx context.Context, in CodegenInput) (FileSet, err
 	}
 
 	// Stage 2 — parameter pipeline (design D3). Governance always wins.
-	// We fold the platform-forced state_key into the governance map so any
-	// contract variable literally named "state_key" (rare but supported) and
-	// any caller-provided governance vars override user input.
-	governance := mergeGovernance(in.Governance, map[string]any{"state_key": pr.StateKey})
-	resolved := resolveParams(in.Contract, in.Defaults, in.FormValues, governance, in.Dependencies)
+	// P0-1 fix: state_key is platform metadata for backend.tf ONLY.
+	// It MUST NOT be injected into module args (would cause "Unsupported
+	// argument" in terraform plan for standard modules). Governance vars
+	// from caller (tags, etc.) are still applied.
+	resolved := resolveParams(in.Contract, in.Defaults, in.FormValues, in.Governance, in.Dependencies)
+
+	// Remove state_key from resolved if it leaked in (defensive — it shouldn't
+	// be there unless a module literally declares a variable named state_key,
+	// which is extremely rare and would be wrong for standard modules).
+	delete(resolved, "state_key")
+
+	// P0-3 fix: for map cardinality, split resolved vars into per-instance
+	// (from Instances' keys, bound via each.value.X) and shared (rest of
+	// resolved, rendered directly). For single cardinality, all vars are shared.
+	perInstanceFields := []string{}
+	sharedVars := make(map[string]any, len(resolved))
+	if in.Cardinality == "map" && len(in.Instances) > 0 {
+		// Collect field names from the first instance (excluding InstanceKey).
+		for k := range in.Instances[0] {
+			if k != in.InstanceKey {
+				perInstanceFields = append(perInstanceFields, k)
+			}
+		}
+		sort.Strings(perInstanceFields) // deterministic (D19)
+		// Shared vars = resolved minus per-instance fields.
+		piSet := make(map[string]bool, len(perInstanceFields))
+		for _, f := range perInstanceFields {
+			piSet[f] = true
+		}
+		for k, v := range resolved {
+			if !piSet[k] {
+				sharedVars[k] = v
+			}
+		}
+	} else {
+		sharedVars = resolved
+	}
 
 	files := make(FileSet, 5)
 
@@ -138,13 +170,16 @@ func (g *Generator) Generate(ctx context.Context, in CodegenInput) (FileSet, err
 	// repo_path/filename. path.Join guarantees POSIX separators on every OS,
 	// so the same input yields identical keys on Linux and Windows (D19).
 	if err := addFile(files, pr.RepoPath, "main.tf", map[string]any{
-		"ComponentName": in.ComponentName,
-		"ModuleSource":  in.ModuleSource,
-		"ModuleVersion": in.ModuleVersion,
-		"Cardinality":   in.Cardinality,
-		"Instances":     in.Instances,
-		"InstanceKey":   in.InstanceKey,
-		"Vars":          resolved,
+		"ComponentName":     in.ComponentName,
+		"ModuleSource":      in.ModuleSource,
+		"ModuleVersion":     in.ModuleVersion,
+		"Cardinality":       in.Cardinality,
+		"Instances":         in.Instances,
+		"InstanceKey":       in.InstanceKey,
+		"PerInstanceFields": perInstanceFields,
+		"SharedVars":        sharedVars,
+		// Keep Vars for backward compat (single cardinality uses it).
+		"Vars": sharedVars,
 	}); err != nil {
 		return nil, fmt.Errorf("codegen: render main.tf: %w", err)
 	}

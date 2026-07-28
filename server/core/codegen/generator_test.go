@@ -62,6 +62,8 @@ func TestGenerate_RDS_Middleware_Single(t *testing.T) {
 	assert.Contains(t, mainTF, `source = "git::ssh://git@github.com/org/modules.git//atomic/rds?ref=abc123"`)
 	assert.Contains(t, mainTF, "instance_type")
 	assert.Contains(t, mainTF, "engine_version")
+	// P0-1: state_key must NOT appear as a module argument.
+	assert.NotContains(t, mainTF, "state_key")
 
 	// backend.tf must contain bucket + key.
 	backendTF := string(fs["middleware/platform-default/rds-prod/backend.tf"])
@@ -152,6 +154,26 @@ func TestGenerate_ECS_Application_Map(t *testing.T) {
 	// main.tf must have for_each.
 	mainTF := string(fs[basePath+"/main.tf"])
 	assert.Contains(t, mainTF, "for_each")
+
+	// P0-1: state_key must NOT appear as a module argument.
+	assert.NotContains(t, mainTF, "state_key",
+		"P0-1: state_key must not leak into main.tf module args")
+
+	// P0-2: dependency expression must NOT be string-quoted (raw HCL reference).
+	assert.Contains(t, mainTF, "data.terraform_remote_state.vpc.outputs.vswitch_ids[0]",
+		"P0-2: dependency expression must be raw (unquoted)")
+	assert.NotContains(t, mainTF, `"data.terraform_remote_state`,
+		"P0-2: dependency expression must not be string-quoted")
+
+	// P0-3: per-instance fields must be bound via each.value.
+	assert.Contains(t, mainTF, "instance_type = each.value.instance_type",
+		"P0-3: per-instance field must use each.value binding")
+	assert.Contains(t, mainTF, "image_id = each.value.image_id",
+		"P0-3: per-instance field must use each.value binding")
+
+	// P2-2: instance key field must NOT leak into tomap body.
+	assert.NotContains(t, mainTF, `name = "web"`,
+		"P2-2: instance key 'name' must not appear in tomap body")
 
 	// cross-layer.tf must have remote_state for vpc.
 	crossTF := string(fs[basePath+"/cross-layer.tf"])
