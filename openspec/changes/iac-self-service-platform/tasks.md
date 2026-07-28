@@ -124,12 +124,12 @@
 
 ## 05-代码生成（D25 模块零侵入 + cardinality 调用方注入）
 
-- [ ] 5.1 实现 `server/core/codegen`：输入（表单值 + 模块契约[纯 scalar] + 默认值 + 依赖图）→ 输出（stack 目录树、`stack.tm.hcl`、`main.tf` 调模块、`backend.tf` 远程 state、跨层 `data` 注入）；**调用 PathGenerator 渲染路径**（不字符串拼接）；**module source 构造按 source_type 区分**（git 源=`git::url//path?ref=commit_sha`，registry 源=`ns/name/cloud`+version，详见 doc 09 §6.1）
-- [ ] 5.2 实现 `CardinalityInjector`：按 catalog 项 `cardinality`（single/list/map）在调用方注入——single=直接 module 调用、list=`count = N`、map=`for_each = tomap({...})`；per_instance 字段从 each.value 取，shared 字段直接注入；**模块 variables.tf 全 scalar，零侵入**
-- [ ] 5.3 catalog 项 CRUD 加 cardinality 配置字段（cardinality/instance_key/per_instance_fields/shared_fields）+ layer_logical_id + stack_grouping；表单渲染按 cardinality 动态（single=普通表单、list/map=实例清单动态表格）
-- [ ] 5.4 stack outputs.tf 自动聚合：cardinality=map 时生成 `output "x" { value = { for k,m in module.y : k => m.z } }`
-- [ ] 5.5 生成代码强制 `terraform fmt` 校验、禁止 local backend（对应 spec 07）
-- [ ] 5.6 测试：`go test ./server/core/codegen/...`（golden file：固定输入 → 固定目录树与文件内容；覆盖 single/list/map 三种 cardinality + bundle 有/无 + 自定义 layer；**用社区模块 fixture 验证零侵入**）
+- [x] 5.1 实现 `server/core/codegen`：输入（表单值 + 模块契约[纯 scalar] + 默认值 + 依赖图）→ 输出（stack 目录树、`stack.tm.hcl`、`main.tf` 调模块、`backend.tf` 远程 state、跨层 `data` 注入）；**调用 PathGenerator 渲染路径**（不字符串拼接）；**module source 构造按 source_type 区分**（git 源=`git::url//path?ref=commit_sha`，registry 源=`ns/name/cloud`+version，详见 doc 09 §6.1）
+- [x] 5.2 实现 `CardinalityInjector`：按 catalog 项 `cardinality`（single/list/map）在调用方注入——single=直接 module 调用、list=`count = N`、map=`for_each = tomap({...})`；per_instance 字段从 each.value 取，shared 字段直接注入；**模块 variables.tf 全 scalar，零侵入**
+- [x] 5.3 catalog 项 CRUD 加 cardinality 配置字段（cardinality/instance_key/per_instance_fields/shared_fields）+ layer_logical_id + stack_grouping；表单渲染按 cardinality 动态（single=普通表单、list/map=实例清单动态表格）
+- [x] 5.4 stack outputs.tf 自动聚合：cardinality=map 时生成 `output "x" { value = { for k,m in module.y : k => m.z } }`
+- [x] 5.5 生成代码强制 `terraform fmt` 校验、禁止 local backend（对应 spec 07）
+- [x] 5.6 测试：`go test ./server/core/codegen/...`（golden file：固定输入 → 固定目录树与文件内容；覆盖 single/list/map 三种 cardinality + bundle 有/无 + 自定义 layer；**用社区模块 fixture 验证零侵入**）
 
 ## 06-Terramate 适配器与编排引擎
 
