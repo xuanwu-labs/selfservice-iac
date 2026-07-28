@@ -1,0 +1,7 @@
+{{range .Outputs}}
+output "{{.Name}}" {
+  description = "{{.Description}}"
+{{if eq $.Cardinality "map"}}  value = { for k, m in module.{{$.ComponentName}} : k => m.{{.Name}} }
+{{else}}  value = module.{{$.ComponentName}}.{{.Name}}
+{{end}}}
+{{end}}
