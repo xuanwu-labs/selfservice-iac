@@ -178,8 +178,6 @@ func (g *Generator) Generate(ctx context.Context, in CodegenInput) (FileSet, err
 		"InstanceKey":       in.InstanceKey,
 		"PerInstanceFields": perInstanceFields,
 		"SharedVars":        sharedVars,
-		// Keep Vars for backward compat (single cardinality uses it).
-		"Vars": sharedVars,
 	}); err != nil {
 		return nil, fmt.Errorf("codegen: render main.tf: %w", err)
 	}
@@ -276,21 +274,6 @@ func getTemplate(filename string) (*template.Template, error) {
 	// and Parse is deterministic so any winner is correct.
 	tmplCache.Store(filename, tmpl)
 	return tmpl, nil
-}
-
-// mergeGovernance returns a new governance map that overlays `extra` onto
-// `base` (extra wins). Neither input is mutated. Used to fold the
-// PathGenerator-derived state_key into the caller-provided governance set
-// without leaking platform-forced values back into user-supplied maps.
-func mergeGovernance(base, extra map[string]any) map[string]any {
-	out := make(map[string]any, len(base)+len(extra))
-	for k, v := range base {
-		out[k] = v
-	}
-	for k, v := range extra {
-		out[k] = v
-	}
-	return out
 }
 
 // afterPaths derives the Terramate `after` list for stack.tm.hcl from the
