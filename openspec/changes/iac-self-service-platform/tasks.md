@@ -99,7 +99,7 @@
 
 > **路径对齐**：proto 契约已冻结（`contracts/platform/v1/{registry,catalog}/`）。`server/core/catalog/validator.go`（D40 JSON Schema 校验）已实现，与 task 3.3 互补。`server/api/connect/catalog.go` 是静态占位 handler。
 
-- [ ] 3.1 实现 `server/core/registry`：注册 Git 模块、版本管理、拉取并解析 `variables.tf` 生成 `variables_contract_json`
+- [ ] 3.1 实现 `server/core/registry`：注册 Git 模块、版本管理、拉取并解析 `variables.tf` 生成 `variables_contract_json`（+ `versions.tf` 提取 `providers_json`，Gap 1 修复）；MVP 只支持 git 源（`source_type='git'`），TF Registry 源（`source_type='registry'`）W2 扩展（doc 09 §6.1）；private repo 凭证 MVP 用 env 变量，W2 补 credentials 表 kind='git'（doc 06 §4a）
 - [ ] 3.2 实现注册时校验：调用 `terraform validate`（可选 `init`），状态机 `pending-validation → validated | validation-failed`
 - [ ] 3.3 实现 `server/core/catalog`：发布目录项、从契约裁剪 `form_schema_json`、维护 `defaults_json` 最佳实践覆盖、可见性控制（`server/core/catalog/validator.go` D40 校验器已就位，本 task 补 publish/defaults/visibility）
 - [ ] 3.4 测试：`go test ./server/core/registry/... ./server/core/catalog/...`（用 fixture 模块断言契约提取、默认值注入、可见性过滤）
@@ -124,7 +124,7 @@
 
 ## 05-代码生成（D25 模块零侵入 + cardinality 调用方注入）
 
-- [ ] 5.1 实现 `server/core/codegen`：输入（表单值 + 模块契约[纯 scalar] + 默认值 + 依赖图）→ 输出（stack 目录树、`stack.tm.hcl`、`main.tf` 调模块、`backend.tf` 远程 state、跨层 `data` 注入）；**调用 PathGenerator 渲染路径**（不字符串拼接）
+- [ ] 5.1 实现 `server/core/codegen`：输入（表单值 + 模块契约[纯 scalar] + 默认值 + 依赖图）→ 输出（stack 目录树、`stack.tm.hcl`、`main.tf` 调模块、`backend.tf` 远程 state、跨层 `data` 注入）；**调用 PathGenerator 渲染路径**（不字符串拼接）；**module source 构造按 source_type 区分**（git 源=`git::url//path?ref=commit_sha`，registry 源=`ns/name/cloud`+version，详见 doc 09 §6.1）
 - [ ] 5.2 实现 `CardinalityInjector`：按 catalog 项 `cardinality`（single/list/map）在调用方注入——single=直接 module 调用、list=`count = N`、map=`for_each = tomap({...})`；per_instance 字段从 each.value 取，shared 字段直接注入；**模块 variables.tf 全 scalar，零侵入**
 - [ ] 5.3 catalog 项 CRUD 加 cardinality 配置字段（cardinality/instance_key/per_instance_fields/shared_fields）+ layer_logical_id + stack_grouping；表单渲染按 cardinality 动态（single=普通表单、list/map=实例清单动态表格）
 - [ ] 5.4 stack outputs.tf 自动聚合：cardinality=map 时生成 `output "x" { value = { for k,m in module.y : k => m.z } }`
