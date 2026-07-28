@@ -99,10 +99,10 @@
 
 > **路径对齐**：proto 契约已冻结（`contracts/platform/v1/{registry,catalog}/`）。`server/core/catalog/validator.go`（D40 JSON Schema 校验）已实现，与 task 3.3 互补。`server/api/connect/catalog.go` 是静态占位 handler。
 
-- [ ] 3.1 实现 `server/core/registry`：注册 Git 模块、版本管理、拉取并解析 `variables.tf` 生成 `variables_contract_json`（+ `versions.tf` 提取 `providers_json`，Gap 1 修复）；MVP 只支持 git 源（`source_type='git'`），TF Registry 源（`source_type='registry'`）W2 扩展（doc 09 §6.1）；private repo 凭证 MVP 用 env 变量，W2 补 credentials 表 kind='git'（doc 06 §4a）
-- [ ] 3.2 实现注册时校验：调用 `terraform validate`（可选 `init`），状态机 `pending-validation → validated | validation-failed`
-- [ ] 3.3 实现 `server/core/catalog`：发布目录项、从契约裁剪 `form_schema_json`、维护 `defaults_json` 最佳实践覆盖、可见性控制（`server/core/catalog/validator.go` D40 校验器已就位，本 task 补 publish/defaults/visibility）
-- [ ] 3.4 测试：`go test ./server/core/registry/... ./server/core/catalog/...`（用 fixture 模块断言契约提取、默认值注入、可见性过滤）
+- [x] 3.1 实现 `server/core/registry`：注册 Git 模块、版本管理、拉取并解析 `variables.tf` 生成 `variables_contract_json`（+ `versions.tf` 提取 `providers_json`，Gap 1 修复）；MVP 只支持 git 源（`source_type='git'`），TF Registry 源（`source_type='registry'`）W2 扩展（doc 09 §6.1）；private repo 凭证 MVP 用 env 变量，W2 补 credentials 表 kind='git'（doc 06 §4a）
+- [x] 3.2 实现注册时校验：调用 `terraform validate`（可选 `init`），状态机 `pending-validation → validated | validation-failed`
+- [x] 3.3 实现 `server/core/catalog`：发布目录项、从契约裁剪 `form_schema_json`、维护 `defaults_json` 最佳实践覆盖、可见性控制（`server/core/catalog/validator.go` D40 校验器已就位，本 task 补 publish/defaults/visibility）
+- [x] 3.4 测试：`go test ./server/core/registry/... ./server/core/catalog/...`（用 fixture 模块断言契约提取、默认值注入、可见性过滤）
 - [ ] 3.5 脚本：在 `scripts/模块注册/` 产出批量注册原子模块的辅助脚本
 
 ## 04-团队归属与分层模型（D24 stack 模型可配置化）
