@@ -26,15 +26,24 @@ import (
 // required/default. Matching is case-insensitive on the bare variable name
 // (terraform identifiers are lowercase by convention).
 //
-// region / vpc_id / subnet_id  — injected from envtenant bindings (S3/S5)
-// tenant                       — injected from request.tenant_id
-// env                          — injected from request.env_id
+// Verified against atomic/ecs, atomic/rds, atomic/vpc modules in
+// terraform-alicloud-modules: these are the cross-layer injected variables
+// that the platform resolves via env_tenant_bindings + stack_dependencies
+// (S4/S7 of the D28 parameter pipeline), NOT user-facing form fields.
+//
+// region / vpc_id / subnet_id / vswitch_id     — injected from envtenant bindings (S4)
+// security_group_ids / security_group_id       — injected from stack_dependencies (S7)
+// tenant                                       — injected from request.tenant_id
+// env                                          — injected from request.env_id
 var platformInferredVars = map[string]struct{}{
-	"region":    {},
-	"vpc_id":    {},
-	"subnet_id": {},
-	"tenant":    {},
-	"env":       {},
+	"region":             {},
+	"vpc_id":             {},
+	"subnet_id":          {},
+	"vswitch_id":         {},
+	"security_group_ids": {},
+	"security_group_id":  {},
+	"tenant":             {},
+	"env":                {},
 }
 
 // GenerateFormSchema crops a module contract down to the user-visible form
