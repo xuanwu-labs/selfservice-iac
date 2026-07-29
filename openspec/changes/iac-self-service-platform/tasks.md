@@ -133,10 +133,10 @@
 
 ## 06-Terramate 适配器与编排引擎
 
-- [ ] 6.1 实现 `server/core/orchestrator` 工单状态机：`submitted → generating → planning → plan-ready → pending-approval → applying → reconciling → succeeded | failed-retryable | failed-terminal | waiting-manual | reconcile-pending | blocked-policy`；Phase 2 增加 `pending-admission`；每步持久化 `request_events` + 乐观锁 version
-- [ ] 6.2 串接流水线：codegen → `TerramateAdapter.RunPlan` → 审批/OPA → `TerramateAdapter.RunApplySavedPlan`（同一 `pinned_commit + plan_binary + sha256 + toolchain hash`）→ 资源回写
-- [ ] 6.3 接入 OPA 适配器：plan 后策略评估，deny 阻断 apply
-- [ ] 6.4 测试：`go test ./server/core/orchestrator/...`（状态机迁移、OPA 阻断、plan artifact TTL、apply 中断转 waiting-manual、reconcile-pending、幂等，用 fake terramate）
+- [x] 6.1 实现 `server/core/orchestrator` 工单状态机：`submitted → generating → planning → plan-ready → pending-approval → applying → reconciling → succeeded | failed-retryable | failed-terminal | waiting-manual | reconcile-pending | blocked-policy`；Phase 2 增加 `pending-admission`；每步持久化 `request_events` + 乐观锁 version
+- [x] 6.2 串接流水线：codegen → `TerramateAdapter.RunPlan` → 审批/OPA → `TerramateAdapter.RunApplySavedPlan`（同一 `pinned_commit + plan_binary + sha256 + toolchain hash`）→ 资源回写
+- [x] 6.3 接入 OPA 适配器：plan 后策略评估，deny 阻断 apply
+- [x] 6.4 测试：`go test ./server/core/orchestrator/...`（状态机迁移、OPA 阻断、plan artifact TTL、apply 中断转 waiting-manual、reconcile-pending、幂等，用 fake terramate）
 
 ## 07-执行目录治理（workspace git）
 

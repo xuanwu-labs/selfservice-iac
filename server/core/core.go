@@ -14,6 +14,7 @@ import (
 	"github.com/xuanwu-labs/selfservice-iac/server/core/catalog"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/clock"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/codegen"
+	"github.com/xuanwu-labs/selfservice-iac/server/core/orchestrator"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/registry"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/stackmodel"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/tenancy"
@@ -22,7 +23,7 @@ import (
 // ProviderSet aggregates domain-layer dependencies.
 // W1-03: catalog + registry + git GoGitProvider
 // W1-04: tenancy + stackmodel (PathGenerator + LayerService)
-// W2: codegen (Generator consumes PathGenerator)
+// W2: codegen (Generator) + orchestrator (StateMachine + Pipeline + Approval)
 // queue.ProviderSet will be added when the worker lifecycle wrapper lands.
 var ProviderSet = wire.NewSet(
 	catalog.ProviderSet,
@@ -31,7 +32,8 @@ var ProviderSet = wire.NewSet(
 	tenancy.ProviderSet,
 	stackmodel.ProviderSet,
 	codegen.ProviderSet,
+	orchestrator.ProviderSet,
 	git.NewGoGitProvider,
 	wire.Bind(new(git.GitProvider), new(*git.GoGitProvider)),
-	// Future: queue.ProviderSet, orchestrator.ProviderSet, ...
+	// Future: queue.ProviderSet, workspace.ProviderSet, ...
 )
