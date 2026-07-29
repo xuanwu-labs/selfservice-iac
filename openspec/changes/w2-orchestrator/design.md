@@ -42,19 +42,21 @@ W2 编排引擎是 MVP 主干的编排核心——驱动工单从"提交"到"执
 func Transition(current string, event Event) (string, error)
 ```
 
-**转换矩阵**（Phase 1 主链路 + 异常分支）：
+**转换矩阵**（Phase 1 主链路 + 异常分支，对齐 doc 12a 测试矩阵）：
 ```
 submitted      +submit      → generating
 generating     +gen_done    → planning
-generating     +gen_fail    → failed_retryable
+generating     +gen_fail    → failed_retryable      (RLC-101 codegen 失败)
 planning       +plan_done   → plan_ready
-planning       +plan_fail   → failed_retryable
+planning       +plan_fail   → failed_retryable      (RLC-103 plan 失败)
 plan_ready     +request_approval → pending_approval
-pending_approval +approve   → applying
-pending_approval +reject    → rejected
-pending_approval +timeout   → expired
-applying       +apply_done  → reconciling
-applying       +apply_fail  → failed_terminal
+pending_approval +approve   → applying               (RLC-005 审批通过)
+pending_approval +reject    → rejected               (RLC-106 审批驳回)
+pending_approval +timeout   → expired                (RLC-104/107 Phase 1 简化)
+applying       +apply_done  → reconciling            (RLC-006 apply 成功)
+applying       +apply_transient_fail → failed_retryable (RLC-108 瞬时失败：429/超时)
+applying       +apply_permanent_fail → failed_terminal (配置错误/权限拒绝)
+applying       +apply_interrupted → waiting_manual    (RLC-109 中断：executor 心跳丢失)
 reconciling    +reconcile_done → succeeded
 任意           +cancel      → cancelled
 任意（除 succeeded/cancelled） +manual_intervention → waiting_manual
@@ -131,3 +133,20 @@ func (s *ApprovalService) Reject(ctx, requestID, approverID, reason) error // pe
 
 - **Pipeline 是否需要 context 超时？** Phase 1 同步执行，建议每阶段加 context 超时（generating 60s，planning 10min，applying 30min）。
 - **approval_decisions 表怎么写？** Phase 1 直接写 approval_decisions（decision=approved/rejected + approver_id + reason）。不走 approval_runs/node_runs（Phase 2 DSL）。
+
+## 缺失的异常分支（Phase 1 合理简化，后续模块补）
+
+全局审计发现 doc 12a 有 12 个异常测试，Phase 1 只实现 6 个（主链路相关的）。
+以下 6 个需要后续模块才能实现，记录在此供追踪：
+
+| doc 12a ID | 场景 | 需要的模块 | Phase 1 处理 |
+|-----------|------|----------|------------|
+| RLC-102 | git commit 成功但 DB 失败 | W2-07 workspace manager | 转换矩阵预留 failed_retryable，实现留 W2-07 |
+| RLC-103 | plan artifact 写入失败 | W2-08 plan artifact 存储 | 同上 |
+| RLC-105 | toolchain hash 不一致 | W2-08 Executor 校验 | 同上 |
+| RLC-109 | apply 中断（executor 心跳丢失） | W2-07 重启 reconcile | 转换矩阵预留 waiting_manual，实现留 W2-07 |
+| RLC-110 | apply 成功但 CMDB 失败 | W2-08 CMDB ingester | 转换矩阵预留 reconcile_pending，实现留 W2-08 |
+| RLC-111/112 | state backend 不健康 / drift 暂停 | W2-08 state+drift | 转换矩阵预留 blocked_state_health/paused_drift，实现留 W2-08 |
+
+**Phase 1 StateMachine 实现全部 19 状态的转换矩阵**（包括上述预留状态），
+但 Pipeline 只执行主链路 8 个状态的逻辑。其余状态的触发逻辑由后续模块实现。
