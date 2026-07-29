@@ -149,10 +149,10 @@
 
 ## 08-状态后端与漂移检测
 
-- [ ] 8.1 实现 state backend 适配器默认实现（S3/MinIO + 锁），强制每 stack 独立 state key（key 由路径推导）
-- [ ] 8.2 实现 `server/cmd/drift-scheduler` + `server/core/drift`：调度器（分层时间窗 + 令牌桶限流）、worker（只读 plan + `terraform show -json` 解析差异）
-- [ ] 8.3 实现漂移事件 `drift.detected` 与同步策略执行（adopt-cloud / restore-desired，走工单留审批）（对应 docs/13）
-- [ ] 8.4 测试：`go test ./server/core/drift/...`（plan JSON 样本解析、限流不超上限、同步策略执行）
+- [x] 8.1 实现 state backend 适配器默认实现（S3/MinIO + 锁），强制每 stack 独立 state key（key 由路径推导）
+- [x] 8.2 实现 `server/cmd/drift-scheduler` + `server/core/drift`：调度器（分层时间窗 + 令牌桶限流）、worker（只读 plan + `terraform show -json` 解析差异）
+- [x] 8.3 实现漂移事件 `drift.detected` 与同步策略执行（adopt-cloud / restore-desired，走工单留审批）（对应 docs/13）
+- [x] 8.4 测试：`go test ./server/core/drift/...`（plan JSON 样本解析、限流不超上限、同步策略执行）
 - [ ] 8.5 脚本：在 `scripts/状态同步/` 产出 state key 对账、漂移手动触发、同步策略执行辅助脚本
 
 ## 09-平台 API 与 RBAC 审批
