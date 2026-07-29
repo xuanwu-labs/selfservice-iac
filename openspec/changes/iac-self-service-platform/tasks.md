@@ -140,11 +140,11 @@
 
 ## 07-执行目录治理（workspace git）
 
-- [ ] 7.1 实现 `server/core/workspace`：基于 go-git 的工作仓库 clone/fetch、`git worktree` 分配、commit/push
-- [ ] 7.2 实现 checkout 租约（`workspace_checkouts`）与并发隔离（每工单独占 worktree + 分支锁）
-- [ ] 7.3 实现平台重启 reconcile：按 `pinned_commit` 重建 worktree、复活挂起工单；apply 中断不得自动重试，转 `waiting-manual`（对应 docs/10 §4）
-- [ ] 7.4 实现一致性对账任务：元数据 stacks ↔ 工作仓库目录 ↔ 远程 state key 三方校验
-- [ ] 7.5 测试：`go test ./server/core/workspace/...`（用内存 fake repo 验证 clone/worktree/重启恢复/对账）
+- [x] 7.1 实现 `server/core/workspace`：基于 go-git 的工作仓库 clone/fetch、`git worktree` 分配、commit/push
+- [x] 7.2 实现 checkout 租约（`workspace_checkouts`）与并发隔离（每工单独占 worktree + 分支锁）
+- [x] 7.3 实现平台重启 reconcile：按 `pinned_commit` 重建 worktree、复活挂起工单；apply 中断不得自动重试，转 `waiting-manual`（对应 docs/10 §4）
+- [x] 7.4 实现一致性对账任务：元数据 stacks ↔ 工作仓库目录 ↔ 远程 state key 三方校验
+- [x] 7.5 测试：`go test ./server/core/workspace/...`（用内存 fake repo 验证 clone/worktree/重启恢复/对账）
 - [ ] 7.6 脚本：在 `scripts/编排执行/` 产出 worktree 清理、对账触发、流水线手动触发脚本
 
 ## 08-状态后端与漂移检测
