@@ -10,14 +10,15 @@ plugins:
     out: ../server/internal/proto
     opt:
       - paths=source_relative
-  # TypeScript client (connect-es) → web/src/gen/
-  # Disabled until web/ frontend exists (D45). Uncomment when web/ is built:
-  # - remote: buf.build/bufbuild/es
-  #   out: ../web/src/gen
-  #   opt:
-  #     - target=ts
-  # OpenAPI v3 spec → contracts/openapi/ (for REST clients / curl)
-  # Disabled until connect-openapi plugin stabilizes; the Connect/JSON protocol
-  # already serves curl natively. Re-enable when OpenAPI docs are needed:
-  # - remote: buf.build/googleapis/gnostic
-  #   out: ../contracts/openapi
+  # TypeScript message types → web/src/gen/ (W5 integration)
+  - remote: buf.build/bufbuild/es
+    out: ../web/src/gen
+    opt:
+      - target=ts
+      - import_extension=js
+  # TypeScript Connect-ES service stubs → web/src/gen/ (W5 integration)
+  - remote: buf.build/connectrpc/es
+    out: ../web/src/gen
+    opt:
+      - target=ts
+      - import_extension=js

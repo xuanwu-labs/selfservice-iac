@@ -613,10 +613,11 @@ func (Cardinality) EnumDescriptor() ([]byte, []int) {
 
 // StackGranularity is the D24 stack-grouping strategy declared on a
 // catalog item. Determines how codegen partitions instances into stacks:
-//   per-component = one stack per component (default, smallest blast radius)
-//   per-space    = one stack per space (coarser, for tightly coupled sets)
-//   per-team      = one stack per team (coarsest, rarely used)
-//   custom        = path_template override (advanced, admin-only)
+//
+//	per-component = one stack per component (default, smallest blast radius)
+//	per-space    = one stack per space (coarser, for tightly coupled sets)
+//	per-team      = one stack per team (coarsest, rarely used)
+//	custom        = path_template override (advanced, admin-only)
 type StackGranularity int32
 
 const (
@@ -948,10 +949,12 @@ func (ApprovalGate) EnumDescriptor() ([]byte, []int) {
 // ApprovalNodeMode is the decision semantics of an approval node, as
 // declared in the approval flow DSL (docs/12 §2.3). The engine uses mode +
 // required_count to determine if a node is satisfied:
-//   any      = at least 1 approver (required_count ignored, treated as 1)
-//   all      = all assigned approvers (required_count = total assignees)
-//   majority = >50% of assignees (required_count = ceil(N/2))
-//   quorum   = at least required_count approvers (count>=N expressed as quorum+N)
+//
+//	any      = at least 1 approver (required_count ignored, treated as 1)
+//	all      = all assigned approvers (required_count = total assignees)
+//	majority = >50% of assignees (required_count = ceil(N/2))
+//	quorum   = at least required_count approvers (count>=N expressed as quorum+N)
+//
 // Conditional routing (next_node based on outcome) is handled in the DSL,
 // not in this enum — mode is purely the decision-aggregation rule.
 type ApprovalNodeMode int32
