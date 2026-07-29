@@ -27,32 +27,47 @@ W2 执行目录治理提供 orchestrator Pipeline 的 WorkspaceManager 真实实
 
 ## Decisions
 
-### D1：WorkspaceManager 用 git CLI worktree（shell out，非 go-git API）
+### D1：WorkspaceManager 用 go-git Shared Clone（主）+ git CLI squash merge（唯一 shell out）
 
-**决策**：`git worktree add` 和 `git merge --squash` 通过 **shell out 到 `git` CLI** 实现（exec.CommandContext），不用 go-git API。
+**决策**（调研后最优方案）：
+- 每工单隔离用 **go-git `CloneOptions.Shared`**（纯 Go，不 shell out）
+- squash merge + push 用 **git CLI**（唯一 shell out 点）
 
-**理由**（P0 修正）：go-git v5.19.1 验证发现：
-- ❌ 无 `git worktree add` API（Repository.Worktree() 只返回主工作树）
-- ❌ 无 squash merge（Merge 只支持 FastForwardMerge）
-- ✅ go-git 用于 clone/fetch/commit/add/checkout（这些 API 可用）
+**调研结论**（2026-07-29，参考 Terramate + Atlantis + go-git v6 alpha）：
+- go-git v5 **无 `git worktree add`** → 不用 worktree（改用 Shared Clone）
+- go-git v5 **有 `CloneOptions.Shared`** → 共享 `.git/objects`，独立 refs，省盘省时
+- go-git v5 **无 squash merge** → shell out 到 git CLI（唯一）
+- go-git v6 有 worktree API 但是 **alpha**（不稳定的 `x/` 包，不能用）
+- Atlantis（~8k 星）：go-git clone + 每工单独立目录（不用 worktree）
+- Terramate：全 shell out（纯 git CLI wrapper）
 
-**混合策略**：
-- clone/fetch/commit/add/checkout → go-git（纯 Go，已有 GoGitProvider）
-- worktree add/remove + merge --squash + push → `git` CLI（exec.CommandContext）
-
-**依赖**：process 模式 Executor 预装 git（doc 11 §3 "process 模式预装工具链"，git 是基础工具）。
-
+**方案**：
 ```
 /var/tm/worktrees/infra-prod/
-  ├── repo/                          ← 主 clone（go-git PlainClone）
-  └── worktrees/
-      ├── req-123-generate/          ← git worktree add（CLI）
-      └── req-124-apply/             ← git worktree add（CLI）
+  ├── repo/                          ← 主 clone（go-git PlainClone，bare）
+  └── req-123/                       ← go-git Clone(Shared: true)（共享 objects，独立 refs）
+  └── req-124/                       ← go-git Clone(Shared: true)
 ```
 
-**注意**：这与 W1-01 GoGitProvider 的"纯 Go 无外部 git"不同——GoGitProvider 用于**模块注册**（clone 外部模块仓库），workspace manager 用于**执行目录治理**（需要 worktree 高级特性）。process 模式 Executor 预装 git 是 D20 的前提。
+**混合策略**：
+| 操作 | 工具 | 需要 git CLI？ |
+|------|------|:---:|
+| 首次 clone（bare）| go-git PlainClone | ❌ |
+| 每工单隔离 | go-git Clone(Shared: true) | ❌ |
+| 写文件 + commit | go-git Add + Commit | ❌ |
+| checkout pinned_commit | go-git Checkout | ❌ |
+| fetch | go-git Fetch | ❌ |
+| squash merge + push | git CLI exec | ✅ 唯一 |
 
-**理由**：doc 10 §2 明确"用 git worktree 而非 git clone：多 worktree 共享 .git，省盘省时"。go-git/v5 支持 worktree API。
+**为什么不用 git worktree**：
+- go-git v5 不支持（Repository.Worktree() 只返回主工作树）
+- `Clone(Shared: true)` 达到同样效果（共享 objects + 独立 refs + 省盘）
+- Atlantis 也用"每工单独立 clone"模式（不用 worktree）
+
+**为什么 squash merge 仍需 git CLI**：
+- go-git v5 Merge 只支持 FastForwardMerge（无 squash/3-way/cherry-pick）
+- 手写 squash merge 需要 ~150 行 + merge-tree 算法（不值得）
+- git CLI `git merge --squash && git commit` 是唯一可行方案
 
 ### D2：WriteFiles 流程（codegen → commit → pinned_commit）
 
