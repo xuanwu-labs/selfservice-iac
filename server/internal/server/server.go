@@ -52,6 +52,11 @@ func NewServer(cfg *config.Config, ginEngine *gin.Engine, mwCfg *middleware.Serv
 	mux.Handle("/ready", ginEngine)
 	mux.Handle("/metrics", ginEngine)
 
+	// Gin also handles admin REST endpoints (Phase 1): POST /admin/state-backends,
+	// POST /admin/workspaces. Mount the whole engine under /admin/ so all admin
+	// routes reach gin.
+	mux.Handle("/admin/", ginEngine)
+
 	// Embedded frontend SPA (go:embed from server/internal/web/dist/).
 	// Serves React app with SPA fallback for client-side routing.
 	// Registered last so ServeMux longest-prefix matching prefers Connect + Gin routes.

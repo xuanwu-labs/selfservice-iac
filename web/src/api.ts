@@ -19,11 +19,65 @@ import { ApprovalDecision, RequestStatus as ProtoRequestStatus } from './gen/pla
 // In dev, Vite proxies to localhost:8080. In production (go:embed), same origin.
 const baseUrl = import.meta.env.DEV ? 'http://localhost:8080' : ''
 
-// Attach the bearer token from localStorage to every outgoing request.
+// Pending git token for the next RegisterModule RPC (Phase 1 git credential
+// injection). Set by the ModulesPage register form just before the call and
+// cleared by the interceptor after attach. Stored as a module-level handle so
+// the interceptor can read it without re-threading it through every client.
+let pendingGitToken = ''
+
+export function setPendingGitToken(token: string) {
+  pendingGitToken = token
+}
+
+// resolveGitTokenForURL returns a stored git token matching the given git
+// source URL against the Phase 1 localStorage credential rules (Fix 6).
+// Globs: the stored urlPrefix supports a trailing '*' wildcard; otherwise it
+// must be a string prefix. Returns '' when no rule matches.
+export function resolveGitTokenForURL(url: string): string {
+  if (!url) return ''
+  let rows: { urlPrefix?: string; token?: string }[] = []
+  try {
+    const raw = localStorage.getItem('aether_git_credentials')
+    if (raw) rows = JSON.parse(raw)
+  } catch {
+    return ''
+  }
+  for (const r of rows) {
+    const prefix = r.urlPrefix || ''
+    if (!prefix) continue
+    if (prefix.endsWith('*')) {
+      if (url.startsWith(prefix.slice(0, -1))) return r.token || ''
+    } else if (url.startsWith(prefix)) {
+      return r.token || ''
+    }
+  }
+  return ''
+}
+
+// Attach the bearer token from localStorage to every outgoing request, plus
+// the pending git token (if any) on the RegisterModule procedure only.
 const authInterceptor: Interceptor = (next) => async (req) => {
   const token = localStorage.getItem('aether_token')
   if (token) {
     req.header.set('Authorization', `Bearer ${token}`)
+  }
+  // Inject x-git-token ONLY for the RegisterModule RPC so the credential does
+  // not leak onto unrelated calls. The backend reads this header and sets
+  // GIT_TOKEN env var for the duration of the clone. req.method is only present
+  // on unary/stream requests (RequestCommon carries service + method).
+  const anyReq = req as any
+  const methodName = anyReq?.method?.name ?? ''
+  const serviceTypeName = anyReq?.service?.typeName ?? ''
+  if (
+    methodName === 'RegisterModule' &&
+    serviceTypeName === 'aether.platform.v1.registry.RegistryAdminService'
+  ) {
+    if (pendingGitToken) {
+      req.header.set('x-git-token', pendingGitToken)
+    }
+    // One-shot: clear after attach so a subsequent unrelated register without
+    // a token does not reuse stale credentials.
+    pendingGitToken = ''
   }
   return next(req)
 }
@@ -128,6 +182,10 @@ export interface RegisterModuleInput {
   name: string
   description?: string
   ownerTeamId: string
+  // gitToken: optional Git access token (Phase 1). When set, it is attached to
+  // the outgoing RegisterModule call as an x-git-token Connect header and the
+  // backend sets it as GIT_TOKEN env var for the duration of the clone.
+  gitToken?: string
 }
 
 export interface RegisterModuleResult {
@@ -138,8 +196,13 @@ export interface RegisterModuleResult {
 }
 
 // registerModule calls RegistryAdminService.RegisterModule and returns the new
-// module + module_version IDs so the caller can immediately publish.
+// module + module_version IDs so the caller can immediately publish. When
+// input.gitToken is set, it is staged for the transport interceptor to attach
+// as an x-git-token header on this RPC only.
 export async function registerModule(input: RegisterModuleInput): Promise<RegisterModuleResult> {
+  if (input.gitToken) {
+    setPendingGitToken(input.gitToken)
+  }
   const resp = await registryClient.registerModule({
     gitSource: input.gitSource,
     modulePath: input.modulePath,
@@ -190,6 +253,80 @@ export async function decideApproval(requestId: string, decision: 'approved' | '
     runId: requestId,
     decision: decision === 'approved' ? ApprovalDecision.APPROVED : ApprovalDecision.REJECTED,
   })
+}
+
+// === Lifecycle action functions (Phase 1 MVP integration) ===
+
+// cancelRequest calls LifecycleService.CancelRequest. reason is optional; the
+// backend flips the request to cancelled via the state machine and rejects the
+// transition when the request is already terminal.
+export async function cancelRequest(requestId: string, reason = '') {
+  await lifecycleClient.cancelRequest({ requestId, reason })
+}
+
+// startPlan resumes the Pipeline for a request (e.g. from plan_ready). Phase 1
+// Pipeline auto-drives through to pending_approval.
+export async function startPlan(requestId: string) {
+  await lifecycleClient.startPlan({ requestId })
+}
+
+// startApply resumes the Pipeline into applying (the "go" button after an
+// approval flips the request to applying).
+export async function startApply(requestId: string) {
+  await lifecycleClient.startApply({ requestId })
+}
+
+// === Admin REST endpoints (Phase 1) ===
+// These hit the Gin admin handlers in server/api/http/admin.go (no proto RPC
+// surface for admin config yet). baseUrl matches the Connect transport origin.
+
+// saveStateBackend POSTs the default state backend credentials + bucket config
+// to /admin/state-backends. The backend upserts the state_backends default row;
+// raw AK/SK are NOT persisted (Phase 2 wires Vault/KMS).
+export async function saveStateBackend(input: {
+  name: string
+  kind: string
+  bucket: string
+  region: string
+  endpoint: string
+  accessKey: string
+  secretKey: string
+}): Promise<void> {
+  const resp = await fetch(`${baseUrl}/admin/state-backends`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!resp.ok) {
+    const detail = await safeError(resp)
+    throw new Error(`saveStateBackend failed: ${resp.status} ${detail}`)
+  }
+}
+
+// saveWorkspace POSTs the global infra-repo remote_url + default_branch to
+// /admin/workspaces. The backend upserts workspaces id=1.
+export async function saveWorkspace(input: {
+  remoteUrl: string
+  defaultBranch: string
+}): Promise<void> {
+  const resp = await fetch(`${baseUrl}/admin/workspaces`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!resp.ok) {
+    const detail = await safeError(resp)
+    throw new Error(`saveWorkspace failed: ${resp.status} ${detail}`)
+  }
+}
+
+async function safeError(resp: Response): Promise<string> {
+  try {
+    const body = await resp.json()
+    return (body && (body.error || body.message)) || resp.statusText
+  } catch {
+    return resp.statusText
+  }
 }
 
 export async function fetchRequestDetail(id: string): Promise<RequestDetail> {

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Button, Empty, Space, Table, Tabs, Tag } from 'antd'
+import { Button, Empty, Popconfirm, Space, Table, Tabs, Tag, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useNavigate } from 'react-router-dom'
-import { fetchRequests, type Env, type IaCRequest, type RequestStatus } from '../api'
+import { cancelRequest, fetchRequests, type Env, type IaCRequest, type RequestStatus } from '../api'
 
 const statusColor: Partial<Record<RequestStatus, string>> = {
   draft: 'default',
@@ -56,6 +56,19 @@ export default function RequestsPage() {
     return () => clearInterval(timer)
   }, [load])
 
+  // Terminal statuses — cancel is only valid for non-terminal requests.
+  const terminalStatuses = ['completed', 'failed', 'cancelled', 'rejected']
+
+  const handleCancel = async (id: string) => {
+    try {
+      await cancelRequest(id, 'cancelled by user from requests list')
+      message.success('工单已取消')
+      load()
+    } catch (err: any) {
+      message.error(`取消失败：${err?.message ?? err}`)
+    }
+  }
+
   const counts = useMemo(
     () => ({
       all: requests.length,
@@ -102,6 +115,18 @@ export default function RequestsPage() {
           )}
           {record.status === 'plan_ready' && (
             <Button type="link" onClick={() => navigate(`/requests/${record.id}`)}>Plan</Button>
+          )}
+          {!terminalStatuses.includes(record.status) && (
+            <Popconfirm
+              title="确认取消该工单？"
+              description="取消后工单进入终态，无法继续推进。"
+              okText="取消工单"
+              okButtonProps={{ danger: true }}
+              cancelText="作罢"
+              onConfirm={() => handleCancel(record.id)}
+            >
+              <Button type="link" danger>取消</Button>
+            </Popconfirm>
           )}
         </Space>
       ),

@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Button, Card, Col, Descriptions, Empty, Row, Space, Steps, Tag, Timeline, Typography } from 'antd'
+import { Alert, Button, Card, Col, Descriptions, Empty, Row, Space, Steps, Tag, Timeline, Typography, message } from 'antd'
 import { ArrowLeftOutlined } from '@ant-design/icons'
 import { useNavigate, useParams } from 'react-router-dom'
-import { fetchRequestDetail, type Env, type RequestDetail, type RequestStatus } from '../api'
+import {
+  fetchRequestDetail,
+  startApply,
+  startPlan,
+  type Env,
+  type RequestDetail,
+  type RequestStatus,
+} from '../api'
 
 const { Title, Text } = Typography
 
@@ -32,6 +39,7 @@ export default function RequestDetailPage() {
   const [detail, setDetail] = useState<RequestDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [advancing, setAdvancing] = useState(false)
 
   // load: refetch the detail (real getRequest + listRequestEvents + getArtifact
   // in api.ts). Swallows errors into a banner so the 5s polling interval can
@@ -58,6 +66,32 @@ export default function RequestDetailPage() {
     const timer = setInterval(load, 5000)
     return () => clearInterval(timer)
   }, [load])
+
+  // Fix 5: advance the request. plan_ready → StartPlan (Pipeline runs the
+  // plan → pending_approval); applying → StartApply (Pipeline runs the
+  // apply → completed). The button only renders for actionable statuses.
+  const handleAdvance = async () => {
+    if (!id || !detail) return
+    setAdvancing(true)
+    try {
+      if (detail.statusKey === 'plan_ready') {
+        await startPlan(id)
+        message.success('已启动 Plan')
+      } else if (detail.statusKey === 'applying' || detail.statusKey === 'pending_approval') {
+        await startApply(id)
+        message.success('已启动 Apply')
+      }
+      load()
+    } catch (err: any) {
+      message.error(`推进失败：${err?.message ?? err}`)
+    } finally {
+      setAdvancing(false)
+    }
+  }
+
+  // Whether the current status exposes an actionable advance button.
+  const canAdvance =
+    !!detail && ['plan_ready', 'applying', 'pending_approval'].includes(detail.statusKey)
 
   if (error && !detail) {
     return (
@@ -102,6 +136,16 @@ export default function RequestDetailPage() {
           current={detail.steps.findIndex((s) => s.status === 'process' || s.status === 'error')}
           items={detail.steps.map((s) => ({ title: s.title, status: s.status, description: s.description }))}
         />
+        {canAdvance && (
+          <Space style={{ marginTop: 16 }}>
+            <Button type="primary" loading={advancing} onClick={handleAdvance}>
+              {detail.statusKey === 'plan_ready' ? '启动 Plan' : '启动 Apply'}
+            </Button>
+            <Text type="secondary">
+              根据 <Text code>{detail.statusName}</Text> 状态推进工单：plan_ready 启动 Plan，pending_approval/applying 启动 Apply。
+            </Text>
+          </Space>
+        )}
       </Card>
 
       <Row gutter={16}>

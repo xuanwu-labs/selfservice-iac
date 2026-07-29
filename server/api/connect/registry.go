@@ -9,6 +9,7 @@ package connect
 import (
 	"context"
 	"errors"
+	"os"
 	"strconv"
 	"time"
 
@@ -83,6 +84,24 @@ func (h *RegistryHandler) RegisterModule(
 	if err != nil {
 		return nil, platformerrors.New(commonv1.ErrorCode_ERROR_CODE_INTERNAL_ERROR, connect.CodeInvalidArgument,
 			"owner_team_id must be a numeric snowflake ID, got %q", in.OwnerTeamId)
+	}
+
+	// Phase 1 git credential injection: the frontend sends an optional
+	// x-git-token Connect header (set by the api.ts transport interceptor when
+	// the operator supplies a token in the register form). GoGitProvider reads
+	// GIT_TOKEN from env at Clone time, so set it for the duration of this call
+	// and restore the previous value (or unset) afterwards. Phase 2 will route
+	// this through the credentials table + Vault/KMS.
+	if token := req.Header().Get("x-git-token"); token != "" {
+		prev, hadPrev := os.LookupEnv("GIT_TOKEN")
+		os.Setenv("GIT_TOKEN", token)
+		defer func() {
+			if hadPrev {
+				os.Setenv("GIT_TOKEN", prev)
+			} else {
+				os.Unsetenv("GIT_TOKEN")
+			}
+		}()
 	}
 
 	result, err := h.svc.RegisterModule(ctx, registry.RegisterModuleInput{

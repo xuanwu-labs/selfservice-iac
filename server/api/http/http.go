@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 )
 
@@ -32,6 +33,10 @@ func NewRouter(deps *Deps) *gin.Engine {
 		r.GET("/metrics", gin.WrapH(deps.MetricsHandler))
 	}
 
+	// Admin REST endpoints (Phase 1): state_backends + workspaces upserts. These
+	// back the AdminPage forms that have no proto RPC yet.
+	RegisterAdminRoutes(r, deps.Pool)
+
 	return r
 }
 
@@ -43,4 +48,7 @@ type Deps struct {
 	MetricsHandler http.Handler
 	// Middlewares is the gin middleware chain, injected by the server layer.
 	Middlewares []gin.HandlerFunc
+	// Pool is the pgx pool used by the admin REST handlers for direct DB writes
+	// (state_backends / workspaces upserts). Optional; nil disables admin routes.
+	Pool *pgxpool.Pool
 }

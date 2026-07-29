@@ -19,6 +19,7 @@ import {
   fetchModules,
   publishCatalogItem,
   registerModule,
+  resolveGitTokenForURL,
   type CatalogLayer,
   type Module,
   type ModuleStatus,
@@ -52,6 +53,9 @@ interface RegisterForm {
   provider: string
   displayName: string
   team: string
+  // gitToken: optional Git access token (Phase 1). When empty, the register
+  // flow auto-resolves a token from the AdminPage Git 凭证 rules by URL prefix.
+  gitToken?: string
 }
 
 interface PublishForm {
@@ -134,6 +138,9 @@ export default function ModulesPage() {
   const handleRegister = async () => {
     try {
       const values = await form.validateFields()
+      // Fix 3: resolve git token. Explicit field value wins; otherwise fall
+      // back to the AdminPage Git 凭证 localStorage rules matched by URL prefix.
+      const resolvedToken = values.gitToken || resolveGitTokenForURL(values.gitSource)
       const result = await registerModule({
         gitSource: values.gitSource,
         modulePath: values.modulePath,
@@ -141,6 +148,7 @@ export default function ModulesPage() {
         provider: values.provider,
         name: values.displayName,
         ownerTeamId: values.team,
+        gitToken: resolvedToken,
       })
       message.success(`已注册模块 ${values.displayName}@${values.version}`)
       form.resetFields()
@@ -304,6 +312,13 @@ export default function ModulesPage() {
               options={teamOptions}
               placeholder="请选择团队"
             />
+          </Form.Item>
+          <Form.Item
+            label="Git 访问令牌 (可选)"
+            name="gitToken"
+            tooltip="私有仓库的访问令牌；留空时按 Git 凭证规则（管理设置 → Git 凭证）匹配 URL 前缀自动注入"
+          >
+            <Input.Password placeholder="私有仓库 token，可空" style={{ width: 220 }} />
           </Form.Item>
           <Form.Item>
             <Button type="primary" onClick={handleRegister}>

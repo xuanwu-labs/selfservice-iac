@@ -91,7 +91,7 @@ func InitializeApp(cfg *config.Config) (*App, func(), error) {
 		cleanup()
 		return nil, nil, err
 	}
-	engine := server.NewHTTPServer(logger, v, handler, serverConfig)
+	engine := server.NewHTTPServer(logger, v, handler, pool, serverConfig)
 	serverServer := server.NewServer(cfg, engine, serverConfig, logger)
 	app := &App{
 		Config: cfg,
