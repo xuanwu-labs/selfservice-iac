@@ -1,0 +1,7 @@
+{
+  "resource_changes": [
+    {"address": "alicloud_db_instance.this", "change": {"actions": ["update"]}},
+    {"address": "alicloud_db_instance.that", "change": {"actions": ["no-op"]}},
+    {"address": "alicloud_vpc.main", "change": {"actions": ["create"]}}
+  ]
+}
