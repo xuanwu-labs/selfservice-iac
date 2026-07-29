@@ -165,8 +165,8 @@
 
 ## 10-前端、e2e 与整体验证
 
-- [ ] 10.1 搭建 `frontend/`（React + 表单引擎，由 `form_schema_json` 声明式渲染），覆盖目录/申请/审批/漂移/历史视图
-- [ ] 10.2 在 `e2etests/`（新增）落端到端：表单提交 → 工单 → 生成代码 → 断言 stack 目录与 state key；漂移检测端到端
+- [x] 10.1 搭建 `frontend/`（React + 表单引擎，由 `form_schema_json` 声明式渲染），覆盖目录/申请/审批/漂移/历史视图
+- [x] 10.2 在 `e2etests/`（新增）落端到端：表单提交 → 工单 → 生成代码 → 断言 stack 目录与 state key；漂移检测端到端
 - [ ] 10.3 全量验证：`make build`（Terramate 主二进制不受影响）+ `make test`（Terramate 回归绿色）+ `go test ./server/...`
 - [ ] 10.4 文档：更新 AGENTS.md / README，说明 `server/` 边界、运行方式、scripts 用法
 
