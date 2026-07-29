@@ -13,7 +13,7 @@ import { createClient, type Interceptor } from '@connectrpc/connect'
 import { CatalogService, CatalogAdminService } from './gen/platform/v1/catalog/srv_pb.js'
 import { RegistryAdminService } from './gen/platform/v1/registry/srv_pb.js'
 import { LifecycleService } from './gen/platform/v1/lifecycle/srv_pb.js'
-import { ApprovalDecision } from './gen/platform/v1/common/enum_pb.js'
+import { ApprovalDecision, RequestStatus as ProtoRequestStatus } from './gen/platform/v1/common/enum_pb.js'
 
 // Transport: Connect-ES over HTTP to the Go backend.
 // In dev, Vite proxies to localhost:8080. In production (go:embed), same origin.
@@ -194,26 +194,127 @@ export async function decideApproval(requestId: string, decision: 'approved' | '
 
 export async function fetchRequestDetail(id: string): Promise<RequestDetail> {
   const resp = await lifecycleClient.getRequest({ requestId: id })
-  // mapRequest tolerates a missing/undefined request by defaulting every field.
-  const r = mapRequest(resp.request)
+  const r = mapRequest(resp.request || {})
+  const rawStatus = (resp.request as any)?.status
+  const statusKey = statusToKey(rawStatus ?? r.status)
+  const statusName = statusToName(rawStatus ?? r.status)
+
+  // Derive pipeline steps from the real lifecycle status. Each step maps to a
+  // stage; finished = already past, process = current, wait = not yet reached,
+  // error = the request died here.
+  const statusNum = Number(rawStatus)
+  const isError =
+    statusNum === ProtoRequestStatus.FAILED_TERMINAL ||
+    statusNum === ProtoRequestStatus.REJECTED ||
+    statusNum === ProtoRequestStatus.CANCELLED ||
+    statusKey === 'failed'
+
+  // StepStatus mirrors RequestDetail.steps[].status so the helper return values
+  // and local mutables stay assignable without literal-widening to string.
+  type StepStatus = 'finish' | 'process' | 'wait' | 'error'
+
+  const stepFor = (name: ProtoRequestStatus): StepStatus => {
+    if (statusNum === name) return isError ? 'error' : 'process'
+    return 'wait'
+  }
+
+  const submittedStep: StepStatus =
+    statusNum === ProtoRequestStatus.SUBMITTED
+      ? isError
+        ? 'error'
+        : 'process'
+      : 'finish'
+
+  let planStep: StepStatus = 'wait'
+  if (
+    statusNum === ProtoRequestStatus.PENDING_ADMISSION ||
+    statusNum === ProtoRequestStatus.PLANNING
+  ) {
+    planStep = isError ? 'error' : 'process'
+  } else if (
+    statusNum === ProtoRequestStatus.PLAN_READY ||
+    statusNum === ProtoRequestStatus.PENDING_APPROVAL ||
+    statusNum === ProtoRequestStatus.APPLYING ||
+    statusNum === ProtoRequestStatus.RECONCILING ||
+    statusNum === ProtoRequestStatus.SUCCEEDED ||
+    statusNum === ProtoRequestStatus.RECONCILE_PENDING ||
+    statusNum === ProtoRequestStatus.WAITING_MANUAL
+  ) {
+    planStep = 'finish'
+  }
+
+  let applyStep: StepStatus = 'wait'
+  if (
+    statusNum === ProtoRequestStatus.APPLYING ||
+    statusNum === ProtoRequestStatus.RECONCILING ||
+    statusNum === ProtoRequestStatus.RECONCILE_PENDING
+  ) {
+    applyStep = isError ? 'error' : 'process'
+  } else if (statusNum === ProtoRequestStatus.SUCCEEDED) {
+    applyStep = 'finish'
+  }
+
+  const doneStep: StepStatus =
+    statusNum === ProtoRequestStatus.SUCCEEDED ? 'finish' : 'wait'
+
+  const steps: { title: string; description: string; status: StepStatus }[] = [
+    { title: '提交', description: '工单已提交', status: submittedStep },
+    { title: '代码生成', description: 'codegen 生成 HCL', status: stepFor(ProtoRequestStatus.GENERATING) },
+    { title: 'Plan', description: 'Terraform Plan', status: planStep },
+    {
+      title: '审批',
+      description: '人工审批门禁',
+      status: stepFor(ProtoRequestStatus.PENDING_APPROVAL),
+    },
+    { title: 'Apply', description: 'Terraform Apply', status: applyStep },
+    { title: '完成', description: '资源就绪', status: doneStep },
+  ]
+
+  // Build the timeline from real events (newest first → reverse so oldest is
+  // first for chronological display). Fall back to a single submit row.
+  const events = await fetchRequestEvents(id)
+  const timeline = events.length
+    ? [...events]
+        .sort((a, b) => (a.occurredAt < b.occurredAt ? -1 : 1))
+        .map((ev) => ({
+          color: ev.toStatus === 'SUCCEEDED' ? 'green' : 'blue',
+          content: ev.message || ev.stage || ev.eventType || ev.toStatus || '状态变更',
+          time: ev.occurredAt,
+        }))
+    : [{ color: 'green', content: '提交工单', time: r.createdAt }]
+
+  // Try to fetch the plan diff summary. getArtifact requires a plan_artifact_id
+  // from the request; when missing/empty the backend rejects it, so guard.
+  let planDiff = ''
+  if (r.planArtifactId) {
+    try {
+      const art = await lifecycleClient.getArtifact({ artifactId: r.planArtifactId })
+      const summary = art.artifact?.summary
+      if (summary) {
+        planDiff =
+          `# Plan 摘要 (plan_hash: ${art.artifact?.planHash || '-'})\n\n` +
+          `Terraform will perform the following actions:\n` +
+          `  + ${summary.resourcesToAdd} to add\n` +
+          `  ~ ${summary.resourcesToChange} to change\n` +
+          `  - ${summary.resourcesToDestroy} to destroy\n`
+      }
+    } catch {
+      // artifact not available yet (e.g. plan not finished); leave empty
+    }
+  }
+
   return {
     id: r.id || id,
-    steps: [
-      { title: '提交', description: '', status: 'finish' },
-      { title: '代码生成', description: '', status: 'finish' },
-      { title: 'Plan', description: '', status: 'finish' },
-      { title: '审批', description: '', status: 'process' },
-      { title: 'Apply', description: '', status: 'wait' },
-      { title: '完成', description: '', status: 'wait' },
-    ],
-    timeline: [
-      { color: 'green', content: '提交工单', time: r.createdAt },
-    ],
-    planDiff: '# Plan details will appear here',
+    statusKey,
+    statusName,
+    steps,
+    timeline,
+    planDiff,
     info: [
       { label: '资源', value: r.catalogItem },
       { label: '环境', value: r.env },
-      { label: '状态', value: r.status },
+      { label: '团队', value: r.team },
+      { label: '状态', value: statusName },
     ],
   }
 }
@@ -276,6 +377,10 @@ export interface IaCRequest {
   status: string
   team: string
   createdAt: string
+  // planArtifactId: set by mapRequest from the proto field of the same name.
+  // Used by fetchRequestDetail to look up the plan summary; not rendered in
+  // list rows directly.
+  planArtifactId?: string
 }
 
 export interface Module {
@@ -300,10 +405,101 @@ export interface ApprovalItem extends IaCRequest {}
 
 export interface RequestDetail {
   id: string
+  // The raw proto status name (e.g. 'PLAN_READY') and the UI-facing key the
+  // pages render as a Tag. statusKey is derived from statusToKey().
+  statusKey: RequestStatus
+  statusName: string
   steps: { title: string; description: string; status: 'finish' | 'process' | 'wait' | 'error' }[]
   timeline: { color: string; content: string; time?: string }[]
   planDiff: string
   info: { label: string; value: string }[]
+}
+
+// RequestEvent is the frontend-facing view of a LifecycleEvent row, used to
+// render the status timeline on the request detail page.
+export interface RequestEvent {
+  id: string
+  requestId: string
+  eventType: string
+  stage: string
+  message: string
+  fromStatus: string
+  toStatus: string
+  occurredAt: string
+  actorId: string
+}
+
+// fetchRequestEvents calls LifecycleService.ListRequestEvents and maps each
+// LifecycleEvent into the frontend RequestEvent shape. Errors are swallowed
+// (returns []) because events are best-effort enrichment for the timeline.
+export async function fetchRequestEvents(requestId: string): Promise<RequestEvent[]> {
+  try {
+    const resp = await lifecycleClient.listRequestEvents({ requestId, pageSize: 100 })
+    return (resp.events || []).map((ev: any) => ({
+      id: ev.id || '',
+      requestId: ev.requestId || requestId,
+      eventType: ev.eventType || '',
+      stage: ev.stage || '',
+      message: ev.message || '',
+      fromStatus: ev.fromStatus || '',
+      toStatus: ev.toStatus || '',
+      occurredAt: ev.occurredAt || '',
+      actorId: ev.actor?.id || '',
+    }))
+  } catch {
+    return []
+  }
+}
+
+// statusToKey converts a backend LifecycleRequest status (numeric enum or
+// stringified number from mapRequest) into the human-facing RequestStatus key
+// the pages render as Tags. Returns the raw value when unknown so the UI can
+// surface unexpected backend values instead of hiding them.
+export function statusToKey(status: string | number): RequestStatus {
+  const num = typeof status === 'number' ? status : Number(status)
+  if (!Number.isNaN(num)) {
+    switch (num as ProtoRequestStatus) {
+      case ProtoRequestStatus.SUBMITTED:
+        return 'submitted'
+      case ProtoRequestStatus.GENERATING:
+        return 'generating'
+      case ProtoRequestStatus.PLAN_READY:
+        return 'plan_ready'
+      case ProtoRequestStatus.PENDING_APPROVAL:
+        return 'pending_approval'
+      case ProtoRequestStatus.APPLYING:
+        return 'applying'
+      case ProtoRequestStatus.SUCCEEDED:
+        return 'completed'
+      case ProtoRequestStatus.REJECTED:
+        return 'rejected'
+      case ProtoRequestStatus.CANCELLED:
+        return 'cancelled'
+      case ProtoRequestStatus.FAILED_RETRYABLE:
+        return 'failed_retryable'
+      case ProtoRequestStatus.FAILED_TERMINAL:
+        return 'failed'
+      case ProtoRequestStatus.WAITING_MANUAL:
+        return 'waiting_manual'
+      default:
+        // other enum values (planning/pending_admission/reconciling/etc.) fall
+        // through to a 'draft'-style default that the UI treats as in-progress.
+        return 'draft'
+    }
+  }
+  return (status as RequestStatus) || 'draft'
+}
+
+// statusToName converts a backend status (numeric enum) into the SCREAMING_SNAKE
+// name used to derive steps + timeline labels on the detail page. Falls back to
+// the numeric value when the enum is unrecognized.
+export function statusToName(status: string | number): string {
+  const num = typeof status === 'number' ? status : Number(status)
+  if (!Number.isNaN(num)) {
+    const name = (ProtoRequestStatus as any)[num]
+    if (typeof name === 'string') return name
+  }
+  return String(status || 'UNSPECIFIED')
 }
 
 function mapCatalogItem(item: any): CatalogItem {
@@ -318,13 +514,20 @@ function mapCatalogItem(item: any): CatalogItem {
 }
 
 function mapRequest(req: any): IaCRequest {
+  // The proto status is a numeric RequestStatus enum; convert it to the
+  // human-facing RequestStatus key the pages render (e.g. PLAN_READY →
+  // 'plan_ready'). Unknown values fall back to the raw string so the UI can
+  // surface unexpected backend responses.
+  const rawStatus = req?.status
+  const status = rawStatus == null ? '' : statusToKey(rawStatus)
   return {
     id: req.id || '',
     catalogItem: req.catalogItemId || '',
     env: req.envId || '',
-    status: req.status?.toString() || '',
+    status,
     team: req.teamId || '',
     createdAt: req.createdAt || '',
+    planArtifactId: req.planArtifactId || '',
   }
 }
 

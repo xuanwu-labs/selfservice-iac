@@ -79,11 +79,39 @@ export default function AdminPage() {
   const [provider, setProvider] = useState<ProviderOption>('alicloud')
   const [executorMode, setExecutorMode] = useState<ExecutorMode>('process')
   const [worktreePath, setWorktreePath] = useState('/var/lib/aether/worktrees')
+  // infra-repo: global workspace row (workspaces table) — codegen output target
+  // (D4 workspace). The platform clones this repo and creates a worktree per
+  // request, committing generated HCL back to the default branch.
   const [giteaUrl, setGiteaUrl] = useState('http://192.168.31.33:3180')
+  // module-source repo: where module definitions are cloned FROM. Per-module
+  // (each catalog item carries its own git_source), but surfaced here as the
+  // default org/repo prefix for newly registered modules.
+  const [moduleRepoUrl, setModuleRepoUrl] = useState('http://192.168.31.33:3180/aether/aether-modules.git')
+  // MinIO/S3 credentials for the default state backend (P0-3). Phase 1: stored
+  // only in component state for the test-connection flow; Phase 2 will persist
+  // via an Admin API into state_backends.
+  const [accessKey, setAccessKey] = useState('')
+  const [secretKey, setSecretKey] = useState('')
+  const [testing, setTesting] = useState(false)
   const [backends, setBackends] = useState<StateBackendRow[]>(defaultBackends)
   const [teams, setTeams] = useState<TeamRow[]>(seedTeams)
   const [backendForm] = Form.useForm<NewBackendForm>()
   const [teamForm] = Form.useForm<NewTeamForm>()
+
+  // P0-4: test the MinIO/S3 connection. Phase 1 just validates the fields are
+  // present and reports success — real bucket reachability lands in Phase 2.
+  const handleTestConnection = async () => {
+    if (!accessKey || !secretKey) {
+      message.warning('请先填写 Access Key 与 Secret Key')
+      return
+    }
+    setTesting(true)
+    // Simulate a quick connectivity check; Phase 2 will hit a real health RPC.
+    setTimeout(() => {
+      setTesting(false)
+      message.success(`连接测试成功（Phase 1 仅校验输入；Phase 2 将真实访问 MinIO/S3）`)
+    }, 500)
+  }
 
   const backendColumns: ColumnsType<StateBackendRow> = [
     { title: '名称', dataIndex: 'name', key: 'name' },
@@ -197,7 +225,7 @@ export default function AdminPage() {
             type="info"
             showIcon
             message="MinIO / S3 兼容存储"
-            description="State 后端配置来自 state_backends 表。codegen 读取默认行渲染 backend.tf。新建后端仅前端展示，Phase 2 接入 Admin API。"
+            description="State 后端配置来自 state_backends 表。codegen 读取默认行渲染 backend.tf。Access/Secret Key 为 MinIO/S3 访问凭证。新建后端仅前端展示，Phase 2 接入 Admin API。"
           />
           <Table<StateBackendRow>
             rowKey="key"
@@ -205,6 +233,34 @@ export default function AdminPage() {
             dataSource={backends}
             pagination={false}
           />
+          <Card title="默认后端凭证 (MinIO / S3)" size="small">
+            <Paragraph type="secondary" style={{ marginBottom: 12 }}>
+              MinIO / S3 访问凭证。平台用此凭证对默认 state 后端进行 terraform state 读写。Phase 1 仅前端校验，Phase 2 通过 Admin API 落库到 state_backends。
+            </Paragraph>
+            <Form layout="inline">
+              <Form.Item label="Access Key" required>
+                <Input.Password
+                  placeholder="minio-access-key"
+                  value={accessKey}
+                  onChange={(e) => setAccessKey(e.target.value)}
+                  style={{ width: 220 }}
+                />
+              </Form.Item>
+              <Form.Item label="Secret Key" required>
+                <Input.Password
+                  placeholder="minio-secret-key"
+                  value={secretKey}
+                  onChange={(e) => setSecretKey(e.target.value)}
+                  style={{ width: 240 }}
+                />
+              </Form.Item>
+              <Form.Item>
+                <Button type="primary" loading={testing} onClick={handleTestConnection}>
+                  测试连接
+                </Button>
+              </Form.Item>
+            </Form>
+          </Card>
           <Card title="添加 State 后端" size="small">
             <Form form={backendForm} layout="inline">
               <Form.Item label="名称" name="name" rules={[{ required: true, message: '请填写名称' }]}>
@@ -298,8 +354,42 @@ export default function AdminPage() {
       ),
     },
     {
+      key: 'module-source-repo',
+      label: '模块源仓库',
+      children: (
+        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Alert
+            type="info"
+            showIcon
+            message="模块源仓库 (module source repository)"
+            description="模块源仓库是注册模块时被克隆 / 提取契约的来源（如 Gitea aether-modules）。该配置是 per-module 的：每个目录项携带自己的 git_source + module_path，这里仅设置默认仓库前缀供新注册模块复用。"
+          />
+          <Card title="默认模块源仓库">
+            <Form layout="vertical" style={{ maxWidth: 520 }}>
+              <Form.Item label="默认 Git 源">
+                <Input
+                  value={moduleRepoUrl}
+                  onChange={(e) => setModuleRepoUrl(e.target.value)}
+                  style={{ width: 520 }}
+                />
+              </Form.Item>
+              <Form.Item label="默认分支">
+                <Input defaultValue="main" style={{ width: 200 }} />
+              </Form.Item>
+              <Form.Item label="访问凭证">
+                <Input.Password placeholder="通过环境变量 AETHER_MODULE_REPO_TOKEN 注入" disabled />
+              </Form.Item>
+            </Form>
+            <Paragraph type="secondary" style={{ marginTop: 8 }}>
+              平台从该仓库克隆 + 提取 <Text code>variables.tf</Text> 契约。每个模块可单独覆盖 git_source / module_path。
+            </Paragraph>
+          </Card>
+        </Space>
+      ),
+    },
+    {
       key: 'workspace',
-      label: '工作仓库',
+      label: '执行仓库 (infra-repo)',
       children: (
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <Alert
@@ -308,7 +398,13 @@ export default function AdminPage() {
             message="凭证安全"
             description="Gitea 访问令牌通过环境变量 / Secret 注入到后端，不会出现在前端。此处仅展示仓库 URL。"
           />
-          <Card title="Gitea 工作仓库">
+          <Alert
+            type="info"
+            showIcon
+            message="执行仓库 (infra-repo, D4 workspace)"
+            description="执行仓库是 codegen 产物的提交目标 —— 即 workspaces 表中配置的全局 infra-repo。平台克隆此仓库并为每个工单创建 worktree，codegen 将生成的 HCL 提交回默认分支。这是全局配置，所有工单共享。"
+          />
+          <Card title="Gitea 执行仓库 (infra-repo)">
             <Form layout="vertical" style={{ maxWidth: 520 }}>
               <Form.Item label="Gitea URL">
                 <Input

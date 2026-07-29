@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Badge, Button, Card, Popconfirm, Space, Table, Tag, message } from 'antd'
+import { useCallback, useEffect, useState } from 'react'
+import { Badge, Button, Card, Empty, Popconfirm, Space, Table, Tag, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useNavigate } from 'react-router-dom'
 import { decideApproval, fetchPendingApprovals, type ApprovalItem, type Env } from '../api'
@@ -11,22 +11,40 @@ export default function ApprovalPage() {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  const load = () => {
+  // load: refetch the pending queue. Wrapped in useCallback and error-swallowing
+  // so re-fetching after a decision is resilient to transient backend failures.
+  const load = useCallback(async () => {
     setLoading(true)
-    fetchPendingApprovals().then((data) => {
+    try {
+      const data = await fetchPendingApprovals()
       setItems(data)
+    } catch {
+      // keep stale list on transient error
+    } finally {
       setLoading(false)
-    })
-  }
+    }
+  }, [])
 
   useEffect(() => {
     load()
-  }, [])
+  }, [load])
 
+  // handleDecide: optimistically remove the row, call the RPC, then re-fetch.
+  // P1-2: the list refreshes so the decided item disappears immediately even
+  // before the backend re-evaluates the queue. If the RPC throws we surface the
+  // error but still re-fetch to reconcile with server truth.
   const handleDecide = async (id: string, decision: 'approve' | 'reject') => {
-    await decideApproval(id, decision === 'approve' ? 'approved' : 'rejected')
-    message.success(`已${decision === 'approve' ? '批准' : '拒绝'}工单 ${id}`)
-    load()
+    // optimistic: drop the row so the UI reacts instantly
+    setItems((prev) => prev.filter((it) => it.id !== id))
+    try {
+      await decideApproval(id, decision === 'approve' ? 'approved' : 'rejected')
+      message.success(`已${decision === 'approve' ? '批准' : '拒绝'}工单 ${id}`)
+    } catch (err: any) {
+      message.error(`操作失败：${err?.message ?? err}`)
+    } finally {
+      // P1-2: re-fetch the authoritative queue regardless of outcome.
+      load()
+    }
   }
 
   const columns: ColumnsType<ApprovalItem> = [
@@ -67,6 +85,9 @@ export default function ApprovalPage() {
         dataSource={items}
         columns={columns}
         pagination={{ pageSize: 10 }}
+        locale={{
+          emptyText: <Empty description="暂无待审批工单" />,
+        }}
       />
     </Card>
   )

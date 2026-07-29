@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Button, Space, Table, Tabs, Tag } from 'antd'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Button, Empty, Space, Table, Tabs, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useNavigate } from 'react-router-dom'
 import { fetchRequests, type Env, type IaCRequest, type RequestStatus } from '../api'
@@ -32,13 +32,29 @@ export default function RequestsPage() {
   const [tab, setTab] = useState<TabKey>('all')
   const navigate = useNavigate()
 
-  useEffect(() => {
+  // load: fetch the request list. Wrapped in useCallback so the polling effect
+  // can keep a stable reference. Swallows errors so the 5s interval never
+  // surfaces an uncaught rejection in the console on transient backend hiccups.
+  const load = useCallback(async () => {
     setLoading(true)
-    fetchRequests().then((data) => {
+    try {
+      const data = await fetchRequests()
       setRequests(data)
+    } catch {
+      // keep stale data; the table stays on the last successful snapshot.
+    } finally {
       setLoading(false)
-    })
+    }
   }, [])
+
+  useEffect(() => {
+    load()
+    // P1-1: poll every 5s so the list reflects backend status transitions
+    // (code_generated → plan_ready → pending_approval → applying → completed)
+    // without a manual refresh.
+    const timer = setInterval(load, 5000)
+    return () => clearInterval(timer)
+  }, [load])
 
   const counts = useMemo(
     () => ({
@@ -110,6 +126,9 @@ export default function RequestsPage() {
         dataSource={filtered}
         columns={columns}
         pagination={{ pageSize: 10 }}
+        locale={{
+          emptyText: <Empty description="暂无工单，请从服务目录申请资源" />,
+        }}
       />
     </>
   )

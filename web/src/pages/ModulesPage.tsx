@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   Collapse,
+  Empty,
   Form,
   Input,
   Modal,
@@ -72,6 +73,25 @@ const categoryOptions = [
   { value: 'network', label: '网络 (network)' },
   { value: 'storage', label: '存储 (storage)' },
   { value: 'middleware', label: '中间件 (middleware)' },
+]
+
+// P0-1: Phase 1 hardcoded team list (no TeamsService proto yet). Each value is
+// the snowflake ID the backend stores as owner_team_id.
+const teamOptions = [
+  { label: 'Platform Ops (id=1)', value: '1' },
+  { label: 'DBA Team (id=2)', value: '2' },
+  { label: 'Middleware Team (id=3)', value: '3' },
+]
+
+// P0-2: Provider dropdown — includes built-in (null/local/random) and real cloud
+// providers. null = 内置零下载, used for logic-only tests.
+const providerOptions = [
+  { label: 'null (内置, 零下载)', value: 'null' },
+  { label: 'random (内置)', value: 'random' },
+  { label: 'local (内置)', value: 'local' },
+  { label: 'alicloud', value: 'alicloud' },
+  { label: 'aws', value: 'aws' },
+  { label: 'azure', value: 'azure' },
 ]
 
 export default function ModulesPage() {
@@ -265,24 +285,25 @@ export default function ModulesPage() {
           </Form.Item>
           <Form.Item label="Provider" name="provider" rules={[{ required: true, message: '请选择 provider' }]}>
             <Select
-              style={{ width: 140 }}
-              options={[
-                { value: 'alicloud', label: 'alicloud' },
-                { value: 'aws', label: 'aws' },
-                { value: 'azurerm', label: 'azurerm' },
-              ]}
+              style={{ width: 200 }}
+              options={providerOptions}
+              placeholder="请选择 provider"
             />
           </Form.Item>
           <Form.Item label="显示名" name="displayName" rules={[{ required: true, message: '请填写显示名' }]}>
             <Input placeholder="rds-mysql" style={{ width: 160 }} />
           </Form.Item>
           <Form.Item
-            label="团队 ID"
+            label="团队"
             name="team"
-            rules={[{ required: true, message: '请填写团队 ID（snowflake）' }]}
+            rules={[{ required: true, message: '请选择团队' }]}
             tooltip="owner_team_id 必须是已存在团队的数字 snowflake ID"
           >
-            <Input placeholder="如 1001" style={{ width: 140 }} />
+            <Select
+              style={{ width: 200 }}
+              options={teamOptions}
+              placeholder="请选择团队"
+            />
           </Form.Item>
           <Form.Item>
             <Button type="primary" onClick={handleRegister}>
@@ -299,6 +320,9 @@ export default function ModulesPage() {
           dataSource={modules}
           columns={columns}
           pagination={{ pageSize: 10 }}
+          locale={{
+            emptyText: <Empty description="暂无注册模块" />,
+          }}
         />
       </Card>
 
@@ -344,11 +368,11 @@ export default function ModulesPage() {
             <Select options={layerOptions} />
           </Form.Item>
           <Form.Item
-            label="归属团队 ID"
+            label="归属团队"
             name="ownerTeamId"
-            rules={[{ required: true, message: '请填写团队 ID' }]}
+            rules={[{ required: true, message: '请选择团队' }]}
           >
-            <Input placeholder="如 1001" />
+            <Select options={teamOptions} placeholder="请选择团队" />
           </Form.Item>
         </Form>
       </Modal>

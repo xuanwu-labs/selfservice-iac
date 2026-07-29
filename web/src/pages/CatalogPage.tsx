@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Card, Col, Row, Select, Space, Statistic, Table, Tag, Button, Typography, message } from 'antd'
+import { Card, Col, Empty, Row, Select, Space, Statistic, Table, Tag, Button, Typography, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
+import { useNavigate } from 'react-router-dom'
 import { fetchCatalogItems, type CatalogCategory, type CatalogItem, type CatalogStatus } from '../api'
 import RequestFormModal from '../components/RequestFormModal'
 
@@ -32,6 +33,7 @@ export default function CatalogPage() {
   const [category, setCategory] = useState<CatalogCategory | 'all'>('all')
   const [modalOpen, setModalOpen] = useState(false)
   const [activeItem, setActiveItem] = useState<CatalogItem | null>(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     setLoading(true)
@@ -137,6 +139,9 @@ export default function CatalogPage() {
           dataSource={filtered}
           columns={columns}
           pagination={{ pageSize: 10 }}
+          locale={{
+            emptyText: <Empty description="请先注册模块并发布到服务目录" />,
+          }}
         />
       </Card>
 
@@ -144,9 +149,13 @@ export default function CatalogPage() {
         open={modalOpen}
         catalogItem={activeItem}
         onCancel={() => setModalOpen(false)}
-        onSubmit={(requestId) =>
-          message.success(`工单已提交（${requestId}），请在我的工单页查看进度`)
-        }
+        onSubmit={(requestId) => {
+          // P1-4: redirect to the requests list so the user can watch the new
+          // ticket advance. The detail / list pages poll every 5s, so the row
+          // appears within seconds.
+          message.success(`工单已提交（${requestId}），正在跳转到我的工单`)
+          navigate('/requests')
+        }}
       />
     </Space>
   )

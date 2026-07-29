@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Card, Col, Row, Table, Tag, Typography, Space } from 'antd'
+import { Card, Col, Row, Table, Tag, Typography, Space, Button } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
+import { useNavigate } from 'react-router-dom'
 import { fetchCatalogItems, type CatalogItem, type CatalogLayer } from '../api'
+import RequestFormModal from '../components/RequestFormModal'
 
 const { Text, Title, Paragraph } = Typography
 
@@ -35,6 +37,11 @@ const dagCode = `# DAG 依赖方向（底层 → 上层）
 export default function LayerCatalogPage() {
   const [items, setItems] = useState<CatalogItem[]>([])
   const [loading, setLoading] = useState(false)
+  // P1-5: per-row apply button opens the same RequestFormModal the catalog page
+  // uses, so a user can request a resource directly from the layer view.
+  const [modalOpen, setModalOpen] = useState(false)
+  const [activeItem, setActiveItem] = useState<CatalogItem | null>(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     setLoading(true)
@@ -43,6 +50,11 @@ export default function LayerCatalogPage() {
       setLoading(false)
     })
   }, [])
+
+  const openRequest = (item: CatalogItem) => {
+    setActiveItem(item)
+    setModalOpen(true)
+  }
 
   const columns: ColumnsType<CatalogItem> = [
     { title: '名称', dataIndex: 'name', key: 'name' },
@@ -59,6 +71,21 @@ export default function LayerCatalogPage() {
       dataIndex: 'status',
       key: 'status',
       render: (s) => <Tag color={s === 'published' ? 'green' : s === 'draft' ? 'orange' : 'red'}>{s}</Tag>,
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 80,
+      render: (_, record) => (
+        <Button
+          type="link"
+          size="small"
+          disabled={record.status === 'deprecated'}
+          onClick={() => openRequest(record)}
+        >
+          申请
+        </Button>
+      ),
     },
   ]
 
@@ -103,6 +130,21 @@ export default function LayerCatalogPage() {
           )
         })}
       </Row>
+
+      <RequestFormModal
+        open={modalOpen}
+        catalogItem={activeItem}
+        onCancel={() => setModalOpen(false)}
+        onSubmit={(requestId) => {
+          // Match CatalogPage: after submit, jump to the requests list so the
+          // user can watch the new ticket progress.
+          navigate('/requests')
+          // navigate happens on next tick; brief inline confirmation is omitted
+          // to avoid a dangling toast after unmount — the requests page is the
+          // source of truth for the new ticket (requestId available here).
+          void requestId
+        }}
+      />
     </Space>
   )
 }
