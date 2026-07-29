@@ -69,14 +69,38 @@ Go proto 定义 → buf generate → TypeScript 类型 → connect-query hooks �
 - Phase 1 单进程，轮询够用
 - Phase 2 改 WebSocket/SSE 只需换 transport（TanStack Query 组件不变）
 
-### D5：go:embed 单二进制部署
+### D5：go:embed 单二进制部署（P0-1 修正：embed 路径在 module 内部）
 
-**决策**：Vite build → `web/dist/` → Go `//go:embed` 嵌入 → server 同时 serve API + 前端。
+**决策**：Vite build → `server/internal/web/dist/` → Go `//go:embed` 嵌入 → server 同时 serve API + 前端。
+
+**P0-1 修正**：Go module root 是 `server/`，`//go:embed` 不支持 `..` 路径。Vite build 输出到 `server/internal/web/dist/`（在 module 内部）。
 
 ```go
-//go:embed web/dist
-var webFS embed.FS
+// server/internal/web/embed.go
+package web
+
+import "embed"
+
+//go:embed dist/*
+var Assets embed.FS
 ```
+
+Vite 配置 `build.outDir: '../server/internal/web/dist'`。
+
+### D6：Ant Design 5（P1-1 修正：@rjsf/antd 兼容性）
+
+**决策**：用 **Ant Design 5**（不是 6）。@rjsf/antd 历史上绑定 antd 5，antd 6 支持未验证。antd 5 稳定且企业级组件齐全。
+
+### D7：漂移页移除（P0-2 修正）
+
+**决策**：本 change **删除 DriftPage**。漂移没有 proto RPC（无 DriftService srv.proto）。Phase 2 补漂移 API + 前端页面。
+
+### D8：登录 + Token（P1-2 修正）
+
+**决策**：Phase 1 简化 token 获取：
+- 用户在浏览器 DevTools 或 config 设置 Bearer token（OIDC 或 bootstrap admin token）
+- 不做登录页面（Phase 2 加 OIDC authorization-code flow）
+- Connect transport 从 localStorage 读 token + 注入 Authorization header
 
 **理由**：自托管 OSS 平台最简部署（一个二进制 = 完整平台）。
 
