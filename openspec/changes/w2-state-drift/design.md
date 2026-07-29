@@ -3,9 +3,14 @@
 W2 最后一个模块——state backend 实现 + 漂移检测引擎。
 
 **现有架构约束**（已落地）：
-- StateBackend 接口（W1-01）：Read/Write/Delete/Lock/Unlock + NoopState stub
-- state_backends 表（migration 011）：bucket/region/kind
-- drift_runs + drift_records 表（migration 011，需核查是否存在）
+- StateBackend 接口（W1-01）：`Read(ctx, key) ([]byte, error)` / `Write(ctx, key, data)` / `Delete(ctx, key)` / `Lock(ctx, key) (lockID string, err error)` / `Unlock(ctx, key, lockID)` + NoopState stub
+- state_backends 表（migration 011）：bucket/region/kind/endpoint/encrypt
+- **drift_runs / drift_records 表不存在**（migration 011 只有 state_backends/workspaces/stacks 等）→ Phase 1 用内存记录，Phase 2 补 migration
+- terramate.Adapter（W1-01）：`Run(ctx, dir, args) (RunResult, error)` — **已实现**（ExecAdapter）
+- WorkspaceManager（W2-07）：CheckoutCommit（只读检出 pinned_commit）
+- Notifier 接口（W1-01）：Notify（noop stub）
+- clock 包（`server/core/clock/`）：Clock 接口 + FakeClock（D44）
+- **`server/core/drift/` 已存在**（空目录 + .gitkeep），不是新建
 - TerramateAdapter（W1-01）：Run（terramate run -- terraform plan）
 - WorkspaceManager（W2-07）：CheckoutCommit（只读检出 pinned_commit）
 - Notifier 接口（W1-01）：Notify（noop stub）
@@ -28,13 +33,14 @@ W2 最后一个模块——state backend 实现 + 漂移检测引擎。
 
 ## Decisions
 
-### D1：S3Backend 用接口 + mock（Phase 1 不连真实 S3）
+### D1：S3Backend 用接口 + mock（Phase 1 不连真实 S3）；保留 noop 为默认
 
-**决策**：S3Backend 实现 StateBackend 接口，但 Phase 1 的 Read/Write/Delete/Lock/Unlock 用**内存 mock**（不连真实 S3）。真实 S3 SDK 集成（AWS SDK Go v2 或 minio-go）在 W3 或 Phase 2。
+**决策**：S3Backend 实现 StateBackend 接口（Lock 返回 lockID，Unlock 接收 lockID），Phase 1 用内存 mock。**NoopState 保持为 wire 默认绑定**（P2-10 修正：mock 不作默认——会静默丢数据）。S3Backend 仅在测试中使用，真实 S3 SDK 集成 Phase 2。
 
 **理由**：
 - Phase 1 目标是"架构正确 + 流程通"，不是"连真实云"
 - S3 SDK 引入大量依赖（AWS SDK ~50MB），Phase 1 不值得
+- noop 返回 fail-loud 错误（比 mock 静默丢数据安全）
 - 测试不需要真实 S3（mock 足够验证逻辑）
 
 ### D2：DriftScheduler 用 Go time.Ticker（Phase 1 单进程）
@@ -43,31 +49,41 @@ W2 最后一个模块——state backend 实现 + 漂移检测引擎。
 
 ```go
 type Scheduler struct {
-    interval time.Duration  // 分层间隔
-    limiter  *tokenBucket   // 令牌桶限流
+    intervals map[string]time.Duration // 分层间隔（可注入，测试用 100ms）
+    limiter  *rate.Limiter            // 令牌桶限流（golang.org/x/time/rate）
     worker   *Worker
+    clock    clock.Clock              // 注入时钟（P3-14 修正：用 clock 包不用 time.Now）
 }
-func (s *Scheduler) Start(ctx) // 启动 ticker，按间隔触发
-func (s *Scheduler) Stop()     // 停止
+func (s *Scheduler) Start(ctx context.Context) // 启动 ticker，按间隔触发
+func (s *Scheduler) Stop(ctx context.Context)  // 停止 + 优雅 drain（P2-12 修正）
 ```
 
-**理由**：Phase 1 单进程（process 模式 Executor），定时器够用。Phase 2 改 River job + leader 选举。
+**理由**：Phase 1 单进程（process 模式 Executor），定时器够用。Phase 2 改 River job + leader 选举。**intervals 可注入**（测试用 100ms 避免慢测试）。**用 clock.Clock 接口**（server/core/clock/，D44 专门为 drift 设计）。
 
-### D3：DriftWorker 只读 plan 经 Executor 接口
+### D3：DriftWorker 用本地接口引用 terramate.Adapter（不导入 orchestrator）
 
-**决策**：DriftWorker 调 TerramateRunner.Run（复用 orchestrator 的接口），执行 `terramate run -- terraform plan -detailed-exitcode`。
+**决策**（P1-5 修正）：DriftWorker 声明**本地接口**，被 `*terramate.ExecAdapter` 隐式满足。**不导入 orchestrator 包**（避免层耦合 + orchestrator.TerramateRunner 无具体实现）。
 
 ```go
-type Worker struct {
-    runner    TerramateRunner  // 复用 orchestrator 接口
-    workspace WorkspaceManager // 只读 checkout
-    repo      DriftRepo        // drift_runs/records CRUD
-    notifier  Notifier         // 通知
+// drift 包内部定义，被 *terramate.ExecAdapter 隐式满足
+type Runner interface {
+    Run(ctx context.Context, dir string, args []string) (terramate.RunResult, error)
 }
-func (w *Worker) CheckStack(ctx, stackID) (DriftResult, error)
+
+type Worker struct {
+    runner    Runner           // 本地接口（terramate.ExecAdapter 满足）
+    workspace CheckoutProvider // 本地接口（workspace.Manager.CheckoutCommit 满足）
+    notifier  Notifier         // 本地接口（adapters/notify.Notifier 满足）
+}
+func (w *Worker) CheckStack(ctx context.Context, stackID int64) (DriftResult, error)
 ```
 
-**理由**：doc 13 §2 "漂移只读 plan 走与工单完全相同的 Executor"。复用 Executor + workspace checkout。
+**理由**：与 workspace.Manager 满足 orchestrator.WorkspaceManager 的模式一致（DIP 隐式接口）。orchestrator.TerramateRunner 是 orchestrator 内部接口（无具体实现），不应用作 drift 的依赖。
+
+**exit code 映射**（P2-9 修正）：
+- `RunResult.ExitCode == 0` → 无漂移（has_drift=false）
+- `RunResult.ExitCode == 2` → 有漂移（has_drift=true，error=nil）
+- `RunResult.ExitCode == 1` → 错误（记录失败，not drift）
 
 ### D4：plan JSON 解析提取 resource_changes
 
@@ -75,23 +91,34 @@ func (w *Worker) CheckStack(ctx, stackID) (DriftResult, error)
 
 ```go
 type PlanDiff struct {
-    Resources []ResourceChange `json:"resource_changes"`
+    ResourceChanges []ResourceChange `json:"resource_changes"`
 }
 type ResourceChange struct {
-    Address string   `json:"address"`      // "alicloud_db_instance.this"
-    Action  []string `json:"change.actions"` // ["create"]/["delete"]/["update"]
+    Address string      `json:"address"`       // "alicloud_db_instance.this"
+    Change  ChangeBody  `json:"change"`        // P2-8 修正：嵌套 struct（不能用 "change.actions" 点号 tag）
+}
+type ChangeBody struct {
+    Actions []string `json:"actions"`           // ["create"]/["delete"]/["update"]/["no-op"]
 }
 ```
 
 **理由**：terraform plan JSON 格式稳定（Terraform 1.0+ 文档化）；解析逻辑简单（JSON unmarshal + 过滤）。
 
-### D5：分层调度配置硬编码（Phase 1）
+### D5：分层调度配置可注入（Phase 1 默认值，测试可覆盖）
 
-**决策**：Phase 1 调度频率硬编码（doc 13 §3 的默认值）：
-```
-Global:     每 24h，并发上限 2
-Middleware: 每 12h，并发上限 5
-Application:每 6h, 并发上限 10
+**决策**：调度频率用 `DefaultIntervals()` 函数返回默认值，但构造器接受 `intervals map[string]time.Duration` 参数（测试用 100ms）。令牌桶用 `golang.org/x/time/rate`（P2-11 关闭）。
+
+```go
+func DefaultIntervals() map[string]time.Duration {
+    return map[string]time.Duration{
+        "global":      24 * time.Hour,
+        "middleware":  12 * time.Hour,
+        "application":  6 * time.Hour,
+    }
+}
+func DefaultConcurrency() map[string]int {
+    return map[string]int{"global": 2, "middleware": 5, "application": 10}
+}
 ```
 
 Phase 2 改 DB 配置（drift_schedule 表）。
@@ -114,5 +141,6 @@ Phase 2 改 DB 配置（drift_schedule 表）。
 
 ## Open Questions
 
-- **drift_runs/drift_records 表是否在 migration 011？** 需要核查。如果不存在，Phase 1 用内存记录（不写 DB）。
-- **令牌桶用什么实现？** golang.org/x/time/rate（标准限流库）或自写简单版。
+- **drift_runs/drift_records 表：** 已确认 migration 011 不含这两张表。Phase 1 用**内存记录**（MemDriftRepo），Phase 2 补 migration 015。这是显式 Non-Goal（记录在此）。
+- **令牌桶实现：** 已决定用 `golang.org/x/time/rate`（Go 标准限流库，codebase 已有 golang.org/x 依赖）。
+- **audit_logs for drift：** Phase 1 不写 audit_logs（drift run 不是 request）。Phase 2 补审计。显式 Non-Goal。
