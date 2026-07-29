@@ -6,7 +6,7 @@ import { fetchRequestDetail, type Env, type RequestDetail, type RequestStatus } 
 
 const { Title, Text } = Typography
 
-const statusColor: Record<RequestStatus, string> = {
+const statusColor: Partial<Record<RequestStatus, string>> = {
   draft: 'default',
   code_generated: 'cyan',
   plan_ready: 'blue',
@@ -15,7 +15,7 @@ const statusColor: Record<RequestStatus, string> = {
   completed: 'green',
   failed: 'red',
 }
-const statusLabel: Record<RequestStatus, string> = {
+const statusLabel: Partial<Record<RequestStatus, string>> = {
   draft: '草稿',
   code_generated: '已生成代码',
   plan_ready: 'Plan 就绪',
@@ -24,7 +24,7 @@ const statusLabel: Record<RequestStatus, string> = {
   completed: '已完成',
   failed: '失败',
 }
-const envColor: Record<Env, string> = { dev: 'green', staging: 'orange', prod: 'red' }
+const envColor: Partial<Record<Env, string>> = { dev: 'green', staging: 'orange', prod: 'red' }
 
 export default function RequestDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -44,6 +44,17 @@ export default function RequestDetailPage() {
     return <div style={{ padding: 24 }}>加载中...</div>
   }
 
+  // The detail payload exposes resource/env/status/team as label/value pairs
+  // in `info` (see fetchRequestDetail in api.ts). Build a lookup for rendering.
+  const infoMap: Record<string, string> = {}
+  for (const { label, value } of detail.info) {
+    infoMap[label] = value
+  }
+  const catalogItem = infoMap['资源'] ?? ''
+  const env = infoMap['环境'] as Env | undefined
+  const status = infoMap['状态'] as RequestStatus | undefined
+  const team = '' // team is not surfaced by the current backend mapping
+
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate('/requests')}>
@@ -62,20 +73,20 @@ export default function RequestDetailPage() {
           <Card title="工单信息">
             <Descriptions column={1}>
               <Descriptions.Item label="工单号">{detail.id}</Descriptions.Item>
-              <Descriptions.Item label="资源">{detail.catalogItem}</Descriptions.Item>
+              <Descriptions.Item label="资源">{catalogItem}</Descriptions.Item>
               <Descriptions.Item label="环境">
-                <Tag color={envColor[detail.env]}>{detail.env}</Tag>
+                <Tag color={env ? envColor[env] : undefined}>{env}</Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="团队">{detail.team}</Descriptions.Item>
+              <Descriptions.Item label="团队">{team}</Descriptions.Item>
               <Descriptions.Item label="状态">
-                <Tag color={statusColor[detail.status]}>{statusLabel[detail.status]}</Tag>
+                <Tag color={status ? statusColor[status] : undefined}>{status ? (statusLabel[status] ?? status) : ''}</Tag>
               </Descriptions.Item>
             </Descriptions>
           </Card>
         </Col>
         <Col span={12}>
           <Card title="状态时间线">
-            <Timeline items={detail.timeline.map((t) => ({ color: t.color, children: <Text><strong>{t.label}</strong><br /><Text type="secondary">{t.time}</Text></Text> }))} />
+            <Timeline items={detail.timeline.map((t) => ({ color: t.color, children: <Text><strong>{t.content}</strong><br /><Text type="secondary">{t.time}</Text></Text> }))} />
           </Card>
         </Col>
       </Row>

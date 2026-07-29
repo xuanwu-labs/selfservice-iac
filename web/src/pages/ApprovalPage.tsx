@@ -4,7 +4,7 @@ import type { ColumnsType } from 'antd/es/table'
 import { useNavigate } from 'react-router-dom'
 import { decideApproval, fetchPendingApprovals, type ApprovalItem, type Env } from '../api'
 
-const envColor: Record<Env, string> = { dev: 'green', staging: 'orange', prod: 'red' }
+const envColor: Partial<Record<Env, string>> = { dev: 'green', staging: 'orange', prod: 'red' }
 
 export default function ApprovalPage() {
   const [items, setItems] = useState<ApprovalItem[]>([])
@@ -24,7 +24,7 @@ export default function ApprovalPage() {
   }, [])
 
   const handleDecide = async (id: string, decision: 'approve' | 'reject') => {
-    await decideApproval(id, decision)
+    await decideApproval(id, decision === 'approve' ? 'approved' : 'rejected')
     message.success(`已${decision === 'approve' ? '批准' : '拒绝'}工单 ${id}`)
     load()
   }

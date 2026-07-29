@@ -5,12 +5,12 @@ import { fetchModules, type Module, type ModuleStatus } from '../api'
 
 const { Text } = Typography
 
-const statusColor: Record<ModuleStatus, string> = {
+const statusColor: Partial<Record<ModuleStatus, string>> = {
   ready: 'green',
   extracting: 'blue',
   failed: 'red',
 }
-const statusLabel: Record<ModuleStatus, string> = {
+const statusLabel: Partial<Record<ModuleStatus, string>> = {
   ready: '可用',
   extracting: '契约提取中',
   failed: '失败',

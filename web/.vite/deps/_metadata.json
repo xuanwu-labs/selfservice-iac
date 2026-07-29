@@ -2,60 +2,96 @@
   "hash": "91941a5c",
   "configHash": "c9941498",
   "lockfileHash": "930fcd48",
-  "browserHash": "fde74a1f",
+  "browserHash": "5e3eb972",
   "optimized": {
     "react/jsx-dev-runtime": {
       "src": "../../node_modules/react/jsx-dev-runtime.js",
       "file": "react_jsx-dev-runtime.js",
-      "fileHash": "eb32616c",
+      "fileHash": "7e56da76",
       "needsInterop": true
     },
     "antd": {
       "src": "../../node_modules/antd/es/index.js",
       "file": "antd.js",
-      "fileHash": "6055a38e",
+      "fileHash": "609d3ff1",
       "needsInterop": false
     },
     "react": {
       "src": "../../node_modules/react/index.js",
       "file": "react.js",
-      "fileHash": "0238118f",
+      "fileHash": "2e6537fd",
       "needsInterop": true
     },
     "react-dom/client": {
       "src": "../../node_modules/react-dom/client.js",
       "file": "react-dom_client.js",
-      "fileHash": "489be748",
+      "fileHash": "2074d43b",
       "needsInterop": true
     },
     "react-router-dom": {
       "src": "../../node_modules/react-router-dom/dist/index.mjs",
       "file": "react-router-dom.js",
-      "fileHash": "1304c1a1",
+      "fileHash": "a36c4bcf",
       "needsInterop": false
     },
     "antd/locale/zh_CN": {
       "src": "../../node_modules/antd/locale/zh_CN.js",
       "file": "antd_locale_zh_CN.js",
-      "fileHash": "94e9934d",
+      "fileHash": "2533c32a",
       "needsInterop": true
     },
     "@ant-design/icons": {
       "src": "../../node_modules/@ant-design/icons/es/index.js",
       "file": "@ant-design_icons.js",
-      "fileHash": "4b4767da",
+      "fileHash": "46f1e3fd",
+      "needsInterop": false
+    },
+    "@connectrpc/connect-web": {
+      "src": "../../node_modules/@connectrpc/connect-web/dist/esm/index.js",
+      "file": "@connectrpc_connect-web.js",
+      "fileHash": "04dfac27",
+      "needsInterop": false
+    },
+    "@connectrpc/connect": {
+      "src": "../../node_modules/@connectrpc/connect/dist/esm/index.js",
+      "file": "@connectrpc_connect.js",
+      "fileHash": "87e56f44",
+      "needsInterop": false
+    },
+    "@bufbuild/protobuf": {
+      "src": "../../node_modules/@bufbuild/protobuf/dist/esm/index.js",
+      "file": "@bufbuild_protobuf.js",
+      "fileHash": "d2657af6",
+      "needsInterop": false
+    },
+    "@bufbuild/protobuf/codegenv2": {
+      "src": "../../node_modules/@bufbuild/protobuf/dist/esm/codegenv2/index.js",
+      "file": "@bufbuild_protobuf_codegenv2.js",
+      "fileHash": "9b5688db",
       "needsInterop": false
     }
   },
   "chunks": {
-    "chunk-H2E4SV6V": {
-      "file": "chunk-H2E4SV6V.js"
-    },
     "chunk-KWLN3RFB": {
       "file": "chunk-KWLN3RFB.js"
     },
+    "chunk-H2E4SV6V": {
+      "file": "chunk-H2E4SV6V.js"
+    },
     "chunk-WNPTCGAH": {
       "file": "chunk-WNPTCGAH.js"
+    },
+    "chunk-C7ZZOCXU": {
+      "file": "chunk-C7ZZOCXU.js"
+    },
+    "chunk-RQE5CLH2": {
+      "file": "chunk-RQE5CLH2.js"
+    },
+    "chunk-4QD57P37": {
+      "file": "chunk-4QD57P37.js"
+    },
+    "chunk-5J2BFMBY": {
+      "file": "chunk-5J2BFMBY.js"
     },
     "chunk-5WRI5ZAA": {
       "file": "chunk-5WRI5ZAA.js"

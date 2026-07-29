@@ -39,11 +39,12 @@ type Server struct {
 func NewServer(cfg *config.Config, ginEngine *gin.Engine, mwCfg *middleware.ServerConfig, logger *otelzap.Logger) *Server {
 	mux := http.NewServeMux()
 
-	// Mount Connect-RPC handlers under /api/ prefix (if enabled).
-	// Actual path: /api/aether.platform.v1.CatalogService/ListItems
+	// Mount Connect-RPC handlers (if enabled).
+	// Connect paths look like: /aether.platform.v1.catalog.CatalogService/ListItems
+	// ServeMux longest-prefix matching ensures these match before the "/" catch-all.
 	if cfg.Connect.Enabled {
 		for _, h := range mwCfg.ConnectHandlers {
-			mux.Handle("/api"+h.Path, h.Handler)
+			mux.Handle(h.Path, h.Handler)
 		}
 	}
 	// Gin handles operational endpoints (healthz, ready, metrics).
@@ -53,6 +54,7 @@ func NewServer(cfg *config.Config, ginEngine *gin.Engine, mwCfg *middleware.Serv
 
 	// Embedded frontend SPA (go:embed from server/internal/web/dist/).
 	// Serves React app with SPA fallback for client-side routing.
+	// Registered last so ServeMux longest-prefix matching prefers Connect + Gin routes.
 	mux.Handle("/", web.Handler())
 
 	return &Server{

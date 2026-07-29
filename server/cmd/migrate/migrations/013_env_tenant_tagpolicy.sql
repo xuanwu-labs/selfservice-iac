@@ -166,7 +166,7 @@ CREATE TRIGGER trg_tag_policies_updated_at
 -- Default tenant (internal shared semantics)
 INSERT INTO tenants (id, tenant_logical_id, name, isolation_level, kind, tag_namespace_json, status, created_at)
 VALUES (0, 'platform-default', 'Platform Default (Internal Shared)', 'vpc-per-env', 'internal', '{}'::jsonb, 'active', now())
-ON CONFLICT (tenant_logical_id) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- Default environments (stable identities). IDs 1-4 reserved for seeds.
 INSERT INTO environments (id, env_logical_id, display_name, stage, region, tag_namespace_json, status, created_at) VALUES
@@ -174,7 +174,7 @@ INSERT INTO environments (id, env_logical_id, display_name, stage, region, tag_n
     (2, 'staging', 'Staging',         'staging', '', '{}'::jsonb, 'active', now()),
     (3, 'prod',    'Production',      'prod',    '', '{}'::jsonb, 'active', now()),
     (4, 'dr',      'Disaster Recovery','dr',     '', '{}'::jsonb, 'active', now())
-ON CONFLICT (env_logical_id) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- Platform-level mandatory tag policy (D28 L1 baseline)
 INSERT INTO tag_policies (id, scope_type, scope_id, tag_namespace_json, mandatory_keys_json, user_allowed_tag_keys_json, version, created_at)
@@ -188,7 +188,7 @@ VALUES (
     1,
     now()
 )
-ON CONFLICT (scope_type, scope_id) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 
 -- +goose Down

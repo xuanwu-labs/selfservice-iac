@@ -24,7 +24,7 @@ data:
     ssl_mode: "disable"
     max_conns: 10
     timeout: "5s"
-    # password: local dev can set here; production use AETHER_DATA_DATABASE_PASSWORD
+    password: "aether_dev_2026"     # dev PG password (remote Docker aether-postgres)
   redis:
     addr: ""                     # empty = Redis disabled
     # password: local dev can set here; production use AETHER_DATA_REDIS_PASSWORD

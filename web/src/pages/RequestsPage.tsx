@@ -4,7 +4,7 @@ import type { ColumnsType } from 'antd/es/table'
 import { useNavigate } from 'react-router-dom'
 import { fetchRequests, type Env, type IaCRequest, type RequestStatus } from '../api'
 
-const statusColor: Record<RequestStatus, string> = {
+const statusColor: Partial<Record<RequestStatus, string>> = {
   draft: 'default',
   code_generated: 'cyan',
   plan_ready: 'blue',
@@ -13,7 +13,7 @@ const statusColor: Record<RequestStatus, string> = {
   completed: 'green',
   failed: 'red',
 }
-const statusLabel: Record<RequestStatus, string> = {
+const statusLabel: Partial<Record<RequestStatus, string>> = {
   draft: '草稿',
   code_generated: '已生成代码',
   plan_ready: 'Plan 就绪',
@@ -22,7 +22,7 @@ const statusLabel: Record<RequestStatus, string> = {
   completed: '已完成',
   failed: '失败',
 }
-const envColor: Record<Env, string> = { dev: 'green', staging: 'orange', prod: 'red' }
+const envColor: Partial<Record<Env, string>> = { dev: 'green', staging: 'orange', prod: 'red' }
 
 type TabKey = 'all' | 'pending' | 'in_progress' | 'done'
 
