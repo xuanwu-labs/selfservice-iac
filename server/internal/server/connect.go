@@ -17,6 +17,7 @@ import (
 	platformerrors "github.com/xuanwu-labs/selfservice-iac/server/internal/errors"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/middleware"
 	catalogv1connect "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/catalog/catalogv1connect"
+	lifecyclev1connect "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/lifecycle/lifecyclev1connect"
 	registryv1connect "github.com/xuanwu-labs/selfservice-iac/server/internal/proto/platform/v1/registry/registryv1connect"
 )
 
@@ -31,6 +32,7 @@ func ProvideServerConfig(
 	catalog *connectapi.CatalogHandler,
 	catalogAdmin *connectapi.CatalogAdminHandler,
 	registry *connectapi.RegistryHandler,
+	lifecycle *connectapi.LifecycleHandler,
 	logger *otelzap.Logger,
 ) (*middleware.ServerConfig, error) {
 	// Build the Connect interceptor chain: otelconnect + auth/rbac/ratelimit + audit + error-wrap.
@@ -77,6 +79,12 @@ func ProvideServerConfig(
 		registry, connect.WithInterceptors(allInterceptors...),
 	)
 	connectOpts = append(connectOpts, middleware.WithConnectHandler(registryPath, registryHandlerHTTP))
+
+	// User-facing LifecycleService (request/approval full lifecycle).
+	lifecyclePath, lifecycleHandlerHTTP := lifecyclev1connect.NewLifecycleServiceHandler(
+		lifecycle, connect.WithInterceptors(allInterceptors...),
+	)
+	connectOpts = append(connectOpts, middleware.WithConnectHandler(lifecyclePath, lifecycleHandlerHTTP))
 
 	return middleware.Apply(connectOpts...), nil
 }

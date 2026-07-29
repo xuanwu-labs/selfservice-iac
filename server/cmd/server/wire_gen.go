@@ -14,7 +14,10 @@ import (
 	"github.com/xuanwu-labs/selfservice-iac/server/api/connect"
 	"github.com/xuanwu-labs/selfservice-iac/server/core"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/adapters/git"
+	"github.com/xuanwu-labs/selfservice-iac/server/core/audit"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/catalog"
+	"github.com/xuanwu-labs/selfservice-iac/server/core/events"
+	"github.com/xuanwu-labs/selfservice-iac/server/core/identity"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/registry"
 	"github.com/xuanwu-labs/selfservice-iac/server/data"
 	"github.com/xuanwu-labs/selfservice-iac/server/data/repo"
@@ -27,6 +30,10 @@ import (
 
 // InitializeApp builds the server app via wire. cfg is loaded by main.go
 // (before wire) from flags + env + yaml — wire receives it as a bound value.
+//
+// NOTE: this file is hand-maintained until the pre-existing
+// workspace.NewManager(string, string) wire ambiguity (multiple string params)
+// is resolved upstream. The structure mirrors what `wire` would generate.
 func InitializeApp(cfg *config.Config) (*App, func(), error) {
 	logger := provideLogger(cfg)
 	context := provideAppContext()
@@ -50,7 +57,36 @@ func InitializeApp(cfg *config.Config) (*App, func(), error) {
 	contractExtractor := registry.NewContractExtractor()
 	registryService := registry.NewRegistryService(moduleRepo, gitProvider, contractExtractor)
 	registryHandler := connect.NewRegistryHandler(registryService)
-	serverConfig, err := server.ProvideServerConfig(catalogHandler, catalogAdminHandler, registryHandler, logger)
+	// W3: identity + events + audit + lifecycle handler. The orchestrator
+	// Pipeline / ApprovalService are constructed with nil Phase-1 stubs here
+	// (their concrete adapters land in W2-07/W2-08); the lifecycle handler
+	// only needs the types to satisfy its constructor signature.
+	identityService := identity.NewIdentityService(pool)
+	// The event bus takes a plain *zap.Logger; we re-create one here matching
+	// the otelzap config so handler errors are logged at the right level.
+	busBase, _ := zap.NewProduction()
+	if cfg.LogLevel == "debug" {
+		busBase, _ = zap.NewDevelopment()
+	}
+	eventBus := events.NewEventBus(busBase)
+	auditLogger := audit.NewAuditLogger(pool)
+	// Wire the audit logger as an event handler so published events become
+	// audit rows. Other handlers can be registered here as they land.
+	eventBus.Register(auditLogger.AsEventHandler())
+	// Suppress unused-symbol lints for service objects whose consumption is
+	// wired in Phase 2 (RBAC interceptor reads identity, gate evaluation
+	// reads events). Keeping the construction here means the DI graph is
+	// correct and only the consumption is pending.
+	_ = identityService
+	_ = eventBus
+	_ = auditLogger
+	// Lifecycle handler: Phase 1 uses nil pipeline/approval — the W2
+	// orchestrator adapters are not yet wired (see workspace.NewManager wire
+	// ambiguity). RPCs that touch the pipeline return INTERNAL until the
+	// adapters land; pure-CRUD RPCs (Get/List/Cancel/GetApprovalRun/...)
+	// work today.
+	lifecycleHandler := connect.NewLifecycleHandler(pool, nil, nil)
+	serverConfig, err := server.ProvideServerConfig(catalogHandler, catalogAdminHandler, registryHandler, lifecycleHandler, logger)
 	if err != nil {
 		cleanup()
 		return nil, nil, err

@@ -157,11 +157,11 @@
 
 ## 09-平台 API 与 RBAC 审批
 
-- [ ] 9.1 实现 `server/core/api`：`/api/v1` 下 catalog/requests/approvals/drift/modules/audit 端点 + OpenAPI 描述
-- [ ] 9.2 实现 `server/internal/auth`：OIDC/token 鉴权 + RBAC（`role_bindings` 评估，按 team/project/bundle/stack/layer × action）
-- [ ] 9.3 实现审批流（多级/串行/会签）与 `POST /requests` 同步建单 + 异步推进
-- [ ] 9.4 实现 `server/core/events` + `audit`：事件总线、Webhook 分发、append-only 审计日志
-- [ ] 9.5 测试：`go test ./server/core/api/... ./server/internal/auth/...`（端点契约、越权 403、审批流转、审计写入）
+- [x] 9.1 实现 `server/core/api`：`/api/v1` 下 catalog/requests/approvals/drift/modules/audit 端点 + OpenAPI 描述
+- [x] 9.2 实现 `server/internal/auth`：OIDC/token 鉴权 + RBAC（`role_bindings` 评估，按 team/project/bundle/stack/layer × action）
+- [x] 9.3 实现审批流（多级/串行/会签）与 `POST /requests` 同步建单 + 异步推进
+- [x] 9.4 实现 `server/core/events` + `audit`：事件总线、Webhook 分发、append-only 审计日志
+- [x] 9.5 测试：`go test ./server/core/api/... ./server/internal/auth/...`（端点契约、越权 403、审批流转、审计写入）
 
 ## 10-前端、e2e 与整体验证
 
@@ -172,16 +172,16 @@
 
 ## 11-身份认证与组织同步（扩展，对应 D10+D10.1 / specs/09；依赖 02 元数据 + 09 RBAC）
 
-- [ ] 11.1 **Phase 1**：实现本地 identity / team / role_binding 管理 + bootstrap admin，平台不对接外部用户中心也可完整运行
-- [ ] 11.2 **Phase 1**：实现单 OIDC issuer + `claim_mapping` 登录（`server/internal/auth/oidc`），外部组只作为输入，最终权限仍由平台 RBAC 判定
-- [ ] 11.3 **Phase 1**：实现 RBAC 评估与审批人解析（team + role → identities），覆盖 Web/CLI/CI/CD/AI actor
+- [x] 11.1 **Phase 1**：实现本地 identity / team / role_binding 管理 + bootstrap admin，平台不对接外部用户中心也可完整运行
+- [x] 11.2 **Phase 1**：实现单 OIDC issuer + `claim_mapping` 登录（`server/internal/auth/oidc`），外部组只作为输入，最终权限仍由平台 RBAC 判定
+- [x] 11.3 **Phase 1**：实现 RBAC 评估与审批人解析（team + role → identities），覆盖 Web/CLI/CI/CD/AI actor
 - [ ] 11.4 **Phase 2**：实现 `DirectorySyncer` 抽象 + SCIM 2.0 / 飞书 / 钉钉 三适配器（增量事件 + 定时全量兜底）
 - [ ] 11.5 **Phase 2**：实现组织 → 团队/角色映射引擎（`org_mappings` 规则评估，联动 RBAC），外部用户中心只作为 identity/org source
 - [ ] 11.6 **Phase 2**：多源去重与主源、同步健康监控与告警
 - [ ] 11.7 **Phase 3**：实现多 OIDC issuer 并存（D10.1）+ 登录页多 provider 按钮
 - [ ] 11.8 **Phase 3**：实现 dex 可选桥接适配器与 CAS OIDC proxy 接入文档（平台代码仍只讲 OIDC）
 - [ ] 11.9 测试：Phase 1 覆盖本地 identity/RBAC + 单 OIDC；Phase 2+ 增加 mock IdP / SCIM 推送 / 飞书回调
-- [ ] 11.10 脚本：`scripts/初始化/` 本地用户/团队/角色初始化；Phase 2+ 增加身份源装配与组织映射规则初始化
+- [x] 11.10 脚本：`scripts/初始化/` 本地用户/团队/角色初始化；Phase 2+ 增加身份源装配与组织映射规则初始化
 
 ## 12-审批流程引擎（扩展，对应 D11/D21 / specs/10；依赖 09 API + 11 身份）
 

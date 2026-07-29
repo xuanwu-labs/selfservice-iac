@@ -151,6 +151,20 @@ type GateResult struct {
 	EvaluatedAt pgtype.Timestamptz `json:"evaluated_at"`
 }
 
+type Identity struct {
+	ID            int64              `json:"id"`
+	ExternalID    string             `json:"external_id"`
+	DisplayName   string             `json:"display_name"`
+	Email         string             `json:"email"`
+	ProviderName  string             `json:"provider_name"`
+	PrimarySource string             `json:"primary_source"`
+	Status        string             `json:"status"`
+	MergedIntoID  *int64             `json:"merged_into_id"`
+	LastSyncedAt  pgtype.Timestamptz `json:"last_synced_at"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
 type LayerLogicalRef struct {
 	LogicalID          string             `json:"logical_id"`
 	CurrentDisplayName string             `json:"current_display_name"`
@@ -293,6 +307,17 @@ type RequestEvent struct {
 	Message       string             `json:"message"`
 	CorrelationID string             `json:"correlation_id"`
 	OccurredAt    pgtype.Timestamptz `json:"occurred_at"`
+}
+
+type RoleBinding struct {
+	ID        int64              `json:"id"`
+	SubjectID string             `json:"subject_id"`
+	Role      string             `json:"role"`
+	ScopeType string             `json:"scope_type"`
+	ScopeID   string             `json:"scope_id"`
+	Actions   []byte             `json:"actions"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Space struct {
