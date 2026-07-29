@@ -82,7 +82,7 @@ export default function AdminPage() {
   // infra-repo: global workspace row (workspaces table) — codegen output target
   // (D4 workspace). The platform clones this repo and creates a worktree per
   // request, committing generated HCL back to the default branch.
-  const [giteaUrl, setGiteaUrl] = useState('http://192.168.31.33:3180')
+  const [giteaUrl, setGiteaUrl] = useState('http://192.168.31.33:3180/aether/aether-infra.git')
   // module-source repo: where module definitions are cloned FROM. Per-module
   // (each catalog item carries its own git_source), but surfaced here as the
   // default org/repo prefix for newly registered modules.

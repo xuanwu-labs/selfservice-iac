@@ -16,23 +16,24 @@ interface LayerConfig {
 }
 
 const layerConfigs: LayerConfig[] = [
-  { key: 'global', title: '全局层 (Global)', color: '#1677ff', pathTemplate: '{env}/global/{type}/{name}', desc: 'VPC、SLB、NAT 等环境级共享资源，团队无关，由网络/存储团队维护。' },
-  { key: 'middleware', title: '中间件层 (Middleware)', color: '#722ed1', pathTemplate: '{env}/middleware/{type}/{name}', desc: 'Redis、Kafka 等共享中间件集群，按环境统一部署。' },
-  { key: 'application', title: '应用层 (Application)', color: '#52c41a', pathTemplate: '{team}/{env}/{type}/{name}', desc: '业务自有资源（RDS/ECS），按团队 + 环境隔离。' },
+  { key: 'global', title: '全局层 (Global)', color: '#f5222d', pathTemplate: 'global/{{.component}}-{{.tenant}}-{{.env}}', desc: 'VPC、ACK、CEN 等全局共享基础设施。平台运维团队维护。跨租户共享。' },
+  { key: 'middleware', title: '中间件层 (Middleware)', color: '#fa8c16', pathTemplate: 'middleware/{{.tenant}}/{{.component}}-{{.env}}', desc: 'RDS、Redis、Kafka 等共享中间件。DBA + 中间件团队维护。上层通过 remote_state 引用。' },
+  { key: 'application', title: '应用层 (Application)', color: '#52c41a', pathTemplate: 'application/{{.tenant}}/{{.team}}/{{if .space}}{{.space}}/{{end}}{{.component}}-{{.env}}', desc: '业务 ECS、SLB 等。各业务团队独立维护。按团队+环境隔离。' },
 ]
 
-const dagCode = `# DAG 依赖方向（底层 → 上层）
+const dagCode = `# 跨层依赖方向（DAG，单向无环）
 #
-#   application ──┐
-#                 ├──► middleware ──► global
-#                 │     (Redis/Kafka)   (VPC/SLB)
-#                 │
-#   application ──┘
+#   Global (VPC/ACK) ──→ Middleware (RDS/Redis) ──→ Application (ECS/SLB)
+#        │                      │                         │
+#        └── CEN ───────────────┘                         │
+#                               └── ACK ─────────────────┘
 #
-# 路径模板自动推导：
-#   global:        prod/global/vpc/payment-vpc
-#   middleware:    prod/middleware/redis/growth-cache
-#   application:   payment/prod/db/checkout-mysql-001`
+# 路径模板（D29 layer-first Path Contract）：
+#   global:       global/vpc-platform-default-prod
+#   middleware:   middleware/platform-default/rds-prod
+#   application:  application/platform-default/team-a/orders/ecs-prod
+#
+# 跨层引用：上层通过 terraform_remote_state 读下层 outputs`
 
 export default function LayerCatalogPage() {
   const [items, setItems] = useState<CatalogItem[]>([])
@@ -124,6 +125,7 @@ export default function LayerCatalogPage() {
                   columns={columns}
                   pagination={false}
                   scroll={{ y: 320 }}
+                  locale={{ emptyText: <Text type="secondary" style={{ fontSize: 12 }}>本层暂无上架资源</Text> }}
                 />
               </Card>
             </Col>
