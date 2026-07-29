@@ -98,19 +98,24 @@ CheckoutWorktree(ctx, requestID, pinned_commit):
 
 ### D4：apply 成功后 squash merge + push（doc 10 §3.1，git CLI）
 
-**决策**：apply 成功（exit 0）后，用 **git CLI**（exec.CommandContext）执行 squash merge：
+**决策**：apply 成功（exit 0）后，用 **git CLI**（exec.CommandContext）执行 squash merge。
+**P0-1 修正**：Shared Clone 独立 refs → repo/ 里没有 req-<id> 分支 → 必须**先 fetch**：
 ```
-1. git checkout main + git pull --ff-only origin main（go-git checkout + CLI pull）
-2. git merge --squash req-<id>（★ CLI，go-git 不支持 squash merge）
-3. git commit -m "req-<id>: <component> applied (stack: <stack_id>)"（go-git commit）
-4. git push origin main（go-git push）
-5. 删除 req-<id> 分支（go-git 删除引用）
+1. git fetch <req-<id>-dir> req-<id>:req-<id>（★ 从 shared clone 拉分支到 repo，go-git Fetch）
+2. git checkout main + git pull --ff-only origin main（go-git checkout + CLI pull）
+3. git merge --squash req-<id>（★ CLI，go-git 不支持 squash merge）
+4. git commit -m "req-<id>: <component> applied (stack: <stack_id>)"（go-git commit）
+5. git push origin main（go-git push）
+6. 删除 req-<id> 分支（go-git 删除引用）
 6. 更新 workspace_checkouts.status = released
 ```
 
 **P1-1 修正**：WorkspaceManager 对 orchestrator 只暴露 `WriteFiles`（接口方法）。CheckoutWorktree/ReleaseWorktree/SquashMergeAndPush 是**内部方法**，被 Executor（W2-08）和 Reconciler 调用，不在 orchestrator.WorkspaceManager 接口上。
 
-**P1-2 修正**：WriteFiles 返回 commitSHA 后，**orchestrator 负责写入 `requests.pinned_commit`**（Pipeline.runGenerating 调 `RequestStore.UpdatePinnedCommit`）。workspace_checkouts.pinned_commit 由 lease.Acquire 写入。两个字段都写。
+**P1-2 修正**：WriteFiles 返回 commitSHA 后写入 `workspace_checkouts.pinned_commit`。
+`requests.pinned_commit` 的写入**推迟到 W2-08**（需要扩展 RequestStore 接口 + 新增 sqlc query，
+当前 orchestrator.RequestStore 只有 GetRequest + UpdateStatus，无 UpdatePinnedCommit）。
+W2-07 只负责 workspace_checkouts.pinned_commit。
 
 **P1-3 修正**：Reconciler 的 applying→waiting_manual **不直接写 DB**，而是调 orchestrator 的 Transition + EventLogger（复用 advance 路径，保证乐观锁 + request_events + manual_intervention_tasks）。
 
