@@ -11,9 +11,12 @@ import (
 	"github.com/google/wire"
 
 	"github.com/xuanwu-labs/selfservice-iac/server/core/adapters/git"
+	"github.com/xuanwu-labs/selfservice-iac/server/core/audit"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/catalog"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/clock"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/codegen"
+	"github.com/xuanwu-labs/selfservice-iac/server/core/events"
+	"github.com/xuanwu-labs/selfservice-iac/server/core/identity"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/orchestrator"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/registry"
 	"github.com/xuanwu-labs/selfservice-iac/server/core/stackmodel"
@@ -27,6 +30,8 @@ import (
 // W2: codegen (Generator) + orchestrator (StateMachine + Pipeline + Approval)
 //   - workspace (Shared Clone Manager)
 //
+// W3: identity (IdentityService) + events (EventBus) + audit (AuditLogger)
+//
 // queue.ProviderSet will be added when the worker lifecycle wrapper lands.
 var ProviderSet = wire.NewSet(
 	catalog.ProviderSet,
@@ -37,6 +42,9 @@ var ProviderSet = wire.NewSet(
 	codegen.ProviderSet,
 	orchestrator.ProviderSet,
 	workspace.ProviderSet,
+	identity.ProviderSet,
+	events.ProviderSet,
+	audit.ProviderSet,
 	git.NewGoGitProvider,
 	wire.Bind(new(git.GitProvider), new(*git.GoGitProvider)),
 	// Future: queue.ProviderSet, ...

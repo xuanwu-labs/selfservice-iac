@@ -467,3 +467,36 @@ CREATE TABLE tag_policies (
 -- =====================================================================
 CREATE UNIQUE INDEX uq_module_versions_module_version
     ON module_versions(module_id, version);
+
+-- =====================================================================
+-- identities (migration 015, D10/D10.1).
+-- =====================================================================
+CREATE TABLE identities (
+    id              BIGINT       PRIMARY KEY,
+    external_id     TEXT         NOT NULL,
+    display_name    TEXT         NOT NULL DEFAULT '',
+    email           TEXT         NOT NULL DEFAULT '',
+    provider_name   TEXT         NOT NULL DEFAULT '',
+    primary_source  TEXT         NOT NULL DEFAULT 'oidc',
+    status          TEXT         NOT NULL DEFAULT 'active'
+                    CHECK (status IN ('active', 'disabled', 'merged')),
+    merged_into_id  BIGINT       NULL REFERENCES identities(id) ON DELETE SET NULL,
+    last_synced_at  TIMESTAMPTZ  NULL,
+    created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+
+-- =====================================================================
+-- role_bindings (migration 015, D10 RBAC).
+-- =====================================================================
+CREATE TABLE role_bindings (
+    id              BIGINT       PRIMARY KEY,
+    subject_id      TEXT         NOT NULL,
+    role            TEXT         NOT NULL,
+    scope_type      TEXT         NOT NULL
+                    CHECK (scope_type IN ('platform', 'team', 'project', 'space', 'stack', 'layer')),
+    scope_id        TEXT         NOT NULL DEFAULT '',
+    actions         JSONB        NOT NULL DEFAULT '[]',
+    created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
+);

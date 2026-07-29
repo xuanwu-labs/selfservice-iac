@@ -10,8 +10,10 @@ import "github.com/google/wire"
 // ProviderSet aggregates all Connect-RPC handler providers.
 // W1-03: CatalogHandler (List/Get) + CatalogAdminHandler (Publish/Update/Deprecate)
 // + RegistryHandler (RegisterModule).
+// W3-01: LifecycleHandler (request/approval full lifecycle).
 var ProviderSet = wire.NewSet(
 	NewCatalogHandler,
 	NewCatalogAdminHandler,
 	NewRegistryHandler,
+	NewLifecycleHandler,
 )
