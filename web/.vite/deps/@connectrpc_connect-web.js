@@ -30,15 +30,15 @@ import {
   trailerParse,
   transformConnectPostToGetRequest,
   validateResponse
-} from "./chunk-C7ZZOCXU.js";
+} from "./chunk-U2K7AXER.js";
 import {
   fromJson
-} from "./chunk-RQE5CLH2.js";
-import "./chunk-4QD57P37.js";
+} from "./chunk-RNOTE2SB.js";
+import "./chunk-2FWLYUUM.js";
 import {
   MethodOptions_IdempotencyLevel
-} from "./chunk-5J2BFMBY.js";
-import "./chunk-5WRI5ZAA.js";
+} from "./chunk-3OR2GMTP.js";
+import "./chunk-EWTE5DHJ.js";
 
 // node_modules/@connectrpc/connect-web/dist/esm/assert-fetch-api.js
 function assertFetchApi() {

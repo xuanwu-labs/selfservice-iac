@@ -1,19 +1,47 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Card, Collapse, Form, Input, Select, Space, Table, Tag, Typography, message } from 'antd'
+import {
+  Button,
+  Card,
+  Collapse,
+  Form,
+  Input,
+  Modal,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Typography,
+  message,
+} from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { fetchModules, type Module, type ModuleStatus } from '../api'
+import {
+  fetchModules,
+  publishCatalogItem,
+  registerModule,
+  type CatalogLayer,
+  type Module,
+  type ModuleStatus,
+} from '../api'
 
 const { Text } = Typography
 
 const statusColor: Partial<Record<ModuleStatus, string>> = {
   ready: 'green',
+  validated: 'green',
   extracting: 'blue',
+  pending_validation: 'blue',
   failed: 'red',
+  validation_failed: 'red',
+  deprecated: 'default',
 }
 const statusLabel: Partial<Record<ModuleStatus, string>> = {
   ready: '可用',
+  validated: '已验证',
   extracting: '契约提取中',
+  pending_validation: '待验证',
   failed: '失败',
+  validation_failed: '验证失败',
+  deprecated: '已废弃',
 }
 
 interface RegisterForm {
@@ -25,27 +53,134 @@ interface RegisterForm {
   team: string
 }
 
+interface PublishForm {
+  displayName: string
+  category: string
+  layer: CatalogLayer
+  ownerTeamId: string
+}
+
+const layerOptions: { value: CatalogLayer; label: string }[] = [
+  { value: 'global', label: '全局层 (global)' },
+  { value: 'middleware', label: '中间件层 (middleware)' },
+  { value: 'application', label: '应用层 (application)' },
+]
+
+const categoryOptions = [
+  { value: 'database', label: '数据库 (database)' },
+  { value: 'compute', label: '计算 (compute)' },
+  { value: 'network', label: '网络 (network)' },
+  { value: 'storage', label: '存储 (storage)' },
+  { value: 'middleware', label: '中间件 (middleware)' },
+]
+
 export default function ModulesPage() {
   const [modules, setModules] = useState<Module[]>([])
   const [loading, setLoading] = useState(false)
   const [activeKey, setActiveKey] = useState<string[]>([])
   const [form] = Form.useForm<RegisterForm>()
+  const [publishForm] = Form.useForm<PublishForm>()
+  const [publishOpen, setPublishOpen] = useState(false)
+  const [publishTarget, setPublishTarget] = useState<Module | null>(null)
+  const [publishing, setPublishing] = useState(false)
+
+  const load = () => {
+    setLoading(true)
+    fetchModules()
+      .then((data) => {
+        setModules(data)
+        setLoading(false)
+      })
+      .catch(() => {
+        setLoading(false)
+      })
+  }
 
   useEffect(() => {
-    setLoading(true)
-    fetchModules().then((data) => {
-      setModules(data)
-      setLoading(false)
-    })
+    load()
   }, [])
+
+  const openPublish = (mod: Module) => {
+    setPublishTarget(mod)
+    publishForm.setFieldsValue({
+      displayName: mod.name,
+      category: 'database',
+      layer: 'application',
+      ownerTeamId: '',
+    })
+    setPublishOpen(true)
+  }
 
   const handleRegister = async () => {
     try {
       const values = await form.validateFields()
-      message.success(`已注册模块 ${values.displayName}，开始提取契约...`)
+      const result = await registerModule({
+        gitSource: values.gitSource,
+        modulePath: values.modulePath,
+        version: values.version,
+        provider: values.provider,
+        name: values.displayName,
+        ownerTeamId: values.team,
+      })
+      message.success(`已注册模块 ${values.displayName}@${values.version}`)
       form.resetFields()
-    } catch {
-      // validation handled by form
+      load()
+
+      // Offer to publish to the catalog immediately.
+      Modal.confirm({
+        title: '是否发布到服务目录?',
+        content: `模块 ${values.displayName} 已成功注册（version_id=${result.moduleVersionId}）。是否立即将其发布为服务目录项？`,
+        okText: '发布',
+        cancelText: '稍后',
+        onOk: () => {
+          // Seed the publish modal with the freshly registered module.
+          openPublish({
+            id: result.moduleId,
+            name: values.displayName,
+            gitSource: values.gitSource,
+            modulePath: values.modulePath,
+            version: values.version,
+            provider: values.provider,
+            varCount: 0,
+            outputCount: 0,
+            status: result.status,
+            moduleVersionId: result.moduleVersionId,
+          })
+        },
+      })
+    } catch (err: any) {
+      // Connect errors carry a `code` / `message`; surface them.
+      if (err?.message) {
+        message.error(`注册失败：${err.message}`)
+      }
+      // field validation handled by Form
+    }
+  }
+
+  const handlePublish = async () => {
+    if (!publishTarget?.moduleVersionId) {
+      message.error('缺少 module_version_id，无法发布。请重新注册或联系管理员。')
+      return
+    }
+    try {
+      const values = await publishForm.validateFields()
+      setPublishing(true)
+      const item = await publishCatalogItem({
+        moduleVersionId: publishTarget.moduleVersionId,
+        displayName: values.displayName,
+        category: values.category,
+        layerLogicalId: values.layer,
+        ownerTeamId: values.ownerTeamId,
+      })
+      message.success(`已发布到服务目录（id=${item.id}）`)
+      setPublishOpen(false)
+      publishForm.resetFields()
+    } catch (err: any) {
+      if (err?.message) {
+        message.error(`发布失败：${err.message}`)
+      }
+    } finally {
+      setPublishing(false)
     }
   }
 
@@ -61,7 +196,7 @@ export default function ModulesPage() {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (s: ModuleStatus) => <Tag color={statusColor[s]}>{statusLabel[s]}</Tag>,
+      render: (s: ModuleStatus) => <Tag color={statusColor[s]}>{statusLabel[s] ?? s}</Tag>,
     },
     {
       title: '操作',
@@ -71,11 +206,19 @@ export default function ModulesPage() {
           <Button
             type="link"
             disabled={!record.contractJson}
-            onClick={() => setActiveKey((prev) => (prev.includes(record.id) ? prev : [...prev, record.id]))}
+            onClick={() =>
+              setActiveKey((prev) => (prev.includes(record.id) ? prev : [...prev, record.id]))
+            }
           >
             查看契约
           </Button>
-          <Button type="link" disabled>发布到目录</Button>
+          <Button
+            type="link"
+            disabled={record.status === 'deprecated' || record.status === 'validation_failed'}
+            onClick={() => openPublish(record)}
+          >
+            发布目录
+          </Button>
         </Space>
       ),
     },
@@ -89,8 +232,18 @@ export default function ModulesPage() {
           key: m.id,
           label: `${m.name} @ ${m.version} · variables_contract_json`,
           children: (
-            <pre style={{ background: '#0f1419', color: '#e6e6e6', padding: 16, borderRadius: 6, fontSize: 12, margin: 0, overflow: 'auto' }}>
-{m.contractJson ?? ''}
+            <pre
+              style={{
+                background: '#0f1419',
+                color: '#e6e6e6',
+                padding: 16,
+                borderRadius: 6,
+                fontSize: 12,
+                margin: 0,
+                overflow: 'auto',
+              }}
+            >
+              {m.contractJson ?? ''}
             </pre>
           ),
         })),
@@ -123,11 +276,18 @@ export default function ModulesPage() {
           <Form.Item label="显示名" name="displayName" rules={[{ required: true, message: '请填写显示名' }]}>
             <Input placeholder="rds-mysql" style={{ width: 160 }} />
           </Form.Item>
-          <Form.Item label="团队" name="team" rules={[{ required: true, message: '请填写团队' }]}>
-            <Input placeholder="DBA 团队" style={{ width: 140 }} />
+          <Form.Item
+            label="团队 ID"
+            name="team"
+            rules={[{ required: true, message: '请填写团队 ID（snowflake）' }]}
+            tooltip="owner_team_id 必须是已存在团队的数字 snowflake ID"
+          >
+            <Input placeholder="如 1001" style={{ width: 140 }} />
           </Form.Item>
           <Form.Item>
-            <Button type="primary" onClick={handleRegister}>注册</Button>
+            <Button type="primary" onClick={handleRegister}>
+              注册
+            </Button>
           </Form.Item>
         </Form>
       </Card>
@@ -146,8 +306,52 @@ export default function ModulesPage() {
         <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
           契约由 <Text code>terraform-config-inspect</Text> 从 <Text code>variables.tf</Text> 提取的纯 scalar 信息（name/type/default/description/sensitive）。
         </Text>
-        <Collapse activeKey={activeKey} onChange={(keys) => setActiveKey(keys as string[])} items={contractPanels} />
+        <Collapse
+          activeKey={activeKey}
+          onChange={(keys) => setActiveKey(keys as string[])}
+          items={contractPanels}
+        />
       </Card>
+
+      <Modal
+        title={`发布到服务目录 · ${publishTarget?.name ?? ''}`}
+        open={publishOpen}
+        onOk={handlePublish}
+        onCancel={() => {
+          setPublishOpen(false)
+          publishForm.resetFields()
+        }}
+        okText="发布"
+        cancelText="取消"
+        confirmLoading={publishing}
+        destroyOnClose
+      >
+        <Form form={publishForm} layout="vertical">
+          <Form.Item label="module_version_id">
+            <Input value={publishTarget?.moduleVersionId || ''} disabled />
+          </Form.Item>
+          <Form.Item
+            label="目录显示名"
+            name="displayName"
+            rules={[{ required: true, message: '请填写显示名' }]}
+          >
+            <Input placeholder="rds-mysql" />
+          </Form.Item>
+          <Form.Item label="分类" name="category" rules={[{ required: true }]}>
+            <Select options={categoryOptions} />
+          </Form.Item>
+          <Form.Item label="分层" name="layer" rules={[{ required: true }]}>
+            <Select options={layerOptions} />
+          </Form.Item>
+          <Form.Item
+            label="归属团队 ID"
+            name="ownerTeamId"
+            rules={[{ required: true, message: '请填写团队 ID' }]}
+          >
+            <Input placeholder="如 1001" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Space>
   )
 }

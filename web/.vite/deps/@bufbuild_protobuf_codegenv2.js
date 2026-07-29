@@ -8,7 +8,7 @@ import {
   serviceDesc,
   symbols,
   wktPublicImportPaths
-} from "./chunk-4QD57P37.js";
+} from "./chunk-2FWLYUUM.js";
 import {
   boot,
   bootFileDescriptorProto,
@@ -18,8 +18,8 @@ import {
   messageDesc,
   objEnum,
   tsEnum
-} from "./chunk-5J2BFMBY.js";
-import "./chunk-5WRI5ZAA.js";
+} from "./chunk-3OR2GMTP.js";
+import "./chunk-EWTE5DHJ.js";
 export {
   boot,
   bootFileDescriptorProto,

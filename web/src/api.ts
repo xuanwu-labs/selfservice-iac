@@ -72,6 +72,118 @@ export async function fetchModules() {
   return (resp.modules || []).map(mapModule)
 }
 
+// getCatalogItemDetail fetches a single catalog item including its
+// form_schema_json (used to drive the RJSF dynamic request form).
+export async function getCatalogItemDetail(id: string): Promise<CatalogItemDetail> {
+  const resp = await catalogClient.getCatalogItem({ catalogItemId: id })
+  const item = resp.item
+  return {
+    id: item?.id || id,
+    name: item?.name || '',
+    description: item?.description || '',
+    category: item?.category || '',
+    layer: item?.layerLogicalId || '',
+    owner: item?.ownerTeamId || '',
+    status: item?.status?.toString() || '',
+    formSchemaJson: item?.formSchemaJson || '',
+  }
+}
+
+export interface CatalogItemDetail extends CatalogItem {
+  description: string
+  formSchemaJson: string
+}
+
+// createRequest submits a lifecycle request. formData is the RJSF output
+// (possibly nested / non-string values); it is flattened to map<string,string>
+// to match the proto CreateRequest.form_values contract — each leaf value is
+// JSON.stringified so the backend can recover typed values via json.Unmarshal.
+export async function createRequest(input: {
+  catalogItemId: string
+  envId: string
+  teamId: string
+  formData: Record<string, unknown>
+}): Promise<{ requestId: string; correlationId: string }> {
+  const formValues: Record<string, string> = {}
+  for (const [k, v] of Object.entries(input.formData || {})) {
+    formValues[k] = typeof v === 'string' ? v : JSON.stringify(v)
+  }
+  const resp = await lifecycleClient.createRequest({
+    catalogItemId: input.catalogItemId,
+    envId: input.envId,
+    teamId: input.teamId,
+    formValues,
+  })
+  return {
+    requestId: resp.request?.id || '',
+    correlationId: resp.correlationId || '',
+  }
+}
+
+export interface RegisterModuleInput {
+  gitSource: string
+  modulePath: string
+  version: string
+  provider: string
+  name: string
+  description?: string
+  ownerTeamId: string
+}
+
+export interface RegisterModuleResult {
+  moduleId: string
+  moduleVersionId: string
+  version: string
+  status: string
+}
+
+// registerModule calls RegistryAdminService.RegisterModule and returns the new
+// module + module_version IDs so the caller can immediately publish.
+export async function registerModule(input: RegisterModuleInput): Promise<RegisterModuleResult> {
+  const resp = await registryClient.registerModule({
+    gitSource: input.gitSource,
+    modulePath: input.modulePath,
+    version: input.version,
+    provider: input.provider,
+    name: input.name,
+    description: input.description ?? '',
+    ownerTeamId: input.ownerTeamId,
+  })
+  const mod = resp.module
+  const version = (mod?.versions && mod.versions[0]?.version) || input.version
+  return {
+    moduleId: mod?.id || '',
+    moduleVersionId: resp.moduleVersionId || '',
+    version,
+    status: mod?.status?.toString() || '',
+  }
+}
+
+export interface PublishCatalogInput {
+  moduleVersionId: string
+  displayName: string
+  description?: string
+  category: string
+  layerLogicalId?: string
+  ownerTeamId: string
+  visibility?: string[]
+}
+
+// publishCatalogItem calls CatalogAdminService.PublishCatalogItem. The backend
+// generates form_schema_json + defaults from the module version contract.
+export async function publishCatalogItem(input: PublishCatalogInput): Promise<CatalogItem> {
+  const resp = await catalogAdminClient.publishCatalogItem({
+    moduleVersion: input.moduleVersionId,
+    name: input.displayName,
+    description: input.description ?? '',
+    category: input.category,
+    layerLogicalId: input.layerLogicalId ?? '',
+    ownerTeamId: input.ownerTeamId,
+    visibleToTeams: input.visibility ?? [],
+  })
+  return mapCatalogItem(resp.item)
+}
+
 export async function decideApproval(requestId: string, decision: 'approved' | 'rejected') {
   // The lifecycle RPC takes a run id + a numeric ApprovalDecision enum.
   await lifecycleClient.decideApproval({
@@ -139,7 +251,14 @@ export type RequestStatus =
   | 'failed'
 
 // Module registry status values from the registry proto + UI-facing values.
-export type ModuleStatus = 'validated' | 'validation_failed' | 'deprecated' | 'ready' | 'extracting' | 'failed'
+export type ModuleStatus =
+  | 'validated'
+  | 'validation_failed'
+  | 'deprecated'
+  | 'ready'
+  | 'extracting'
+  | 'failed'
+  | 'pending_validation'
 
 export interface CatalogItem {
   id: string
@@ -170,6 +289,11 @@ export interface Module {
   outputCount: number
   status: string
   contractJson?: string
+  // moduleVersionId: snowflake ID of the current version, when surfaced by the
+  // backend (ModuleVersion proto has no id field, so this is populated from the
+  // register response and left empty for list rows — publishing from a list row
+  // uses the dedicated publish modal where the operator supplies it).
+  moduleVersionId?: string
 }
 
 export interface ApprovalItem extends IaCRequest {}

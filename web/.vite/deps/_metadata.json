@@ -2,99 +2,123 @@
   "hash": "91941a5c",
   "configHash": "c9941498",
   "lockfileHash": "930fcd48",
-  "browserHash": "5e3eb972",
+  "browserHash": "fc8c22d9",
   "optimized": {
     "react/jsx-dev-runtime": {
       "src": "../../node_modules/react/jsx-dev-runtime.js",
       "file": "react_jsx-dev-runtime.js",
-      "fileHash": "7e56da76",
+      "fileHash": "614edae2",
       "needsInterop": true
     },
     "antd": {
       "src": "../../node_modules/antd/es/index.js",
       "file": "antd.js",
-      "fileHash": "609d3ff1",
+      "fileHash": "c2406bc3",
       "needsInterop": false
     },
     "react": {
       "src": "../../node_modules/react/index.js",
       "file": "react.js",
-      "fileHash": "2e6537fd",
+      "fileHash": "b671ecab",
       "needsInterop": true
     },
     "react-dom/client": {
       "src": "../../node_modules/react-dom/client.js",
       "file": "react-dom_client.js",
-      "fileHash": "2074d43b",
+      "fileHash": "a989e3f2",
       "needsInterop": true
     },
     "react-router-dom": {
       "src": "../../node_modules/react-router-dom/dist/index.mjs",
       "file": "react-router-dom.js",
-      "fileHash": "a36c4bcf",
+      "fileHash": "49a18978",
       "needsInterop": false
     },
     "antd/locale/zh_CN": {
       "src": "../../node_modules/antd/locale/zh_CN.js",
       "file": "antd_locale_zh_CN.js",
-      "fileHash": "2533c32a",
+      "fileHash": "b6792297",
       "needsInterop": true
     },
     "@ant-design/icons": {
       "src": "../../node_modules/@ant-design/icons/es/index.js",
       "file": "@ant-design_icons.js",
-      "fileHash": "46f1e3fd",
+      "fileHash": "d42ae288",
       "needsInterop": false
     },
     "@connectrpc/connect-web": {
       "src": "../../node_modules/@connectrpc/connect-web/dist/esm/index.js",
       "file": "@connectrpc_connect-web.js",
-      "fileHash": "04dfac27",
+      "fileHash": "66e9ffb7",
       "needsInterop": false
     },
     "@connectrpc/connect": {
       "src": "../../node_modules/@connectrpc/connect/dist/esm/index.js",
       "file": "@connectrpc_connect.js",
-      "fileHash": "87e56f44",
+      "fileHash": "842bcf67",
       "needsInterop": false
     },
     "@bufbuild/protobuf": {
       "src": "../../node_modules/@bufbuild/protobuf/dist/esm/index.js",
       "file": "@bufbuild_protobuf.js",
-      "fileHash": "d2657af6",
+      "fileHash": "54d9d768",
       "needsInterop": false
     },
     "@bufbuild/protobuf/codegenv2": {
       "src": "../../node_modules/@bufbuild/protobuf/dist/esm/codegenv2/index.js",
       "file": "@bufbuild_protobuf_codegenv2.js",
-      "fileHash": "9b5688db",
+      "fileHash": "0301a856",
+      "needsInterop": false
+    },
+    "@rjsf/antd": {
+      "src": "../../node_modules/@rjsf/antd/lib/index.js",
+      "file": "@rjsf_antd.js",
+      "fileHash": "6147b278",
+      "needsInterop": false
+    },
+    "@rjsf/validator-ajv8": {
+      "src": "../../node_modules/@rjsf/validator-ajv8/lib/index.js",
+      "file": "@rjsf_validator-ajv8.js",
+      "fileHash": "1bfb4a1e",
       "needsInterop": false
     }
   },
   "chunks": {
-    "chunk-KWLN3RFB": {
-      "file": "chunk-KWLN3RFB.js"
+    "chunk-U2K7AXER": {
+      "file": "chunk-U2K7AXER.js"
     },
-    "chunk-H2E4SV6V": {
-      "file": "chunk-H2E4SV6V.js"
+    "chunk-RNOTE2SB": {
+      "file": "chunk-RNOTE2SB.js"
     },
-    "chunk-WNPTCGAH": {
-      "file": "chunk-WNPTCGAH.js"
+    "chunk-2FWLYUUM": {
+      "file": "chunk-2FWLYUUM.js"
     },
-    "chunk-C7ZZOCXU": {
-      "file": "chunk-C7ZZOCXU.js"
+    "chunk-3OR2GMTP": {
+      "file": "chunk-3OR2GMTP.js"
     },
-    "chunk-RQE5CLH2": {
-      "file": "chunk-RQE5CLH2.js"
+    "chunk-FLHTYQTW": {
+      "file": "chunk-FLHTYQTW.js"
     },
-    "chunk-4QD57P37": {
-      "file": "chunk-4QD57P37.js"
+    "chunk-HPA2TDTU": {
+      "file": "chunk-HPA2TDTU.js"
     },
-    "chunk-5J2BFMBY": {
-      "file": "chunk-5J2BFMBY.js"
+    "chunk-FENBLD7F": {
+      "file": "chunk-FENBLD7F.js"
     },
-    "chunk-5WRI5ZAA": {
-      "file": "chunk-5WRI5ZAA.js"
+    "chunk-JUWM2LYA": {
+      "file": "chunk-JUWM2LYA.js"
+    },
+    "chunk-IMA6MIXK": {
+      "file": "chunk-IMA6MIXK.js"
+    },
+    "chunk-RLXUFAYX": {
+      "file": "chunk-RLXUFAYX.js"
+    },
+    "chunk-W4EHDCLL": {
+      "file": "chunk-W4EHDCLL.js"
+    },
+    "chunk-EWTE5DHJ": {
+      "file": "chunk-EWTE5DHJ.js"
     }
   }
 }

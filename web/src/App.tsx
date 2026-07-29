@@ -7,6 +7,7 @@ import {
   FileTextOutlined,
   AuditOutlined,
   HomeOutlined,
+  SettingOutlined,
 } from '@ant-design/icons'
 import { Routes, Route, useNavigate, useLocation, Link } from 'react-router-dom'
 import CatalogPage from './pages/CatalogPage'
@@ -15,6 +16,7 @@ import ModulesPage from './pages/ModulesPage'
 import RequestsPage from './pages/RequestsPage'
 import ApprovalPage from './pages/ApprovalPage'
 import RequestDetailPage from './pages/RequestDetailPage'
+import AdminPage from './pages/AdminPage'
 
 const { Sider, Header, Content } = Layout
 
@@ -31,6 +33,7 @@ const menuItems: MenuItem[] = [
   { key: 'modules', label: '模块仓库', icon: <ClusterOutlined />, path: '/modules' },
   { key: 'requests', label: '我的工单', icon: <FileTextOutlined />, path: '/requests' },
   { key: 'approvals', label: '审批中心', icon: <AuditOutlined />, path: '/approvals' },
+  { key: 'admin', label: '管理设置', icon: <SettingOutlined />, path: '/admin' },
 ]
 
 const titleMap: Record<string, string> = {
@@ -40,6 +43,7 @@ const titleMap: Record<string, string> = {
   '/modules': '模块仓库',
   '/requests': '我的工单',
   '/approvals': '审批中心',
+  '/admin': '管理设置',
 }
 
 export default function App() {
@@ -93,6 +97,7 @@ export default function App() {
             <Route path="/requests" element={<RequestsPage />} />
             <Route path="/requests/:id" element={<RequestDetailPage />} />
             <Route path="/approvals" element={<ApprovalPage />} />
+            <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </Content>
       </Layout>

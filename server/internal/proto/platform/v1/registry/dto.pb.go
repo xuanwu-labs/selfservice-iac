@@ -417,10 +417,14 @@ func (x *RegisterModuleRequest) GetOwnerTeamId() string {
 }
 
 type RegisterModuleResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Module        *Module                `protobuf:"bytes,1,opt,name=module,proto3" json:"module,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Module *Module                `protobuf:"bytes,1,opt,name=module,proto3" json:"module,omitempty"`
+	// module_version_id: snowflake ID of the freshly-created module_version.
+	// Surfaced so the operator can immediately publish the version to the
+	// catalog (PublishCatalogItem.module_version) without a separate lookup.
+	ModuleVersionId string `protobuf:"bytes,2,opt,name=module_version_id,json=moduleVersionId,proto3" json:"module_version_id,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *RegisterModuleResponse) Reset() {
@@ -458,6 +462,13 @@ func (x *RegisterModuleResponse) GetModule() *Module {
 		return x.Module
 	}
 	return nil
+}
+
+func (x *RegisterModuleResponse) GetModuleVersionId() string {
+	if x != nil {
+		return x.ModuleVersionId
+	}
+	return ""
 }
 
 type ListModulesRequest struct {
@@ -811,9 +822,10 @@ const file_platform_v1_registry_dto_proto_rawDesc = "" +
 	"\bprovider\x18\x04 \x01(\tR\bprovider\x12\x12\n" +
 	"\x04name\x18\x05 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x06 \x01(\tR\vdescription\x12\"\n" +
-	"\rowner_team_id\x18\a \x01(\tR\vownerTeamId\"U\n" +
+	"\rowner_team_id\x18\a \x01(\tR\vownerTeamId\"\x81\x01\n" +
 	"\x16RegisterModuleResponse\x12;\n" +
-	"\x06module\x18\x01 \x01(\v2#.aether.platform.v1.registry.ModuleR\x06module\"\xd3\x01\n" +
+	"\x06module\x18\x01 \x01(\v2#.aether.platform.v1.registry.ModuleR\x06module\x12*\n" +
+	"\x11module_version_id\x18\x02 \x01(\tR\x0fmoduleVersionId\"\xd3\x01\n" +
 	"\x12ListModulesRequest\x12F\n" +
 	"\n" +
 	"pagination\x18\x01 \x01(\v2&.aether.platform.v1.common.PageRequestR\n" +

@@ -17,7 +17,7 @@ import {
   setExtension,
   toJson,
   toJsonString
-} from "./chunk-RQE5CLH2.js";
+} from "./chunk-RNOTE2SB.js";
 import {
   ScalarType,
   clearField,
@@ -34,8 +34,8 @@ import {
   minimumEdition,
   protoInt64,
   toBinary
-} from "./chunk-5J2BFMBY.js";
-import "./chunk-5WRI5ZAA.js";
+} from "./chunk-3OR2GMTP.js";
+import "./chunk-EWTE5DHJ.js";
 export {
   ScalarType,
   clearExtension,

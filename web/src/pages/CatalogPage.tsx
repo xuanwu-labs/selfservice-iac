@@ -144,7 +144,9 @@ export default function CatalogPage() {
         open={modalOpen}
         catalogItem={activeItem}
         onCancel={() => setModalOpen(false)}
-        onSubmit={() => message.info('Phase 1: 工单已模拟提交，详见我的工单页')}
+        onSubmit={(requestId) =>
+          message.success(`工单已提交（${requestId}），请在我的工单页查看进度`)
+        }
       />
     </Space>
   )

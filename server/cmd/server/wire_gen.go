@@ -56,7 +56,7 @@ func InitializeApp(cfg *config.Config) (*App, func(), error) {
 	gitProvider := git.NewGoGitProvider()
 	contractExtractor := registry.NewContractExtractor()
 	registryService := registry.NewRegistryService(moduleRepo, gitProvider, contractExtractor)
-	registryHandler := connect.NewRegistryHandler(registryService)
+	registryHandler := connect.NewRegistryHandler(registryService, pool)
 	// W3: identity + events + audit + lifecycle handler. The orchestrator
 	// Pipeline / ApprovalService are constructed with nil Phase-1 stubs here
 	// (their concrete adapters land in W2-07/W2-08); the lifecycle handler

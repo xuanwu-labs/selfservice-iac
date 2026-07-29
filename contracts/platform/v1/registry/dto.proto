@@ -78,6 +78,10 @@ message RegisterModuleRequest {
 
 message RegisterModuleResponse {
   Module module = 1;
+  // module_version_id: snowflake ID of the freshly-created module_version.
+  // Surfaced so the operator can immediately publish the version to the
+  // catalog (PublishCatalogItem.module_version) without a separate lookup.
+  string module_version_id = 2;
 }
 
 message ListModulesRequest {

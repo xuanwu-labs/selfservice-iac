@@ -8,6 +8,7 @@ package connect
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 
 	"connectrpc.com/connect"
@@ -80,11 +81,36 @@ func dbCatalogItemToProto(ci *generated.CatalogItem) *catalogv1.CatalogItem {
 		Category:    ci.Category,
 		OwnerTeamId: strconv.FormatInt(ci.OwnerTeamID, 10),
 		Status:      statusStringToProto(ci.Status),
+		// form_schema_json drives the RJSF dynamic request form. The column is
+		// JSONB ([]byte); the proto field is a string. We decode then re-encode
+		// to compact text so the frontend can JSON.parse it directly.
+		FormSchemaJson: compactJSONString(ci.FormSchemaJson),
 	}
 	if ci.LayerLogicalID != nil {
 		out.LayerLogicalId = *ci.LayerLogicalID
 	}
 	return out
+}
+
+// compactJSONString returns the compact JSON text for a JSONB byte slice. Empty
+// or null input returns "". Errors are swallowed (the frontend treats invalid
+// JSON as "no dynamic schema" and falls back to a generic form).
+func compactJSONString(b []byte) string {
+	if len(b) == 0 {
+		return ""
+	}
+	var v any
+	if err := json.Unmarshal(b, &v); err != nil {
+		return ""
+	}
+	if v == nil {
+		return ""
+	}
+	out, err := json.Marshal(v)
+	if err != nil {
+		return ""
+	}
+	return string(out)
 }
 
 // statusStringToProto maps the DB status string to the proto enum.
