@@ -23,6 +23,7 @@ import (
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/config"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/middleware"
 	"github.com/xuanwu-labs/selfservice-iac/server/internal/otel"
+	"github.com/xuanwu-labs/selfservice-iac/server/internal/web"
 )
 
 // Server is the assembled HTTP server — gin + Connect on one port.
@@ -45,8 +46,14 @@ func NewServer(cfg *config.Config, ginEngine *gin.Engine, mwCfg *middleware.Serv
 			mux.Handle("/api"+h.Path, h.Handler)
 		}
 	}
-	// Everything else goes to gin (healthz, ready, metrics, webhooks).
-	mux.Handle("/", ginEngine)
+	// Gin handles operational endpoints (healthz, ready, metrics).
+	mux.Handle("/healthz", ginEngine)
+	mux.Handle("/ready", ginEngine)
+	mux.Handle("/metrics", ginEngine)
+
+	// Embedded frontend SPA (go:embed from server/internal/web/dist/).
+	// Serves React app with SPA fallback for client-side routing.
+	mux.Handle("/", web.Handler())
 
 	return &Server{
 		httpServer: &http.Server{
